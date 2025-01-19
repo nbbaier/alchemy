@@ -6,7 +6,7 @@ Alchemy fully embraces AI code generation at its core, even going so far as to e
 
 AI is so damn good at CRUD, so good that we no longer need to shackle ourselves to heavy toolchains like Pulumi and Terraform. All of the pre-built components in [./src/components](./src/components) were generated in less than a few minutes. Use them if you want, or create your own. It's that easy.
 
-[![Demo]](./demo.mp4)
+[![Demo]](https://github.com/user-attachments/assets/9daa9ada-4b72-4aff-954d-c1718e26b5ed)
 
 # Features
 
