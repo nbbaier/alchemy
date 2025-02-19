@@ -28,7 +28,7 @@ export interface QueueOutput extends QueueProps {
 }
 
 export class Queue extends Resource(
-  "sqs::Queue",
+  "aws.sqs.Queue",
   async (ctx, props: QueueProps) => {
     const client = new SQSClient({});
     const queueName = props.fifo ? `${props.queueName}.fifo` : props.queueName;

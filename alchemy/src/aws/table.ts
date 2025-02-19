@@ -10,7 +10,7 @@ import {
 import { ignore } from "../error";
 import { type Context, Resource } from "../resource";
 
-export interface TableProps {
+export interface TableInput {
   tableName: string;
   partitionKey: {
     name: string;
@@ -26,7 +26,7 @@ export interface TableProps {
   tags?: Record<string, string>;
 }
 
-export interface TableOutput extends TableProps {
+export interface TableOutput extends TableInput {
   id: string; // Same as tableName
   arn: string;
   streamArn?: string;
@@ -34,10 +34,10 @@ export interface TableOutput extends TableProps {
 }
 
 export class Table extends Resource(
-  "dynamo::Table",
+  "aws.dynamodb.Table",
   async (
-    ctx: Context<TableOutput>,
-    props: TableProps,
+    ctx: Context<TableInput, TableOutput>,
+    props,
   ): Promise<TableOutput> => {
     const client = new DynamoDBClient({});
 

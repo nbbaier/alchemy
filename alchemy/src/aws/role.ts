@@ -16,7 +16,7 @@ import { ignore } from "../error";
 import { type Context, Resource } from "../resource";
 import type { PolicyDocument } from "./policy";
 
-export interface RoleProps {
+export interface RoleInput {
   roleName: string;
   assumeRolePolicy: PolicyDocument;
   description?: string;
@@ -31,7 +31,7 @@ export interface RoleProps {
   tags?: Record<string, string>;
 }
 
-export interface RoleOutput extends RoleProps {
+export interface RoleOutput extends RoleInput {
   id: string; // Same as roleName
   arn: string;
   uniqueId: string; // Unique identifier for the role
@@ -40,8 +40,11 @@ export interface RoleOutput extends RoleProps {
 }
 
 export class Role extends Resource(
-  "iam::Role",
-  async (ctx: Context<RoleOutput>, props: RoleProps): Promise<RoleOutput> => {
+  "aws.iam.Role",
+  async (
+    ctx: Context<RoleInput, RoleOutput>,
+    props: RoleInput,
+  ): Promise<RoleOutput> => {
     const client = new IAMClient({});
 
     if (ctx.event === "delete") {

@@ -1,10 +1,11 @@
-import { z } from "zod";
+import { type } from "arktype";
 import { generateObject } from "../agent/ai";
+import { arkSchema } from "../agent/ark";
 import { resolveModel } from "../agent/model";
 
-const CodeOmissionCheck = z.object({
-  hasOmittedCode: z.boolean(),
-  explanation: z.string(),
+const CodeOmissionCheck = type({
+  hasOmittedCode: "boolean",
+  explanation: "string",
 });
 
 const haiku = await resolveModel("claude-3-5-haiku-latest");
@@ -12,7 +13,7 @@ const haiku = await resolveModel("claude-3-5-haiku-latest");
 export async function checkForCodeOmission(code: string): Promise<boolean> {
   const result = await generateObject({
     model: haiku,
-    schema: CodeOmissionCheck,
+    schema: arkSchema(CodeOmissionCheck),
     temperature: 0.1,
     messages: [
       {

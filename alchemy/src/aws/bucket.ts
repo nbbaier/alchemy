@@ -32,7 +32,7 @@ export interface BucketOutput extends BucketProps {
 }
 
 export class Bucket extends Resource(
-  "s3::Bucket",
+  "aws.s3.Bucket",
   async (ctx, props: BucketProps) => {
     const client = new S3Client({});
 

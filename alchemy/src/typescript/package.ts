@@ -1,88 +1,89 @@
 import { generateObject } from "ai";
+import { type } from "arktype";
 import { mkdir, writeFile } from "fs/promises";
 import { dirname } from "path";
-import { z } from "zod";
+import { arkSchema } from "../agent/ark";
 import { dependenciesAsMessages } from "../agent/dependencies";
-import { FileContext } from "../agent/file-context";
-import { resolveModel } from "../agent/model";
+import { File } from "../agent/file-context";
+import { ModelId, resolveModel } from "../agent/model";
 import { rm } from "../fs";
-import { type Context, Resource } from "../resource";
+import { Resource } from "../resource";
 
-export const PackageJsonSchema = z.object({
-  name: z.string(),
-  version: z.string(),
-  description: z.string().optional(),
-  main: z.string().optional(),
-  types: z.string().optional(),
-  type: z.literal("module"),
-  scripts: z.record(z.string()).optional(),
-  peerDependencies: z.record(z.string()).optional(),
-  peerDependenciesMeta: z
-    .record(z.object({ optional: z.boolean() }))
-    .optional(),
-  devDependencies: z.record(z.string()).optional(),
-  keywords: z.array(z.string()).optional(),
-  author: z.string().optional(),
-  license: z.string().optional(),
-  repository: z
-    .object({
-      type: z.string(),
-      url: z.string(),
-    })
-    .optional(),
-  exports: z.unknown().optional(),
-  files: z.array(z.string()).optional(),
+export const PackageJsonSchema = type({
+  name: "string",
+  version: "string",
+  description: "string?",
+  main: "string?",
+  types: "string?",
+  type: '"module"',
+  scripts: type({ "[string]": "string" }).optional(),
+  peerDependencies: type({ "[string]": "string" }).optional(),
+  peerDependenciesMeta: type({
+    "[string]": type({ optional: "boolean" }),
+  }).optional(),
+  devDependencies: type({ "[string]": "string" }).optional(),
+  keywords: "string[]?",
+  author: "string?",
+  license: "string?",
+  repository: type({
+    type: "string",
+    url: "string",
+  }).optional(),
+  exports: "unknown?",
+  files: "string[]?",
 });
 
-export const PackageJsonInput = z.object({
+export type PackageJsonInput = type.infer<typeof PackageJsonInput>;
+
+export const PackageJsonInput = type({
   /**
    * List of requirements for the package
    * Can include dependencies, dev dependencies, scripts, etc.
    */
-  requirements: z.array(z.string()),
+  requirements: "string[]",
 
   /**
    * List of dependencies for the package
    */
-  dependencies: z.array(FileContext).optional(),
+  dependencies: File.array().optional(),
 
   /**
    * Name of the package
    */
-  name: z.string(),
+  name: "string",
 
   /**
    * The ID of the model to use for generating package configuration
    * @default "gpt-4o"
    */
-  model: z.string().optional(),
+  model: ModelId.optional(),
 
   /**
    * Temperature setting for model generation
    * @default 0.3
    */
-  temperature: z.number().optional(),
+  temperature: "number?",
 
   /**
    * Path to the package.json file to generate
    */
-  path: z.string(),
+  path: "string",
 });
 
-export type PackageJsonInput = z.infer<typeof PackageJsonInput>;
-
-export interface PackageJsonOutput {
-  path: string;
-  content: string;
-  packageJson: z.infer<typeof PackageJsonSchema>;
-}
+export type PackageJsonOutput = type.infer<typeof PackageJsonOutput>;
+export const PackageJsonOutput = type({
+  path: "string",
+  content: "string",
+  packageJson: PackageJsonSchema,
+});
 
 export class PackageJson extends Resource(
-  "code::Package",
-  async (
-    ctx: Context<PackageJsonOutput>,
-    props: PackageJsonInput,
-  ): Promise<PackageJsonOutput | void> => {
+  "Package",
+  {
+    input: PackageJsonInput,
+    output: PackageJsonOutput,
+  },
+  async (ctx, props): Promise<PackageJsonOutput | void> => {
     if (ctx.event === "delete") {
       await rm(props.path);
       return;
@@ -96,7 +97,8 @@ export class PackageJson extends Resource(
     // Generate the package configuration using generateObject for type safety
     const result = await generateObject({
       model,
-      schema: PackageJsonSchema,
+      mode: "json",
+      schema: arkSchema(PackageJsonSchema),
       temperature: props.temperature ?? 0.3,
       messages: [
         {
@@ -129,7 +131,11 @@ Output only the package.json code (do not emit any other files).`,
     // Ensure the directory exists
     await mkdir(dirname(props.path), { recursive: true });
 
-    const content = JSON.stringify(result.object, null, 2);
+    const content = JSON.stringify(
+      result.object as type.infer<typeof PackageJsonSchema>,
+      null,
+      2,
+    );
 
     // Write the package.json file
     await writeFile(props.path, content);
@@ -137,7 +143,7 @@ Output only the package.json code (do not emit any other files).`,
     return {
       path: props.path,
       content,
-      packageJson: result.object,
+      packageJson: result.object as type.infer<typeof PackageJsonSchema>,
     };
   },
 ) {}

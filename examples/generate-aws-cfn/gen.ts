@@ -147,15 +147,16 @@ class AWSService extends Resource(
 class AWSDocReference extends Resource(
   "aws-doc-reference",
   async (
-    ctx: Context<{ content: string }>,
-    props: {
-      serviceName: string;
-      resourceName: string;
-      requirements: string;
-    },
-  ): Promise<{
-    content: string;
-  } | void> => {
+    ctx: Context<
+      {
+        serviceName: string;
+        resourceName: string;
+        requirements: string;
+      },
+      { content: string }
+    >,
+    props,
+  ) => {
     if (ctx.event === "delete") {
       return;
     }

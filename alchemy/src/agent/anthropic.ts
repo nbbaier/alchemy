@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { type } from "arktype";
 
 /**
  * @see https://docs.anthropic.com/en/docs/about-claude/models#model-comparison-table
@@ -22,7 +22,7 @@ export const AnthropicModels = [
   "claude-3-haiku-20240307",
 ] as const;
 
-export const AnthropicModel = z.enum(AnthropicModels);
+export const AnthropicModel = type.enumerated(...AnthropicModels);
 
 export type AnthropicModelId = (typeof AnthropicModels)[number] | (string & {});
 

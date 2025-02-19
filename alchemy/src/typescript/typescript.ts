@@ -1,12 +1,12 @@
 import type { CoreMessage } from "ai";
+import { type } from "arktype";
 import { mkdir, writeFile } from "fs/promises";
 import { dirname } from "path";
-import { z } from "zod";
 import { ModelId, generateText, resolveModel } from "../agent";
 import { dependenciesAsMessages } from "../agent/dependencies";
-import { FileContext } from "../agent/file-context";
+import { File } from "../agent/file-context";
 import { rm } from "../fs";
-import { type Context, Resource } from "../resource";
+import { Resource } from "../resource";
 import { checkForCodeOmission } from "./check-omission";
 import { debugTypeErrors } from "./debug-type-errors";
 import { extractTypeScriptCode } from "./extract";
@@ -14,9 +14,7 @@ import { repairTypeScriptCode } from "./repair";
 import { repairCodeOmissions } from "./repair-omissions";
 import { validateTypeScript } from "./validate";
 
-export type TypeScriptFileInput = z.infer<typeof TypeScriptFileInput>;
-
-const TypeScriptFileInput = z.object({
+export const TypeScriptFileInput = type({
   /**
    * The ID of the model to use for generating TypeScript code
    * @default "gpt-4o"
@@ -26,51 +24,55 @@ const TypeScriptFileInput = z.object({
   /**
    * The name of the file to write the code to
    */
-  path: z.string(),
+  path: "string",
 
   /**
    * The requirements for the TypeScript file
    */
-  requirements: z.string(),
+  requirements: "string",
 
   /**
    * List of other code files that it depends on
    */
-  dependencies: z.array(FileContext).optional(),
+  dependencies: File.array().optional(),
 
   /**
    * Temperature setting for model generation (higher = more creative, lower = more focused)
    * @default 0.7
    */
-  temperature: z.number().optional(),
+  temperature: "number?",
 
   /**
    * Whether to perform TypeScript type checking on the generated code
    * @default false
    */
-  typeCheck: z.boolean().optional(),
+  typeCheck: "boolean?",
 
   /**
    * Path to the tsconfig.json file to use for validation
    * If not provided, will look for tsconfig.json in the project root
    * Only used if typeCheck is true
    */
-  tsconfigPath: z.string().optional(),
+  tsconfigPath: "string?",
 
   /**
    * Project root directory. Used to resolve tsconfig.json and module imports
    * If not provided, will use the directory of the target file
    * Only used if typeCheck is true
    */
-  projectRoot: z.string().optional(),
+  projectRoot: "string?",
 });
 
-export type TypeScriptFileOutput = z.infer<typeof TypeScriptFileOutput>;
-export const TypeScriptFileOutput = FileContext;
+export type TypeScriptFileInput = type.infer<typeof TypeScriptFileInput>;
+export const TypeScriptFileOutput = File;
 
 export class TypeScriptFile extends Resource(
-  "code::TypeScriptFile",
-  async (ctx: Context<TypeScriptFileOutput>, props: TypeScriptFileInput) => {
+  "TypeScriptFile",
+  {
+    input: TypeScriptFileInput,
+    output: File,
+  },
+  async (ctx, props) => {
     if (ctx.event === "delete") {
       await rm(props.path);
       return;

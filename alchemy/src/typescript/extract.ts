@@ -4,6 +4,8 @@
  * @returns The TypeScript code if found, undefined otherwise
  */
 export function extractTypeScriptCode(text: string): string | undefined {
-  const matches = text.match(/```(?:ts|typescript)\n([\s\S]*?)```/);
+  const matches = text.match(
+    /```(?:ts|js|typescript|javascript)\n([\s\S]*?)```/,
+  );
   return matches?.[1]?.trim();
 }

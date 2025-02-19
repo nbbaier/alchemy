@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { type } from "arktype";
 export const OpenAIModels = [
   "o3-mini",
 
@@ -36,7 +36,7 @@ export const OpenAIModels = [
   "gpt-3.5-turbo-1106",
 ] as const;
 
-export const OpenAIModel = z.enum(OpenAIModels);
+export const OpenAIModel = type.enumerated(...OpenAIModels);
 
 export type OpenAIChatModelId = (typeof OpenAIModels)[number] | (string & {});
 

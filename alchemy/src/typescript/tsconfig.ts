@@ -1,48 +1,46 @@
 import { generateObject } from "ai";
+import { type } from "arktype";
 import { mkdir, writeFile } from "fs/promises";
 import { dirname } from "path";
-import { z } from "zod";
-import { FileContext, dependenciesAsMessages, resolveModel } from "../agent";
+import { File, ModelId, dependenciesAsMessages, resolveModel } from "../agent";
+import { arkSchema } from "../agent/ark";
 import { rm } from "../fs";
-import { type Context, Resource } from "../resource";
+import { Resource } from "../resource";
 
-export type TypeScriptConfigInput = z.infer<typeof TypeScriptConfigInput>;
-
-export const TypeScriptConfigInput = z.object({
+export const TypeScriptConfigInput = type({
   /**
    * The ID of the model to use for generating tsconfig configuration
    * @default "gpt-4o"
    */
-  modelId: z.string().optional(),
+  modelId: ModelId.optional(),
 
   /**
    * List of requirements for the TypeScript configuration
    * Can include module settings, compilation options, etc.
    */
-  requirements: z.array(z.string()),
+  requirements: "string[]",
 
   /**
    * List of dependencies for the TypeScript configuration
    */
-  dependencies: z.array(FileContext).optional(),
+  dependencies: File.array().optional(),
 
   /**
    * Temperature setting for model generation
    * @default 0.3
    */
-  temperature: z.number().optional(),
+  temperature: "number?",
 
   /**
    * Path to the tsconfig.json file to generate
    */
-  path: z.string(),
+  path: "string",
 });
 
-export type TsConfigJson = z.infer<typeof TsConfigSchema>;
-export const TsConfigSchema = z.object({
-  $schema: z.string().optional(),
-  compilerOptions: z.object({
-    target: z.enum([
+export const TsConfigSchema = type({
+  $schema: "string?",
+  compilerOptions: type({
+    target: type.enumerated(
       "es2015",
       "es2016",
       "es2017",
@@ -52,8 +50,8 @@ export const TsConfigSchema = z.object({
       "es2021",
       "es2022",
       "esnext",
-    ]),
-    module: z.enum([
+    ),
+    module: type.enumerated(
       "commonjs",
       "es2015",
       "es2020",
@@ -61,58 +59,62 @@ export const TsConfigSchema = z.object({
       "esnext",
       "node16",
       "nodenext",
-    ]),
-    lib: z.array(z.string()).optional(),
-    declaration: z.boolean().optional(),
-    declarationMap: z.boolean().optional(),
-    sourceMap: z.boolean().optional(),
-    outDir: z.string().optional(),
-    rootDir: z.string().optional(),
-    strict: z.boolean(),
-    esModuleInterop: z.boolean().optional(),
-    skipLibCheck: z.boolean().optional(),
-    forceConsistentCasingInFileNames: z.boolean().optional(),
-    moduleResolution: z
-      .enum(["node", "node16", "nodenext", "bundler"])
+    ),
+    lib: "string[]?",
+    declaration: "boolean?",
+    declarationMap: "boolean?",
+    sourceMap: "boolean?",
+    outDir: "string?",
+    rootDir: "string?",
+    strict: "boolean",
+    esModuleInterop: "boolean?",
+    skipLibCheck: "boolean?",
+    forceConsistentCasingInFileNames: "boolean?",
+    moduleResolution: type
+      .enumerated("node", "node16", "nodenext", "bundler")
       .optional(),
-    resolveJsonModule: z.boolean().optional(),
-    isolatedModules: z.boolean().optional(),
-    allowJs: z.boolean().optional(),
-    checkJs: z.boolean().optional(),
-    noEmit: z.boolean().optional(),
-    incremental: z.boolean().optional(),
-    composite: z.boolean().optional(),
-    tsBuildInfoFile: z.string().optional(),
-    paths: z.record(z.array(z.string())).optional(),
-    baseUrl: z.string().optional(),
-    types: z.array(z.string()).optional(),
-    typeRoots: z.array(z.string()).optional(),
+    resolveJsonModule: "boolean?",
+    isolatedModules: "boolean?",
+    allowJs: "boolean?",
+    checkJs: "boolean?",
+    noEmit: "boolean?",
+    incremental: "boolean?",
+    composite: "boolean?",
+    tsBuildInfoFile: "string?",
+    paths: type({
+      "[string]": "string[]",
+    }).optional(),
+    baseUrl: "string?",
+    types: "string[]?",
+    typeRoots: "string[]?",
   }),
-  include: z.array(z.string()).optional(),
-  exclude: z.array(z.string()).optional(),
-  references: z
-    .array(
-      z.object({
-        path: z.string(),
-      }),
-    )
+  include: "string[]?",
+  exclude: "string[]?",
+  references: type({
+    path: "string",
+  })
+    .array()
     .optional(),
 });
 
-export interface TypeScriptConfigOutput
-  extends z.infer<typeof TypeScriptConfigOutput> {}
-export const TypeScriptConfigOutput = z.object({
-  path: z.string(),
-  content: z.string(),
+export type TypeScriptConfigInput = type.infer<typeof TypeScriptConfigInput>;
+export type TsConfigJson = type.infer<typeof TsConfigSchema>;
+
+export const TypeScriptConfigOutput = type({
+  path: "string",
+  content: "string",
   tsconfig: TsConfigSchema,
 });
 
-export class TypeScriptConfig extends Resource(
-  "code::tsconfig",
-  async (
-    ctx: Context<TypeScriptConfigOutput>,
-    props: TypeScriptConfigInput,
-  ) => {
+export type TypeScriptConfigOutput = type.infer<typeof TypeScriptConfigOutput>;
+
+export const TypeScriptConfig = Resource(
+  "TSConfig",
+  {
+    input: TypeScriptConfigInput,
+    output: TypeScriptConfigOutput,
+  },
+  async (ctx, props) => {
     if (ctx.event === "delete") {
       await rm(props.path);
       return;
@@ -126,7 +128,8 @@ export class TypeScriptConfig extends Resource(
     // Generate the tsconfig configuration using generateObject for type safety
     const result = await generateObject({
       model,
-      schema: TsConfigSchema,
+      mode: "json",
+      schema: arkSchema(TsConfigSchema),
       temperature: props.temperature ?? 0.3,
       messages: [
         {
@@ -167,4 +170,4 @@ Rules:
       tsconfig: result.object,
     };
   },
-) {}
+);

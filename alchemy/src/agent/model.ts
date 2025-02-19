@@ -1,5 +1,4 @@
 import type { LanguageModelV1 } from "ai";
-import { z } from "zod";
 import {
   AnthropicModel,
   type AnthropicModelId,
@@ -7,9 +6,9 @@ import {
 } from "./anthropic";
 import { type OpenAIChatModelId, OpenAIModel, isOpenAIModel } from "./openai";
 
-export type ModelId = OpenAIChatModelId | AnthropicModelId;
+export const ModelId = OpenAIModel.or(AnthropicModel);
 
-export const ModelId = z.union([OpenAIModel, AnthropicModel]);
+export type ModelId = typeof ModelId.infer;
 
 const modelCache = new Map<ModelId, Promise<LanguageModelV1>>();
 

@@ -1,32 +1,11 @@
 {
-  "name": "todo",
+  "name": "markdown-program",
   "version": "1.0.0",
-  "description": "A simple TODO application with a React frontend and REST API.",
-  "author": "Alchemy",
+  "description": "A program that generates a markdown file.",
+  "author": "Sam Goodwin",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://example.com/todo.git"
-  },
   "type": "module",
   "dependencies": {
-    "vite": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "tailwindcss": "latest",
-    "shadcn-ui": "latest"
-  },
-  "devDependencies": {
-    "typescript": "latest",
-    "@tsconfig/node22": "latest"
-  },
-  "keywords": [
-    "TODO",
-    "React",
-    "TypeScript",
-    "Vite",
-    "DrizzleKit",
-    "Hono",
-    "Bun"
-  ]
+    "alchemy": "workspace:*"
+  }
 }

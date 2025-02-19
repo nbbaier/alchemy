@@ -54,7 +54,7 @@ export interface PolicyOutput extends PolicyProps {
 }
 
 export class Policy extends Resource(
-  "iam::Policy",
+  "aws.iam.Policy",
   async (ctx, props: PolicyProps): Promise<PolicyOutput> => {
     const client = new IAMClient({});
     const policyArn = `arn:aws:iam::${process.env.AWS_ACCOUNT_ID}:policy${props.path || "/"}${props.policyName}`;

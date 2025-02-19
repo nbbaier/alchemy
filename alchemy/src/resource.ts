@@ -1,8 +1,9 @@
+import type { type } from "arktype";
 import { alchemize } from "./alchemize";
 import { type ApplyOptions, apply } from "./apply";
 import type { DestroyOptions } from "./destroy";
 import { defaultStateStore, deletions, providers } from "./global";
-import type { Inputs, Input as input } from "./input";
+import type { Input as input } from "./input";
 import { Output } from "./output";
 import { Scope as IScope, getScope, pushScope } from "./scope";
 import type { State, StateStore } from "./state";
@@ -31,17 +32,10 @@ const OrthogonalProperties = [
   Options,
 ] as const;
 
-export interface ProviderOptions {
-  /**
-   * If true, the resource will be updated even if the inputs have not changed.
-   */
-  alwaysUpdate: boolean;
-}
-
-export type Resource<In extends any[] = any[], Out = any> = {
+export type Resource<In = any, Out = any> = {
   [ResourceID]: string;
   [Provider]: Provider<any, any[], any>;
-  [Input]: Inputs<In>;
+  [Input]: input<In>;
   [Value]?: Out;
   [Apply]: <O>(value: Out) => O;
   [Provide]: (value: Out) => void;
@@ -67,32 +61,55 @@ export interface CreateContext extends BaseContext {
   event: "create";
 }
 
-export interface UpdateContext<Outputs> extends BaseContext {
+export interface UpdateContext<In, Outputs> extends BaseContext {
   event: "update";
+  input: In;
   output: Outputs;
 }
 
-export interface DeleteContext<Outputs> extends BaseContext {
+export interface DeleteContext<In, Outputs> extends BaseContext {
   event: "delete";
+  input: In;
   output: Outputs;
 }
 
-export type Context<Outputs> =
+export type Context<In, Outputs> =
   | CreateContext
-  | UpdateContext<Outputs>
-  | DeleteContext<Outputs>;
+  | UpdateContext<In, Outputs>
+  | DeleteContext<In, Outputs>;
+
+export function isProvider(value: any): value is Provider {
+  return typeof value === "function" && typeof value.type === "string";
+}
+
+export type ProviderOrThunk<P extends Provider = Provider> = P | (() => P);
+
+export type ProviderInstance<T extends ProviderOrThunk> = T extends Provider
+  ? InstanceType<T>
+  : T extends () => Provider
+    ? InstanceType<ReturnType<T>>
+    : never;
+
+export function resolveProvider<T extends ProviderOrThunk>(
+  provider: T,
+): Provider {
+  return isProvider(provider) ? provider : provider();
+}
 
 export type Provider<
   Type extends ResourceType = ResourceType,
-  In extends any[] = any[],
+  In = any,
   Out = any,
 > = {
   type: Type;
+  input: type<In>;
+  output: type<Out>;
+  example?: string;
   update(
     stage: string,
     resource: Resource,
     deps: Set<ResourceID>,
-    inputs: Inputs<In>,
+    inputs: input<In>,
     stateStore: StateStore,
     options: ApplyOptions,
   ): Promise<Awaited<Out>>;
@@ -101,64 +118,79 @@ export type Provider<
     scope: IScope | undefined,
     resourceID: ResourceID,
     state: State,
-    inputs: Inputs<In>,
+    inputs: input<In>,
     options: DestroyOptions,
   ): Promise<void>;
 } & (new (
   id: string,
-  ...inputs: [...Inputs<In>, ...any[]]
+  // we allow arbitrary inputs at the end to allow for arbitrary dependency graph construction
+  ...inputs: [input<In>, ...any[]]
 ) => Resource<In, Out>);
 
 export function isResource(value: any): value is Resource {
   return value?.[ResourceID] !== undefined;
 }
 
-export function Resource<
-  const Type extends ResourceType,
-  Args extends any[],
-  Out,
->(
-  type: Type,
-  options: Partial<ProviderOptions>,
-  func: (
-    ctx: Context<Out>,
-    ...args: Args
-  ) => Promise<input<Out> | void> | input<Out> | void,
-): Provider<Type, Args, Awaited<Out>>;
+export type ResourceHandler<In, Out> = (
+  ctx: Context<In, Out>,
+  input: In,
+  ...args: any[]
+) => Promise<input<Out> | void> | input<Out> | void;
+
+export interface ProviderOptions {
+  /**
+   * If true, the resource will be updated even if the inputs have not changed.
+   */
+  alwaysUpdate?: boolean;
+  example?: string;
+  input?: never;
+  output?: never;
+}
+
+export interface TypedProviderOptions<
+  Input extends type<any, any>,
+  Output extends type<any, any>,
+> {
+  /**
+   * If true, the resource will be updated even if the inputs have not changed.
+   */
+  alwaysUpdate?: boolean;
+  example?: string;
+  input: Input;
+  output: Output;
+}
 
 export function Resource<
   const Type extends ResourceType,
-  Args extends any[],
-  Out,
+  In extends type<any>,
+  Out extends type<any>,
 >(
   type: Type,
-  func: (
-    ctx: Context<Out>,
-    ...args: Args
-  ) => Promise<input<Out> | void> | input<Out> | void,
-): Provider<Type, Args, Awaited<Out>>;
+  options: TypedProviderOptions<In, Out>,
+  func: ResourceHandler<type.infer<In>, type.infer<Out>>,
+): Provider<Type, type.infer<In>, type.infer<Out>>;
 
-export function Resource<
-  const Type extends ResourceType,
-  Args extends any[],
-  Out,
->(
+export function Resource<const Type extends ResourceType, In, Out>(
+  type: Type,
+  options: ProviderOptions,
+  func: ResourceHandler<In, Out>,
+): Provider<Type, In, Out> & {
+  input: In;
+  output: Out;
+};
+
+export function Resource<const Type extends ResourceType, In, Out>(
+  type: Type,
+  func: ResourceHandler<In, Out>,
+): Provider<Type, In, Awaited<Out>>;
+
+export function Resource<const Type extends ResourceType, In, Out>(
   type: Type,
   ...args:
-    | [
-        Partial<ProviderOptions>,
-        (
-          ctx: Context<Out>,
-          ...args: Args
-        ) => Promise<input<Out> | void> | input<Out> | void,
-      ]
-    | [
-        (
-          ctx: Context<Out>,
-          ...args: Args
-        ) => Promise<input<Out> | void> | input<Out> | void,
-      ]
-): Provider<Type, Args, Awaited<Out>> {
+    | [TypedProviderOptions<any, any>, ResourceHandler<any, any>]
+    | [ProviderOptions, ResourceHandler<In, Out>]
+    | [ResourceHandler<In, Out>]
+): Provider<Type, In, Awaited<Out>> {
   if (providers.has(type)) {
     throw new Error(`Resource ${type} already exists`);
   }
@@ -166,8 +198,8 @@ export function Resource<
 
   interface Resource {
     [ResourceID]: ResourceID;
-    [Provider]: Provider<Type, Args, Out>;
-    [Input]: Inputs<Args>;
+    [Provider]: Provider<Type, In, Out>;
+    [Input]: [input<In>, ...any[]];
     [Value]?: Out;
     [Scope]: IScope;
     [Options]: ProviderOptions;
@@ -175,8 +207,10 @@ export function Resource<
 
   class Resource {
     static readonly type = type;
+    static readonly input = options?.input;
+    static readonly output = options?.output;
 
-    constructor(id: ResourceID, ...input: Inputs<Args>) {
+    constructor(id: ResourceID, input: input<In>, ...args: any[]) {
       const scope = getScope();
       const node = {
         provider: Resource,
@@ -192,7 +226,7 @@ export function Resource<
 
       this[ResourceID] = id;
       this[Provider] = Resource as any;
-      this[Input] = input;
+      this[Input] = [input, ...args];
       this[Value] = undefined;
       this[Scope] = scope;
       this[Provide] = (value: Out) => {
@@ -252,7 +286,7 @@ export function Resource<
       stage: string,
       resource: Resource,
       deps: Set<ResourceID>,
-      inputs: Args,
+      inputs: [In, ...any[]],
       stateStore: StateStore,
       options: ApplyOptions,
     ): Promise<Awaited<Out | void>> {
@@ -320,6 +354,7 @@ export function Resource<
               resourceID,
               event,
               scope: getScope(),
+              input: resourceState.inputs[0],
               output: resourceState.output,
               replace: () => {
                 if (isReplaced) {
@@ -391,7 +426,7 @@ export function Resource<
       scope: IScope,
       resourceID: ResourceID,
       state: State,
-      inputs: Args,
+      inputs: [In, ...any[]],
       options: DestroyOptions,
     ) {
       const resourceFQN = `${scope.getScopePath(stage)}/${resourceID}`;
@@ -416,6 +451,7 @@ export function Resource<
           scope,
           resourceID: resourceID,
           event: "delete",
+          input: state.inputs[0],
           output: state.output,
           replace() {
             throw new Error("Cannot replace a resource that is being deleted");

@@ -1,19 +1,19 @@
+import { type } from "arktype";
 import { mkdir, writeFile } from "fs/promises";
 import { dirname } from "path";
-import { z } from "zod";
 import {
-  FileContext,
+  File,
   ModelId,
   dependenciesAsMessages,
   generateText,
   resolveModel,
 } from "../agent";
 import { rm } from "../fs";
-import { type Context, Resource } from "../resource";
+import { Resource } from "../resource";
 
-export const ReasoningEffort = z.enum(["low", "medium", "high"]);
+export const ReasoningEffort = type.enumerated("low", "medium", "high");
 
-export const RequirementsInput = z.object({
+export const RequirementsInput = type({
   /**
    * The ID of the model to use for generating requirements documentation
    * @default "gpt-4o"
@@ -28,38 +28,39 @@ export const RequirementsInput = z.object({
   /**
    * List of requirements to document and analyze
    */
-  requirements: z.array(z.string()),
+  requirements: "string[]",
 
   /**
    * List of dependencies for the requirements document
    */
-  dependencies: z.array(FileContext).optional(),
+  dependencies: File.array().optional(),
 
   /**
    * Temperature setting for model generation (higher = more creative, lower = more focused)
    * @default 0.7
    */
-  temperature: z.number().optional(),
+  temperature: "number?",
 
   /**
    * File path where the requirements document should be written
    */
-  file: z.string().optional(),
+  file: "string?",
 });
 
-export const RequirementsOutput = z.object({
+export const RequirementsOutput = type({
   /**
    * Generated markdown document containing organized and analyzed requirements
    */
-  content: z.string(),
+  content: "string",
 });
 
-export interface RequirementsInput extends z.infer<typeof RequirementsInput> {}
-export type RequirementsOutput = z.infer<typeof RequirementsOutput>;
-
 export class Requirements extends Resource(
-  "code::Requirements",
-  async (ctx: Context<RequirementsOutput>, props: RequirementsInput) => {
+  "Requirements",
+  {
+    input: RequirementsInput,
+    output: RequirementsOutput,
+  },
+  async (ctx, props) => {
     if (ctx.event === "delete") {
       if (props.file) {
         await rm(props.file);

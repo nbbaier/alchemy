@@ -27,6 +27,7 @@
     "@aws-sdk/client-s3": "^3.0.0",
     "@aws-sdk/client-sqs": "^3.0.1",
     "ai": "^4.1.16",
+    "arktype": "^2.0.4",
     "diff": "^7.0.0",
     "jszip": "^3.0.0",
     "esbuild": "^0.24.2",

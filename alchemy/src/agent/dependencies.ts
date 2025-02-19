@@ -1,5 +1,4 @@
 import type { CoreMessage } from "ai";
-import type { FileContext } from "./file-context";
 
 export function dependenciesAsMessages(
   dependencies: FileContext[] | undefined,

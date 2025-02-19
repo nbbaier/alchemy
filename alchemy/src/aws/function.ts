@@ -22,7 +22,7 @@ async function resolveRegion(client: LambdaClient): Promise<string> {
   throw new Error("Could not resolve AWS region");
 }
 
-export interface FunctionProps {
+export interface FunctionInput {
   functionName: string;
   zipPath: string;
   roleArn: string;
@@ -47,7 +47,7 @@ export interface FunctionProps {
   };
 }
 
-export interface FunctionOutput extends FunctionProps {
+export interface FunctionOutput extends FunctionInput {
   id: string; // Same as functionName
   arn: string;
   lastModified: string;
@@ -72,35 +72,35 @@ export interface FunctionOutput extends FunctionProps {
 }
 
 export class Function extends Resource(
-  "lambda::Function",
-  async (ctx: Context<FunctionOutput>, props: FunctionProps) => {
+  "aws.lambda.Function",
+  async (ctx: Context<FunctionInput, FunctionOutput>, input: FunctionInput) => {
     const client = new LambdaClient({});
     const region = await resolveRegion(client);
 
-    const code = await zipCode(props.zipPath);
+    const code = await zipCode(input.zipPath);
 
     if (ctx.event === "delete") {
       await ignore(ResourceNotFoundException.name, () =>
         client.send(
           new DeleteFunctionCommand({
-            FunctionName: props.functionName,
+            FunctionName: input.functionName,
           }),
         ),
       );
 
       // Return a minimal FunctionOutput for deleted state
       return {
-        ...props,
-        id: props.functionName,
-        arn: `arn:aws:lambda:${region}:${process.env.AWS_ACCOUNT_ID}:function:${props.functionName}`,
+        ...input,
+        id: input.functionName,
+        arn: `arn:aws:lambda:${region}:${process.env.AWS_ACCOUNT_ID}:function:${input.functionName}`,
         lastModified: new Date().toISOString(),
         version: "$LATEST",
-        qualifiedArn: `arn:aws:lambda:${region}:${process.env.AWS_ACCOUNT_ID}:function:${props.functionName}:$LATEST`,
-        invokeArn: `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${region}:${process.env.AWS_ACCOUNT_ID}:function:${props.functionName}/invocations`,
+        qualifiedArn: `arn:aws:lambda:${region}:${process.env.AWS_ACCOUNT_ID}:function:${input.functionName}:$LATEST`,
+        invokeArn: `arn:aws:apigateway:${region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${region}:${process.env.AWS_ACCOUNT_ID}:function:${input.functionName}/invocations`,
         sourceCodeHash: "",
         sourceCodeSize: 0,
-        architectures: props.architecture
-          ? [props.architecture]
+        architectures: input.architecture
+          ? [input.architecture]
           : [Architecture.x86_64],
         revisionId: "",
         state: "Inactive",
@@ -111,43 +111,43 @@ export class Function extends Resource(
         // Check if function exists
         const func = await client.send(
           new GetFunctionCommand({
-            FunctionName: props.functionName,
+            FunctionName: input.functionName,
           }),
         );
 
         if (ctx.event === "update") {
           // Wait for function to stabilize
-          await waitForFunctionStabilization(client, props.functionName);
+          await waitForFunctionStabilization(client, input.functionName);
 
           // Update function code
           await client.send(
             new UpdateFunctionCodeCommand({
-              FunctionName: props.functionName,
+              FunctionName: input.functionName,
               ZipFile: code,
             }),
           );
 
           // Wait for code update to stabilize
-          await waitForFunctionStabilization(client, props.functionName);
+          await waitForFunctionStabilization(client, input.functionName);
 
           // Update function configuration
           await client.send(
             new UpdateFunctionConfigurationCommand({
-              FunctionName: props.functionName,
-              Handler: props.handler,
-              Runtime: props.runtime,
-              Role: props.roleArn,
-              Description: props.description,
-              Timeout: props.timeout,
-              MemorySize: props.memorySize,
-              Environment: props.environment
-                ? { Variables: props.environment }
+              FunctionName: input.functionName,
+              Handler: input.handler,
+              Runtime: input.runtime,
+              Role: input.roleArn,
+              Description: input.description,
+              Timeout: input.timeout,
+              MemorySize: input.memorySize,
+              Environment: input.environment
+                ? { Variables: input.environment }
                 : undefined,
             }),
           );
 
           // Wait for configuration update to stabilize
-          await waitForFunctionStabilization(client, props.functionName);
+          await waitForFunctionStabilization(client, input.functionName);
         }
       } catch (error: any) {
         if (error.name === "ResourceNotFoundException") {
@@ -159,21 +159,21 @@ export class Function extends Resource(
             try {
               await client.send(
                 new CreateFunctionCommand({
-                  FunctionName: props.functionName,
+                  FunctionName: input.functionName,
                   Code: { ZipFile: code },
-                  Handler: props.handler || "index.handler",
-                  Runtime: props.runtime || Runtime.nodejs20x,
-                  Role: props.roleArn,
-                  Description: props.description,
-                  Timeout: props.timeout || 3,
-                  MemorySize: props.memorySize || 128,
-                  Environment: props.environment
-                    ? { Variables: props.environment }
+                  Handler: input.handler || "index.handler",
+                  Runtime: input.runtime || Runtime.nodejs20x,
+                  Role: input.roleArn,
+                  Description: input.description,
+                  Timeout: input.timeout || 3,
+                  MemorySize: input.memorySize || 128,
+                  Environment: input.environment
+                    ? { Variables: input.environment }
                     : undefined,
-                  Architectures: props.architecture
-                    ? [props.architecture]
+                  Architectures: input.architecture
+                    ? [input.architecture]
                     : [Architecture.x86_64],
-                  Tags: props.tags,
+                  Tags: input.tags,
                 }),
               );
               break; // Success - exit retry loop
@@ -201,7 +201,7 @@ export class Function extends Resource(
           while (isCreating) {
             const config = await client.send(
               new GetFunctionConfigurationCommand({
-                FunctionName: props.functionName,
+                FunctionName: input.functionName,
               }),
             );
             isCreating = config.State === "Pending";
@@ -218,19 +218,19 @@ export class Function extends Resource(
       const [func, config] = await Promise.all([
         client.send(
           new GetFunctionCommand({
-            FunctionName: props.functionName,
+            FunctionName: input.functionName,
           }),
         ),
         client.send(
           new GetFunctionConfigurationCommand({
-            FunctionName: props.functionName,
+            FunctionName: input.functionName,
           }),
         ),
       ]);
 
       const output: FunctionOutput = {
-        ...props,
-        id: props.functionName,
+        ...input,
+        id: input.functionName,
         arn: config.FunctionArn!,
         lastModified: config.LastModified!,
         version: config.Version!,

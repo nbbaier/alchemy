@@ -1,8 +1,7 @@
-import { z } from "zod";
+import { type } from "arktype";
 
-export type FileContext = z.infer<typeof FileContext>;
-
-export const FileContext = z.object({
-  path: z.string(),
-  content: z.string().optional(),
+export type File = typeof File.infer;
+export const File = type({
+  path: "string",
+  content: "string",
 });

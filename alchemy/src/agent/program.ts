@@ -1,23 +1,23 @@
 import fs from "node:fs/promises";
-import type { Context } from "../resource";
-import { Resource } from "../resource";
+import { type Context, Resource } from "../resource";
 import type { ModelId } from "./model";
 import { Module } from "./module";
+
+export type ProgramInput = {
+  path: string;
+  model?: ModelId;
+};
+
+export type ProgramOutput = {
+  module: Module;
+};
 
 export class Program extends Resource(
   "Program",
   {
     alwaysUpdate: true,
   },
-  async (
-    ctx: Context<{
-      module: Module;
-    }>,
-    props: {
-      path: string;
-      model?: ModelId;
-    },
-  ) => {
+  async (ctx: Context<ProgramInput, ProgramOutput>, props) => {
     if (ctx.event === "delete") {
       return;
     }

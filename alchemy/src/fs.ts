@@ -1,3 +1,4 @@
+import { type } from "arktype";
 import fs from "node:fs";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
@@ -5,8 +6,19 @@ import { ignore } from "./error";
 import { Resource } from "./resource";
 
 export class File extends Resource(
-  "fs::File",
-  async (ctx, filePath: string, content: string) => {
+  "File",
+  {
+    input: type({
+      path: "string",
+      content: "string",
+    }),
+    output: type("string"),
+    example: `const file = new File("file", {
+      path: "./file.txt",
+      content: "Hello, world!",
+    })`,
+  },
+  async (ctx, { path: filePath, content }) => {
     if (ctx.event === "delete") {
       await ignore("ENOENT", () => fs.promises.unlink(filePath));
     } else {
@@ -18,8 +30,15 @@ export class File extends Resource(
 ) {}
 
 export class Folder extends Resource(
-  "fs::Folder",
-  async (ctx, dirPath: string): Promise<{ path: string }> => {
+  "Folder",
+  {
+    input: type("string"),
+    output: type({
+      path: "string",
+    }),
+    example: `const src = new Folder("src", "./src")`,
+  },
+  async (ctx, dirPath) => {
     if (ctx.event === "delete") {
       // we just do a best effort attempt
       await ignore(["ENOENT", "ENOTEMPTY"], () => fs.promises.rmdir(dirPath));
@@ -30,11 +49,7 @@ export class Folder extends Resource(
     }
     return { path: dirPath };
   },
-) {
-  public file(filePath: string, content: string) {
-    return new File(path.basename(filePath), filePath, content);
-  }
-}
+) {}
 
 export async function rm(filePath: string) {
   try {

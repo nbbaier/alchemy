@@ -1,10 +1,11 @@
 import { tool } from "ai";
+import { type } from "arktype";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import {
-  type FileContext,
-  type ModelId,
+  File,
+  ModelId,
   dependenciesAsMessages,
   generateText,
   resolveModel,
@@ -12,24 +13,20 @@ import {
 import { Prompts } from "../agent/prompts";
 import { rm } from "../fs";
 import { extractMarkdown } from "../markdown/extract";
-import { type Context, Resource } from "../resource";
-
-export interface DesignInput {
-  prompt: string;
-  path: string;
-  deps?: any[];
-  model?: ModelId;
-  dependencies: FileContext[];
-}
-
-export interface DesignOutput {
-  path: string;
-  content: string;
-}
+import { Resource } from "../resource";
 
 export class Design extends Resource(
-  "design",
-  async (ctx: Context<DesignOutput>, props: DesignInput) => {
+  "Design",
+  {
+    input: type({
+      prompt: "string",
+      path: "string",
+      model: ModelId.optional(),
+      dependencies: File.array().optional(),
+    }),
+    output: File,
+  },
+  async (ctx, props) => {
     if (ctx.event === "delete") {
       await rm(props.path);
       return;

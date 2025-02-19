@@ -10,25 +10,9 @@ DrizzleKit ORM for SQL ORM.
 
 Hono for the REST API TypeScript implementation.
 
-# File Layout
+First, generate a design in ./designs/backend.md, with each of the API routes.
 
-```
-package.json
-tsconfig.json (configured for JSX)
-tailwind.config.ts
-src/
-  db/
-    schema.sql.ts (drizzle kit ORM schema)
-  api/
-    get-todos.ts
-    create-todo.ts
-    delete-todo.ts
-  components/
-    (shadcn components, e.g. button, input, card, etc.)
-  main.tsx
-  App.tsx
-  index.html
-```
+Then, generate a design in ./designs/frontend.md, with the React frontend components.
 
 # Requirements
 
@@ -39,46 +23,6 @@ It has an 'X' button next to each TODO to delete it.
 The application has no auth.
 We use a sqlite in memory database, managed with Drizzle ORM.
 
-# API
-
-The API has 3 endpoints:
-
-- [List TODOs](./src/api/get-todos.ts)
-
-```json
-// GET /todos
-// status: 200 OK
-[
-  {
-    "id": 1,
-    "text": "Buy groceries"
-  }
-]
-```
-
-- [Add TODO](./src/api/create-todo.ts)
-
-```json
-// POST /todos
-{
-  "text": "Buy groceries"
-}
-// response
-{
-  "id": 1,
-}
-```
-
-- [Delete TODO](./src/api/delete-todo.ts)
-
-```json
-// DELETE /todos/:id
-{
-  "id": 1
-}
-// status: 200 OK
-```
-
 # Dependencies
 
 1. Bun
@@ -88,7 +32,5 @@ The API has 3 endpoints:
 5. Tailwind CSS
 6. Shadcn UI
 7. @tsconfig/node22
-
-# TSConfig
 
 We need jsx: "react". Keep it standard @tsconfig/node22 beyond that.
