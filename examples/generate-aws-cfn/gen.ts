@@ -232,6 +232,7 @@ class AWSResource extends Resource(
     const terraformServicePath = path.join(
       __dirname,
       "..",
+      "..",
       "3p",
       "terraform-provider-aws",
       "internal",
@@ -335,9 +336,9 @@ ${JSON.stringify(props, null, 2)}
     const exampleDir = path.join(
       __dirname,
       "..",
+      "..",
       "alchemy",
       "src",
-      "components",
       "aws",
     );
     const fewShotExamples = await Promise.all(
