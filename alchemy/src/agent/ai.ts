@@ -3,6 +3,7 @@ import {
   type LanguageModelV1,
   generateObject as _generateObject,
   generateText as _generateText,
+  streamText as _streamText,
 } from "ai";
 import type { z } from "zod";
 import { isOpenAIModel } from "./openai";
@@ -14,12 +15,62 @@ interface OpenAIError extends Error {
   type?: string;
 }
 
+export interface GenerateTextOptions
+  extends Omit<Parameters<typeof _generateText>[0], "model"> {
+  model: LanguageModelV1;
+  effort?: "low" | "medium" | "high";
+}
+
 /**
  * Rate-limited wrapper around generateText
  */
-export const generateText: typeof _generateText = async (options) => {
-  return withRateLimit(() => _generateText(options), options);
+export const generateText = async (options: GenerateTextOptions) => {
+  const opts = {
+    ...options,
+    providerOptions: providerOptions(options),
+  };
+  return withRateLimit(() => _generateText(opts), opts);
 };
+
+export const streamText = async (options: GenerateTextOptions) => {
+  const opts = {
+    ...options,
+    providerOptions: providerOptions(options),
+  };
+  return withRateLimit(() => _streamText(opts), opts);
+};
+
+function providerOptions(options: GenerateTextOptions): any {
+  return {
+    ...options.providerOptions,
+    openai:
+      (options.model.modelId.startsWith("gpt") ||
+        options.model.modelId.startsWith("o1") ||
+        options.model.modelId.startsWith("o3")) &&
+      options.effort
+        ? {
+            ...options.providerOptions?.openai,
+            reasoningEffort: options.effort,
+          }
+        : undefined,
+    anthropic:
+      options.model.modelId.startsWith("claude") && options.effort
+        ? {
+            ...options.providerOptions?.anthropic,
+            thinking: options.effort
+              ? {
+                  type: "enabled",
+                  budgetTokens: {
+                    high: 12000,
+                    medium: 6000,
+                    low: 3000,
+                  }[options.effort],
+                }
+              : undefined,
+          }
+        : undefined,
+  };
+}
 
 /**
  * Rate-limited wrapper around generateObject
@@ -27,9 +78,22 @@ export const generateText: typeof _generateText = async (options) => {
 export const generateObject: typeof _generateObject = (async <OBJECT>(
   options: Parameters<typeof _generateObject>[0] & {
     schema: z.Schema<OBJECT>;
+    effort?: "low" | "medium" | "high";
   },
 ): Promise<GenerateObjectResult<OBJECT>> => {
-  return withRateLimit(() => _generateObject<OBJECT>(options as any), options);
+  const opts = {
+    ...options,
+    providerOptions:
+      options.model.modelId === "gpt-4o"
+        ? undefined
+        : {
+            openai: {
+              reasoningEffort: options.effort ?? "high",
+              strict: false,
+            },
+          },
+  };
+  return withRateLimit(() => _generateObject<OBJECT>(opts as any), opts);
 }) as any;
 
 /**
@@ -178,8 +242,8 @@ function isRateLimitError(error: any): boolean {
  * Wraps an async function with rate limiting and exponential backoff
  */
 async function withRateLimit<T>(
-  fn: () => Promise<T>,
-  options: { model: LanguageModelV1 },
+  fn: () => T,
+  options: GenerateTextOptions,
   config: RateLimitConfig = {},
 ): Promise<T> {
   const finalConfig = { ...defaultConfig, ...config };

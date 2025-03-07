@@ -1,25 +1,21 @@
+import { type } from "arktype";
 import TurndownService from "turndown";
 import { generateText } from "../../agent/ai";
 import { resolveModel } from "../../agent/model";
-import { type Context, Resource } from "../../resource";
+import { ark } from "../../ark";
+import { awsServices } from "./spec";
 
-export class AWSDocReference extends Resource(
-  "AWSDocReference",
-  async (
-    ctx: Context<{ content: string }>,
-    props: {
-      serviceName: string;
-      resourceName: string;
-      requirements: string;
-    },
-  ): Promise<{
-    content: string;
-  } | void> => {
-    if (ctx.event === "delete") {
-      return;
-    }
-
-    const serviceNameLower = props.serviceName.toLowerCase();
+export const queryAWSDocs = ark.tool({
+  description:
+    "query an AWS service's SDK documentation to understand how to work with its API",
+  parameters: type({
+    serviceName: type.enumerated(...Object.keys(awsServices)),
+    resourceName: "string",
+    query: "string",
+  }),
+  execute: async ({ serviceName, resourceName, query }) => {
+    console.log(`\nQuerying docs for ${serviceName} ${resourceName}:`, query);
+    const serviceNameLower = serviceName.toLowerCase();
     const url = `https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/${serviceNameLower}`;
 
     const response = await fetch(url);
@@ -47,13 +43,13 @@ export class AWSDocReference extends Resource(
         },
         {
           role: "user",
-          content: `Please analyze the AWS SDK v3 documentation for the ${props.serviceName} service and identify APIs that would be relevant for implementing the ${props.resourceName} resource's CRUD lifecycle.
+          content: `Please analyze the AWS SDK v3 documentation for the ${serviceName} service and identify APIs that would be relevant for implementing the ${resourceName} resource's CRUD lifecycle.
 
 Requirements for the CRUD lifecycle:
-${props.requirements}
+${query}
 
 For each relevant API, extract:
-1. The command name (e.g., CreateUserCOMmand, DeleteRoleCommand)
+1. The command name (e.g., CreateUserCommand, DeleteRoleCommand)
 2. A brief description of what it does
 3. The Input type name (e.g. CreateUserCommandInput)
 4. The Output type name (e.g. CreateUserCommandOutput)
@@ -65,9 +61,7 @@ ${markdown}`,
         },
       ],
     });
-
-    return {
-      content: apiSummary.text,
-    };
+    console.log(apiSummary.text);
+    return apiSummary.text;
   },
-) {}
+});

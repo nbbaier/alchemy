@@ -21,13 +21,15 @@
     "@types/diff": "^5.0.0"
   },
   "peerDependencies": {
-    "@ai-sdk/openai": "^1.1.9",
+    "@ai-sdk/openai": "^1.1.14",
+    "@ai-sdk/anthropic": "^1.1.10",
     "@aws-sdk/client-dynamodb": "^3.0.0",
     "@aws-sdk/client-iam": "^3.0.0",
     "@aws-sdk/client-lambda": "^3.0.0",
     "@aws-sdk/client-s3": "^3.0.0",
     "@aws-sdk/client-sqs": "^3.0.1",
-    "ai": "^4.1.16",
+    "arktype": "^2",
+    "ai": "^4.1.46",
     "diff": "^7.0.0",
     "jszip": "^3.0.0",
     "esbuild": "^0.24.2",

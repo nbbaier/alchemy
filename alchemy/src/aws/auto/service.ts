@@ -13,16 +13,21 @@ export class AWSService extends Resource(
       requirementsDir: string;
       srcDir: string;
       rootDir: string;
+      testDir: string;
     },
   ) => {
     const serviceDir = new Folder(
       "service",
       path.join(props.requirementsDir, kebabCase(props.ServiceName)),
-    ).path;
+    );
     const srcDir = new Folder(
       "src",
       path.join(props.srcDir, kebabCase(props.ServiceName)),
-    ).path;
+    );
+    const testDir = new Folder(
+      "test",
+      path.join(props.testDir, kebabCase(props.ServiceName)),
+    );
 
     const resources = Object.entries(props.Resources);
     if (process.env.DEBUG) {
@@ -31,20 +36,24 @@ export class AWSService extends Resource(
       return [
         new AWSResource(resourceName, {
           ...resource,
-          ServiceName: props.ServiceName,
-          requirementsDir: serviceDir,
-          srcDir,
+          serviceName: props.ServiceName,
+          designDir: serviceDir.path,
+          srcDir: srcDir.path,
+          testDir: testDir.path,
           rootDir: props.rootDir,
+          resource,
         }),
       ];
     }
     return resources.map(([resourceName, resource]) => {
       return new AWSResource(resourceName, {
         ...resource,
-        ServiceName: props.ServiceName,
+        resource,
+        serviceName: props.ServiceName,
+        testDir: props.testDir,
         rootDir: props.rootDir,
-        srcDir,
-        requirementsDir: serviceDir,
+        srcDir: srcDir.path,
+        designDir: serviceDir.path,
       });
     });
   },

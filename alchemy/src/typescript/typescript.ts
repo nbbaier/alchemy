@@ -178,7 +178,8 @@ The code should:
         await writeFile(props.path, code);
 
         if (props.typeCheck) {
-          typeErrors = await validateTypeScript(props.path, {
+          typeErrors = await validateTypeScript({
+            filePath: props.path,
             tsconfigPath: props.tsconfigPath,
             projectRoot: props.projectRoot,
           });

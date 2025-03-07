@@ -2,6 +2,8 @@ import { dirname, resolve } from "path";
 import * as ts from "typescript";
 
 export interface TypeCheckOptions {
+  filePath: string;
+  fileContent?: string;
   tsconfigPath?: string;
   projectRoot?: string;
 }
@@ -10,10 +12,11 @@ export interface TypeCheckOptions {
  * Validates TypeScript code and returns formatted error messages if there are any type errors
  * @returns Formatted error message if there are errors, undefined if valid
  */
-export async function validateTypeScript(
-  filePath: string,
-  options: TypeCheckOptions,
-): Promise<string | undefined> {
+export async function validateTypeScript({
+  filePath,
+  fileContent,
+  ...options
+}: TypeCheckOptions): Promise<string | undefined> {
   const projectRoot = options.projectRoot ?? dirname(filePath);
   const tsconfigPath =
     options.tsconfigPath ?? resolve(projectRoot, "tsconfig.json");
@@ -49,10 +52,33 @@ export async function validateTypeScript(
     compilerOptions = parsedOptions;
   }
 
-  // Create program
+  // Create a custom compiler host that handles in-memory content
+  const compilerHost = ts.createCompilerHost(compilerOptions);
+  const originalGetSourceFile = compilerHost.getSourceFile;
+  compilerHost.getSourceFile = (
+    fileName: string,
+    languageVersion: ts.ScriptTarget,
+    onError?: (message: string) => void,
+    shouldCreateNewSourceFile?: boolean,
+  ) => {
+    // If this is our target file and we have in-memory content, use that
+    if (resolve(fileName) === resolve(filePath) && fileContent !== undefined) {
+      return ts.createSourceFile(fileName, fileContent, languageVersion);
+    }
+    // Otherwise fall back to the default behavior
+    return originalGetSourceFile(
+      fileName,
+      languageVersion,
+      onError,
+      shouldCreateNewSourceFile,
+    );
+  };
+
+  // Create program with custom host
   const program = ts.createProgram({
     rootNames: [filePath],
     options: compilerOptions,
+    host: compilerHost,
   });
 
   // Get diagnostics

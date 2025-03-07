@@ -95,7 +95,9 @@ export type CfnService = {
 };
 export type CfnServices = Record<string, CfnService>;
 
-export async function loadServices(): Promise<CfnServices> {
+export const awsServices = await loadServices();
+
+async function loadServices(): Promise<CfnServices> {
   const cfnSpec = await loadSpec();
 
   const resources = Object.keys(cfnSpec.ResourceTypes).map((resourceType) => {
@@ -143,7 +145,7 @@ export async function loadServices(): Promise<CfnServices> {
   return awsServiceGroups;
 }
 
-export async function loadSpec(): Promise<CfnSpec> {
+async function loadSpec(): Promise<CfnSpec> {
   const awsSpecURL =
     "https://dnwj8swjjbsbt.cloudfront.net/latest/gzip/CloudFormationResourceSpecification.json";
 

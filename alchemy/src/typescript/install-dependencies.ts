@@ -1,23 +1,23 @@
-import { tool } from "ai";
+import { type } from "arktype";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { z } from "zod";
+import { ark } from "../ark";
 
 const execAsync = promisify(exec);
 
-export const installDependencies = tool({
+export const installDependencies = ark.tool({
   description:
     "Installs dependencies using bun with support for different dependency types (runtime, dev, or peer)",
-  parameters: z.object({
-    packages: z.array(z.string()).describe("Array of package names to install"),
-    type: z
-      .enum(["runtime", "dev", "peer"])
-      .optional()
+  parameters: type({
+    packages: type("string[]").describe("Array of package names to install"),
+    type: type
+      .enumerated("runtime", "dev", "peer")
       .describe(
         "Type of dependency to install: runtime, dev, or peer. Default 'runtime'.",
       ),
   }),
   execute: async ({ packages, type }) => {
+    // TODO: Mutex? Or does bun add handle this?
     if (packages.length === 0) {
       throw new Error("No packages specified for installation");
     }

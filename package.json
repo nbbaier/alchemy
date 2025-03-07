@@ -9,16 +9,20 @@
     "examples/markdown-program"
   ],
   "devDependencies": {
-    "@ai-sdk/anthropic": "^1.1.6",
-    "@ai-sdk/openai": "^1.1.9",
+    "@ai-sdk/anthropic": "^1.1.10",
+    "@ai-sdk/openai": "^1.1.14",
     "@biomejs/biome": "^1.9.4",
     "@types/bun": "latest",
     "@types/node": "latest",
     "@types/turndown": "^5.0.5",
-    "ai": "^4.1.16",
+    "ai": "^4.1.46",
     "change-case": "^5.4.4",
     "turndown": "^7.2.0",
     "typescript": "latest",
     "vite": "^6.0.7"
+  },
+  "dependencies": {
+    "@aws-sdk/client-iam": "^3.750.0",
+    "firecrawl": "^1.18.2"
   }
 }

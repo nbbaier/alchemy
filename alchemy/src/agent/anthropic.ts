@@ -5,6 +5,7 @@ import { z } from "zod";
  */
 export const AnthropicModels = [
   // Claude 3.5 Sonnet models
+  "claude-3-7-sonnet-latest",
   "claude-3-5-sonnet-latest",
   "claude-3-5-sonnet-20241022",
   "claude-3-5-sonnet-20240620",

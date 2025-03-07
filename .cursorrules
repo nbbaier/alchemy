@@ -1,4 +1,6 @@
-Always use bun to install dependencies.
+To install shadcn components, use this command instead of hand-writing them:
 
-All dependencies must be peer dependencies.
-
+```sh
+# from within ./alchemy-agent
+bunx --bun shadcn@latest add <component-name> ...
+````
