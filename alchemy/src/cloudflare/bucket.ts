@@ -217,12 +217,12 @@ type R2Client = AwsClient & { accountId: string };
  *
  * @see https://developers.cloudflare.com/r2/examples/aws/aws-sdk-js-v3/
  */
-export function createR2Client(config: R2ClientConfig): Promise<R2Client> {
-  const accountId = config.accountId;
+export function createR2Client(config?: R2ClientConfig): Promise<R2Client> {
+  const accountId = config?.accountId ?? process.env.CLOUDFLARE_ACCOUNT_ID;
   const accessKeyId =
-    config.accessKeyId?.unencrypted || process.env.R2_ACCESS_KEY_ID;
+    config?.accessKeyId?.unencrypted || process.env.R2_ACCESS_KEY_ID;
   const secretAccessKey =
-    config.secretAccessKey?.unencrypted || process.env.R2_SECRET_ACCESS_KEY;
+    config?.secretAccessKey?.unencrypted || process.env.R2_SECRET_ACCESS_KEY;
 
   if (!accountId) {
     throw new Error("CLOUDFLARE_ACCOUNT_ID environment variable is required");
