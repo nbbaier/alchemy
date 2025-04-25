@@ -98,6 +98,10 @@ export async function Website<B extends Bindings>(
         ? props.assets
         : (props.assets?.dist ?? "dist");
 
+    console.log("dist", dist);
+    console.log("cwd", cwd);
+    console.log("dist", path.resolve(cwd, dist));
+
     const staticAssets = await Assets("assets", {
       path: dist,
     });
@@ -106,6 +110,11 @@ export async function Website<B extends Bindings>(
       ...props,
       name: props.name ?? id,
       entrypoint: props.main,
+      bundle: {
+        target: "esnext",
+        platform: "node",
+        ...props.bundle,
+      },
       assets: {
         html_handling: "auto-trailing-slash",
         not_found_handling: "single-page-application",
