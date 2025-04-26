@@ -93,19 +93,6 @@ export async function Website<B extends Bindings>(
       command: props.command,
     });
 
-    const dist =
-      typeof props.assets === "string"
-        ? props.assets
-        : (props.assets?.dist ?? "dist");
-
-    console.log("dist", dist);
-    console.log("cwd", cwd);
-    console.log("dist", path.resolve(cwd, dist));
-
-    const staticAssets = await Assets("assets", {
-      path: dist,
-    });
-
     const worker = await Worker("worker", {
       ...props,
       name: props.name ?? id,
@@ -125,15 +112,20 @@ export async function Website<B extends Bindings>(
         ? undefined
         : `
 export default {
-async fetch(request, env) {
-  return new Response("Not Found", { status: 404 });
-},
+  async fetch(request, env) {
+    return new Response("Not Found", { status: 404 });
+  },
 };`,
       url: true,
       adopt: true,
       bindings: {
         ...props.bindings,
-        ASSETS: staticAssets,
+        ASSETS: await Assets("assets", {
+          path:
+            typeof props.assets === "string"
+              ? props.assets
+              : (props.assets?.dist ?? "dist"),
+        }),
       },
     });
 
