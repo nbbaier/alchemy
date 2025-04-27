@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { alchemy } from "./alchemy.js";
 import { destroy } from "./destroy.js";
 import { FileSystemStateStore } from "./fs/file-system-state-store.js";
 import type { PendingResource, ResourceID } from "./resource.js";
@@ -101,8 +102,26 @@ export class Scope {
     return [...this.chain, resourceID].join("/");
   }
 
-  public async run<T>(fn: (scope: Scope) => Promise<T>): Promise<T> {
-    return scopeStorage.run(this, () => fn(this));
+  public async run<T>(fn: (scope: Scope) => Promise<T>): Promise<T>;
+  public async run<T>(id: string, fn: (scope: Scope) => Promise<T>): Promise<T>;
+  public async run<T>(
+    ...args:
+      | [fn: (scope: Scope) => Promise<T>]
+      | [id: string, fn: (scope: Scope) => Promise<T>]
+  ): Promise<T> {
+    if (typeof args[0] === "string") {
+      const fn = args[1]!;
+      return alchemy.run(
+        args[0],
+        {
+          parent: this,
+        },
+        () => fn(this)
+      );
+    } else {
+      const fn = args[0]!;
+      return scopeStorage.run(this, () => fn(this));
+    }
   }
 
   [Symbol.asyncDispose]() {
