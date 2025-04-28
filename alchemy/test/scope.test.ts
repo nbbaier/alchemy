@@ -30,4 +30,28 @@ describe("Scope", () => {
       await destroy(scope);
     }
   });
+
+  test("multiple apps", async (scope) => {
+    const app1 = await alchemy("app");
+    const app2 = await alchemy("app");
+
+    expect(app1.parent).toBeUndefined();
+    expect(app2.parent).toBeUndefined();
+  });
+
+  test("chained scopes", async (scope) => {
+    const app = await alchemy("app");
+
+    await app.run("nested", async (scope) => {
+      expect(scope.parent).toBeUndefined();
+      expect(scope).toEqual(app);
+    });
+  });
+
+  test("can't run a new scope inside a finalized scope", async (scope) => {
+    await scope.finalize();
+    expect(scope.run(async () => {})).rejects.toThrow();
+    expect(scope.run("nested", async () => {})).rejects.toThrow();
+    expect(scope.run("nested", {}, async () => {})).rejects.toThrow();
+  });
 });
