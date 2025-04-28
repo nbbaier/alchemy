@@ -100,6 +100,7 @@ async function _alchemy(
     const [appName, options] = args as [string, AlchemyOptions?];
     const root = new Scope({
       ...options,
+      parent: null,
       appName,
       stage: options?.stage,
     });

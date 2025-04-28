@@ -10,7 +10,7 @@ const scopeStorage = new AsyncLocalStorage<Scope>();
 export type ScopeOptions = {
   appName?: string;
   stage?: string;
-  parent?: Scope;
+  parent?: Scope | null;
   scopeName?: string;
   password?: string;
   stateStore?: StateStoreType;
@@ -48,7 +48,8 @@ export class Scope {
     this.appName = options.appName;
     this.stage = options?.stage ?? DEFAULT_STAGE;
     this.scopeName = options.scopeName ?? null;
-    this.parent = options.parent ?? Scope.get();
+    this.parent =
+      options.parent === null ? undefined : (options.parent ?? Scope.get());
     this.quiet = options.quiet ?? this.parent?.quiet ?? false;
     if (this.parent && !this.scopeName) {
       throw new Error("Scope name is required when creating a child scope");
