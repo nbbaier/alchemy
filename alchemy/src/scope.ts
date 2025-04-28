@@ -86,8 +86,22 @@ export class Scope {
     this.isErrored = true;
   }
 
-  public enter() {
-    scopeStorage.enterWith(this);
+  public scope(id: string): Scope {
+    return this.enter(id);
+  }
+
+  public enter(id?: string): Scope {
+    if (id) {
+      const scope = new Scope({
+        scopeName: id,
+        parent: this,
+      });
+      scopeStorage.enterWith(scope);
+      return scope;
+    } else {
+      scopeStorage.enterWith(this);
+      return this;
+    }
   }
 
   public async init() {

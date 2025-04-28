@@ -13,7 +13,8 @@ import {
   R2Bucket,
 } from "../alchemy/src/cloudflare";
 import { GitHubSecret, RepositoryEnvironment } from "../alchemy/src/github";
-import env, {
+import { app } from "./app";
+import {
   CLOUDFLARE_ACCOUNT_ID,
   CLOUDFLARE_API_KEY,
   CLOUDFLARE_EMAIL,
@@ -22,7 +23,7 @@ import env, {
   STRIPE_API_KEY,
 } from "./env";
 
-const app = await alchemy("alchemy:repo", env);
+const scope = app.enter("repo");
 
 const awsAccountId = await AccountId();
 
@@ -120,4 +121,4 @@ await Promise.all([
   }),
 ]);
 
-await app.finalize();
+await scope.finalize();

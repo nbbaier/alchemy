@@ -5,12 +5,11 @@ import "../alchemy/src/dns";
 import "../alchemy/src/os";
 
 import path from "node:path";
-import alchemy from "../alchemy/src";
 import { Assets, CustomDomain, Worker, Zone } from "../alchemy/src/cloudflare";
 import { Exec } from "../alchemy/src/os";
-import options from "./env";
+import { app } from "./app";
 
-const app = await alchemy("alchemy:website", options);
+const scope = app.scope("website");
 
 const zone = await Zone("alchemy.run", {
   name: "alchemy.run",
@@ -56,4 +55,4 @@ await CustomDomain("alchemy-web-domain", {
 
 console.log(`https://alchemy.run`);
 
-await app.finalize();
+await scope.finalize();
