@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { alchemy } from "./alchemy.js";
+import { alchemy, type RunOptions } from "./alchemy.js";
 import { destroy } from "./destroy.js";
 import { FileSystemStateStore } from "./fs/file-system-state-store.js";
 import type { PendingResource, ResourceID } from "./resource.js";
@@ -103,23 +103,56 @@ export class Scope {
     return [...this.chain, resourceID].join("/");
   }
 
-  public async run<T>(fn: (scope: Scope) => Promise<T>): Promise<T>;
-  public async run<T>(id: string, fn: (scope: Scope) => Promise<T>): Promise<T>;
+  /**
+   * Run a function inside this Scope.
+   */
+  public run<T>(fn: (scope: Scope) => Promise<T>): Promise<T>;
+  /**
+   * Create and run a new Scope inside this Scope.
+   */
+  public run<T>(id: string, fn: (scope: Scope) => Promise<T>): Promise<T>;
+  /**
+   * Create and run a new Scope inside this Scope (with configured options).
+   */
+  public run<T>(
+    id: string,
+    options: RunOptions,
+    fn: (scope: Scope) => Promise<T>
+  ): Promise<T>;
+
   public async run<T>(
     ...args:
       | [fn: (scope: Scope) => Promise<T>]
       | [id: string, fn: (scope: Scope) => Promise<T>]
+      | [id: string, options: RunOptions, fn: (scope: Scope) => Promise<T>]
   ): Promise<T> {
+    // Ensure the scope hasn't been finalized yet to avoid trampling:
+    // -> e.g. create A, finalize, then add B
+    // -> next time we create A and finalize, B will be orphaned and deleted.
+    if (this.isFinalized) {
+      throw new Error("Scope has already been finalized, cannot ");
+    }
+
     if (typeof args[0] === "string") {
-      const fn = args[1]!;
+      // We are creating a new Scope inside this Scope.
+      const [id, options, fn] =
+        typeof args[1] === "object"
+          ? (args as [
+              id: string,
+              options: RunOptions,
+              fn: (scope: Scope) => Promise<T>,
+            ])
+          : [args[0], {}, args[1]!];
       return alchemy.run(
-        args[0],
+        id,
         {
           parent: this,
+          ...options,
         },
         () => fn(this)
       );
     } else {
+      // We are executing a function inside this Scope.
       const fn = args[0]!;
       return scopeStorage.run(this, () => fn(this));
     }
@@ -129,7 +162,14 @@ export class Scope {
     return this.finalize();
   }
 
+  private _isFinalized = false;
+
+  public get isFinalized() {
+    return this._isFinalized;
+  }
+
   public async finalize() {
+    this._isFinalized = true;
     if (!this.isErrored) {
       // TODO: need to detect if it is in error
       const resourceIds = await this.state.list();
