@@ -9,7 +9,6 @@ const scopeStorage = new AsyncLocalStorage<Scope>();
 
 export type ScopeOptions = {
   appName?: string;
-  stage?: string;
   parent?: Scope | null;
   scopeName?: string;
   password?: string;
@@ -35,7 +34,6 @@ export class Scope {
 
   public readonly resources = new Map<ResourceID, PendingResource>();
   public readonly appName: string | undefined;
-  public readonly stage: string;
   public readonly scopeName: string | null;
   public readonly parent: Scope | undefined;
   public readonly password: string | undefined;
@@ -46,7 +44,6 @@ export class Scope {
 
   constructor(options: ScopeOptions) {
     this.appName = options.appName;
-    this.stage = options?.stage ?? DEFAULT_STAGE;
     this.scopeName = options.scopeName ?? null;
     this.parent =
       options.parent === null ? undefined : (options.parent ?? Scope.get());
@@ -77,7 +74,7 @@ export class Scope {
     if (this.parent) {
       return [...this.parent.chain, ...thisScope];
     } else {
-      return [...app, this.stage, ...thisScope];
+      return [...app, ...thisScope];
     }
   }
 

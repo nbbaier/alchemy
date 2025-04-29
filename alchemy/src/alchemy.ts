@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { App } from "./app.js";
 import { destroy, DestroyedSignal } from "./destroy.js";
 import { env } from "./env.js";
 import type { PendingResource } from "./resource.js";
@@ -61,7 +62,7 @@ export interface Alchemy {
    *   password: process.env.SECRET_PASSPHRASE
    * });
    */
-  (appName: string, options?: Omit<AlchemyOptions, "appName">): Promise<Scope>;
+  (appName: string, options?: Omit<AlchemyOptions, "appName">): Promise<App>;
   /**
    * Template literal tag that supports file interpolation for documentation.
    * Automatically formats the content and appends file contents as code blocks.
@@ -98,11 +99,9 @@ async function _alchemy(
 ): Promise<Scope | string | never> {
   if (typeof args[0] === "string") {
     const [appName, options] = args as [string, AlchemyOptions?];
-    const root = new Scope({
+    const root = new App({
       ...options,
-      parent: null,
       appName,
-      stage: options?.stage,
     });
     root.enter();
     if (options?.phase === "destroy") {
@@ -234,12 +233,6 @@ export interface AlchemyOptions {
    */
   phase?: "up" | "destroy";
   /**
-   * Name to scope the resource state under (e.g. `.alchemy/{stage}/..`).
-   *
-   * @default - your POSIX username
-   */
-  stage?: string;
-  /**
    * If true, will not prune resources that were dropped from the root stack.
    *
    * @default true
@@ -264,6 +257,11 @@ export interface AlchemyOptions {
    * Required if using alchemy.secret() in this scope.
    */
   password?: string;
+
+  /**
+   * A list of globs to select resources to include in the scope.
+   */
+  select?: string[];
 }
 
 export interface ScopeOptions extends AlchemyOptions {

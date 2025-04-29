@@ -9,7 +9,7 @@ import { Providers } from "../alchemy/src/internal/docs/providers";
 import { VitepressProject } from "../alchemy/src/web/vitepress";
 import { app } from "./app";
 
-export default app.run("docs", async (scope) => {
+export default await app.stack("docs", async () => {
   const project = await VitepressProject("vitepress", {
     name: "alchemy-web",
     delete: true,
