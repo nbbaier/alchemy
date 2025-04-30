@@ -120,6 +120,18 @@ export class Scope {
       const orphans = await Promise.all(
         orphanIds.map(async (id) => (await this.state.get(id))!.output)
       );
+      const replaced = (
+        await Promise.all(
+          Array.from(aliveIds).map(async (id) => {
+            const state = await this.state.get(id);
+            if (state?.replace) {
+              return state;
+            }
+            return undefined;
+          })
+        )
+      ).filter((state) => state !== undefined);
+
       await destroy.all(orphans, {
         quiet: this.quiet,
         strategy: "sequential",

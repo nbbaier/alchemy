@@ -129,6 +129,7 @@ export async function apply<Out extends Resource>(
       status: phase === "create" ? "created" : "updated",
       output,
       props,
+      replace: isReplaced ? { props: state.oldProps } : undefined,
       // deps: [...deps],
     });
     // if (output !== undefined) {

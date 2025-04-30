@@ -14,13 +14,24 @@ function isScopeArgs(a: any): a is [scope: Scope, options?: DestroyOptions] {
   return a[0] instanceof Scope;
 }
 
+type Replaced<T> = {
+  replace: T;
+};
+
+function isReplaced<T>(a: any): a is Replaced<T> {
+  return a.replace !== undefined;
+}
+
 /**
  * Prune all resources from an Output and "down", i.e. that branches from it.
  */
 export async function destroy<Type extends string>(
   ...args:
     | [scope: Scope, options?: DestroyOptions]
-    | [resource: Resource<Type> | undefined | null, options?: DestroyOptions]
+    | [
+        resource: Replaced<Resource<Type>> | Resource<Type> | undefined | null,
+        options?: DestroyOptions,
+      ]
 ): Promise<void> {
   if (isScopeArgs(args)) {
     const [scope] = args;
@@ -50,6 +61,10 @@ export async function destroy<Type extends string>(
 
   if (!instance) {
     return;
+  }
+
+  if (isReplaced(instance)) {
+    throw new Error("Not implemented");
   }
 
   if (instance.Kind === "alchemy::Scope") {

@@ -22,6 +22,14 @@ export type State<
   props: Props;
   oldProps?: Props;
   output: Out;
+  /**
+   * If defined, contains the input props of the resource that was replaced.
+   *
+   * These props need to be passed in when deleting this resource in Scope finalization.
+   */
+  replace?: {
+    props: Props;
+  };
 };
 
 export type StateStoreType = (scope: Scope) => StateStore;
