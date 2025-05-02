@@ -22,6 +22,8 @@ export type ScopeOptions = {
 const DEFAULT_STAGE = process.env.ALCHEMY_STAGE ?? process.env.USER ?? "dev";
 
 export class Scope {
+  public static readonly KIND = "alchemy::Scope";
+
   public static get(): Scope | undefined {
     return scopeStorage.getStore();
   }
@@ -35,6 +37,7 @@ export class Scope {
   }
 
   public readonly resources = new Map<ResourceID, PendingResource>();
+  public readonly scopes: Scope[] = [];
   public readonly appName: string | undefined;
   public readonly stage: string;
   public readonly scopeName: string | null;
@@ -45,6 +48,8 @@ export class Scope {
   public readonly phase: Phase;
 
   private isErrored = false;
+  // this scope has a resource within it that has been replaced
+  private _hasReplace = false;
 
   constructor(options: ScopeOptions) {
     this.appName = options.appName;
@@ -64,6 +69,7 @@ export class Scope {
       throw new Error("Phase is required");
     }
     this.phase = phase;
+    this.parent?.scopes.push(this);
   }
 
   public async delete(resourceID: ResourceID) {
@@ -73,7 +79,7 @@ export class Scope {
 
   private _seq = 0;
 
-  public seq() {
+  public nextSeq() {
     return this._seq++;
   }
 
@@ -112,6 +118,17 @@ export class Scope {
     return scopeStorage.run(this, () => fn(this));
   }
 
+  public replace() {
+    console.log(`replace: '${this.scopeName}'`);
+    this._hasReplace = true;
+    // propgate replacement up to the parent to ensure we finalize after `app.finalize()`
+    this.parent?.replace();
+  }
+
+  public get hasReplace() {
+    return this._hasReplace;
+  }
+
   [Symbol.asyncDispose]() {
     return this.finalize();
   }
@@ -123,6 +140,17 @@ export class Scope {
     if (!this.isErrored) {
       // TODO: need to detect if it is in error
       const resourceIds = await this.state.list();
+
+      // finalize replaced scopes in reverse order
+      for (const scope of this.scopes.toReversed()) {
+        if (scope.hasReplace) {
+          console.log(`finalize replaced scope: '${scope.scopeName}'`);
+          await scope.finalize();
+        } else {
+          console.warn(`scope is not replaced: '${scope.scopeName}'`);
+        }
+      }
+
       const aliveIds = new Set(this.resources.keys());
       const orphanIds = Array.from(
         resourceIds.filter((id) => !aliveIds.has(id)),

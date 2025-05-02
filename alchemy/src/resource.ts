@@ -125,7 +125,7 @@ export function Resource<
     }
 
     // get a sequence number (unique within the scope) for the resource
-    const seq = scope.seq();
+    const seq = scope.nextSeq();
     const meta = {
       Kind: type,
       ID: resourceID,

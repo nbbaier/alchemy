@@ -106,7 +106,7 @@ export async function destroy<Type extends string>(
         instance.ID,
         {
           // TODO(sam): this is an awful hack to differentiate between naked scopes and resources
-          isResource: instance.Kind !== "alchemy::Scope",
+          isResource: instance.Kind !== Scope.KIND,
           parent: scope,
         },
         async (scope) => {

@@ -316,19 +316,26 @@ async function run<T>(
           RunOptions,
           (this: Scope, scope: Scope) => Promise<T>,
         ]);
-  const _scope = new Scope({
+  const scope = new Scope({
     ...options,
     scopeName: id,
   });
+
+  let scopeState = await scope.parent!.state.get(id);
+  if (scopeState?.replace) {
+    // the state contains `replace: true` still, that might indicate that we were killed before finalization
+    // so, we mark it again as "replace" so that it will be finalized after `app.finalize()`
+    scope.replace();
+  }
   try {
-    if (options?.isResource !== true && _scope.parent) {
+    if (options?.isResource !== true && scope.parent) {
       // TODO(sam): this is an awful hack to differentiate between naked scopes and resources
-      const seq = _scope.parent.seq();
+      const seq = scope.parent.nextSeq();
       const output = {
         ID: id,
         FQN: "",
-        Kind: "alchemy::Scope",
-        Scope: _scope,
+        Kind: Scope.KIND,
+        Scope: scope,
         Seq: seq,
       } as const;
       const resource = {
@@ -341,20 +348,35 @@ async function run<T>(
         status: "created",
         output,
       } as const;
-      await _scope.parent!.state.set(id, resource);
-      _scope.parent!.resources.set(
+
+      await scope.parent!.state.set(id, resource);
+      scope.parent!.resources.set(
         id,
         Object.assign(Promise.resolve(resource), output) as PendingResource,
       );
     }
-    return await _scope.run(async () => fn.bind(_scope)(_scope));
+    scopeState = (await scope.parent!.state.get(id))!;
+    const result = await scope.run(async () => fn.bind(scope)(scope));
+    if (scope.hasReplace) {
+      await scope.parent!.state.set(id, {
+        ...scopeState,
+        // mark this scope as containing a replace operation
+        replace: true,
+      });
+    }
+    return result;
   } catch (error) {
     if (!(error instanceof DestroyedSignal)) {
       console.log(error);
-      _scope.fail();
+      scope.fail();
     }
     throw error;
   } finally {
-    await _scope.finalize();
+    if (!scope.hasReplace) {
+      // we will not eagerly call finalize if this scope has a replace operation
+      // WHY: because replaced resources need to flush through to downstream resources
+      // so, we must defer finalization until the very end (app.finalize())
+      await scope.finalize();
+    }
   }
 }

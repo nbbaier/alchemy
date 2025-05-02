@@ -123,7 +123,10 @@ export function context<
     phase,
     output: state.output,
     props: state.props,
-    replace,
+    replace: () => {
+      scope.replace();
+      return replace();
+    },
     get: (key: string) => state.data[key],
     set: async (key: string, value: any) => {
       state.data[key] = value;

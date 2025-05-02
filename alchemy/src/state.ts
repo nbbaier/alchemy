@@ -22,6 +22,7 @@ export type State<
   props: Props;
   oldProps?: Props;
   output: Out;
+  replace?: boolean;
 };
 
 export type StateStoreType = (scope: Scope) => StateStore;
