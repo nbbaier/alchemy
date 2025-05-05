@@ -151,11 +151,11 @@ export class Scope {
     return this.finalize();
   }
 
-  public async finalize() {
+  public async finalize(force?: boolean) {
     if (this.phase === "read") {
       return;
     }
-    if (this._isFinalized) {
+    if (this._isFinalized && !force) {
       return;
     }
     this._isFinalized = true;
@@ -163,8 +163,6 @@ export class Scope {
       console.log(`finalize: '${this.addr}'`);
       // TODO: need to detect if it is in error
       const resourceIds = await this.state.list();
-
-      // console.log([this.addr, resourceIds]);
 
       const aliveIds = Array.from(this.resources.keys());
       const aliveIdsSet = new Set(aliveIds);
@@ -229,7 +227,7 @@ export class Scope {
       for (const node of sequence) {
         if (node instanceof Scope) {
           // finalize the scope (destroy orphans within it)
-          await node.finalize();
+          await node.finalize(force);
         } else {
           const { type, state } = node;
           if (type === "replaced") {
@@ -253,10 +251,8 @@ export class Scope {
               // this leaves us with two resource that must be deleted
               // TODO(sam): what order should we delete them in?
               // TODO(sam): we are using the sequence order of the replacement instead of the replaced resource, is that a problem?
-              await destroy(state.replace!.output, {
-                replace: {
-                  props: state.replace!.props,
-                },
+              await destroy(state.replace.output, {
+                replace: state.replace,
               });
             }
 

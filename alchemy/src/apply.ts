@@ -146,6 +146,14 @@ export async function apply<Out extends Resource>(
       console.log(`${phase === "create" ? "Created" : "Updated"}: "${fqn}"`);
     }
 
+    console.log(
+      isReplaced
+        ? {
+            // output: oldOutput,
+            props: oldProps,
+          }
+        : undefined,
+    );
     await scope.state.set(id, {
       kind,
       id,

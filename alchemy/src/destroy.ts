@@ -59,16 +59,14 @@ export async function destroyScope(
   scope: Scope,
   options: DestroyOptions | undefined,
 ) {
-  // destroy all active resources
-  const resources = Array.from(scope.resources.values());
-  await destroy.all(resources, options);
-  // then detect orphans and destroy them
-  const orphans = await scope.state.all();
   await destroy.all(
-    Object.values(orphans).map((orphan) => ({
-      ...orphan.output,
-      [ResourceScope]: scope,
-    })),
+    [
+      ...Array.from(scope.resources.values()),
+      ...Object.values(await scope.state.all()).map((orphan) => ({
+        ...orphan.output,
+        [ResourceScope]: scope,
+      })),
+    ],
     options,
   );
   // finally, destroy the scope container
@@ -113,70 +111,82 @@ export async function destroyResource(
   }
   const quiet = options?.quiet ?? scope.quiet;
 
+  if (!quiet) {
+    console.log(`Delete:  "${fqn}"`);
+  }
+
+  const state = await scope.state.get(id);
+
+  if (state === undefined) {
+    return;
+  }
+
+  // if we're not already deleting a replaced resource
+  // and this resource contains a record of an un-deleted replaced resource
+  // then, we should delete the replaced resource first
+  // TODO(sam): could we delete in parallel?
+  if (options?.replace === undefined && state.replace !== undefined) {
+    // we're destroying a resource that also has a pending replace
+    console.log("Deleting pending resource", state.id);
+    await destroy(state.replace.output, {
+      replace: state.replace,
+    });
+  }
+
+  const ctx = context({
+    scope,
+    phase: "delete",
+    kind,
+    id,
+    fqn,
+    seq,
+    props: state.props,
+    state,
+    replace: () => {
+      throw new Error("Cannot replace a resource that is being deleted");
+    },
+  });
+
+  // the scope of this resource instance
+  const resourceScope = new Scope({
+    parent: scope,
+    scopeName: id,
+    seq,
+  });
   try {
-    if (!quiet) {
-      console.log(`Delete:  "${fqn}"`);
-    }
-
-    const state = await scope.state.get(id);
-
-    if (state === undefined) {
-      return;
-    }
-
-    const ctx = context({
-      scope,
-      phase: "delete",
-      kind,
-      id,
-      fqn,
-      seq,
-      props: state.props,
-      state,
-      replace: () => {
-        throw new Error("Cannot replace a resource that is being deleted");
-      },
+    // TODO(sam): i forgot what this bug refers to
+    // BUG: this does not restore persisted scope
+    await resourceScope.run(async () => {
+      return Provider.handler.bind(ctx)(
+        id,
+        // if replace is undefined, then this is a replace
+        // replace.props could still be undefined
+        options?.replace ? options.replace.props : state.props,
+      );
     });
+  } catch (err) {
+    if (err instanceof DestroyedSignal) {
+      // TODO: should we fail if the DestroyedSignal is not thrown?
+    } else {
+      throw err;
+    }
+  }
 
-    // the scope of this resource instance
-    const resourceScope = new Scope({
-      parent: scope,
-      scopeName: id,
-      seq,
+  // if this is not the delete of a replaced resource, then destroy the resource scope
+  if (options?.replace === undefined) {
+    // destroy it
+    await destroy(resourceScope, options);
+    // delete it from the scope state
+    await scope.delete(id);
+  } else {
+    await scope.state.set(state.id, {
+      ...state,
+      replace: undefined,
     });
-    try {
-      // TODO(sam): i forgot what this bug refers to
-      // BUG: this does not restore persisted scope
-      await resourceScope.run(async () => {
-        return Provider.handler.bind(ctx)(
-          id,
-          // if replace is undefined, then this is a replace
-          // replace.props could still be undefined
-          options?.replace ? options.replace.props : state.props,
-        );
-      });
-    } catch (err) {
-      if (err instanceof DestroyedSignal) {
-        // TODO: should we fail if the DestroyedSignal is not thrown?
-      } else {
-        throw err;
-      }
-    }
+  }
 
-    // if this is not the delete of a replaced resource, then destroy the resource scope
-    if (options?.replace === undefined) {
-      // destroy it
-      await destroy(resourceScope, options);
-      // delete it from the scope state
-      await scope.delete(id);
-    }
-
-    if (!quiet) {
-      console.log(`Deleted: "${fqn}"`);
-    }
-  } catch (error) {
-    console.error(error);
-    throw error;
+  if (!quiet) {
+    console.log(`Deleted: "${fqn}"`);
   }
 }
 
