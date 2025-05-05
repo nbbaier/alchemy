@@ -211,16 +211,8 @@ export class R2RestStateStore implements StateStore {
       const rawData = await response.json();
       const state = (await deserialize(this.scope, rawData)) as State;
 
-      // Create a new state object with proper output
-      const reified = {
-        ...state,
-        output: {
-          ...(state.output || {}),
-          Scope: this.scope,
-        },
-      };
-      this.cache.set(key, reified);
-      return reified;
+      this.cache.set(key, state);
+      return state;
     } catch (error: any) {
       if (error.message?.includes("404")) {
         return undefined;

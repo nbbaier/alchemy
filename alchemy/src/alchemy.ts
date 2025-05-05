@@ -1,9 +1,16 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { destroy, DestroyedSignal } from "./destroy.js";
+import { destroy } from "./destroy.js";
 import { env } from "./env.js";
-import type { PendingResource } from "./resource.js";
+import {
+  ResourceFQN,
+  ResourceID,
+  ResourceKind,
+  ResourceScope,
+  ResourceSeq,
+  type PendingResource,
+} from "./resource.js";
 import { Scope } from "./scope.js";
 import { secret } from "./secret.js";
 import type { StateStoreType } from "./state.js";
@@ -276,13 +283,7 @@ export interface ScopeOptions extends AlchemyOptions {
   enter: boolean;
 }
 
-export interface RunOptions extends AlchemyOptions {
-  /**
-   * @default false
-   */
-  // TODO(sam): this is an awful hack to differentiate between naked scopes and resources
-  isResource?: boolean;
-}
+export interface RunOptions extends AlchemyOptions {}
 
 /**
  * Run a function in a new scope asynchronously.
@@ -316,67 +317,44 @@ async function run<T>(
           RunOptions,
           (this: Scope, scope: Scope) => Promise<T>,
         ]);
-  const scope = new Scope({
+  const scope = await Scope.create({
     ...options,
     scopeName: id,
   });
-
-  let scopeState = await scope.parent!.state.get(id);
-  if (scopeState?.replace) {
-    // the state contains `replace: true` still, that might indicate that we were killed before finalization
-    // so, we mark it again as "replace" so that it will be finalized after `app.finalize()`
-    scope.replace();
-  }
   try {
-    if (options?.isResource !== true && scope.parent) {
-      // TODO(sam): this is an awful hack to differentiate between naked scopes and resources
+    if (scope.parent) {
+      // if this is not the root scope, then write a record into the parent scope for this scope
       const seq = scope.parent.nextSeq();
+      const fqn = `${scope.parent.fqn(id)}`;
       const output = {
-        ID: id,
-        FQN: "",
-        Kind: Scope.KIND,
-        Scope: scope,
-        Seq: seq,
+        [ResourceID]: id,
+        [ResourceFQN]: fqn,
+        [ResourceKind]: Scope.KIND,
+        [ResourceScope]: scope,
+        [ResourceSeq]: seq,
       } as const;
       const resource = {
-        kind: "scope",
+        kind: Scope.KIND,
         id,
         seq,
         data: {},
-        fqn: "",
+        fqn,
         props: {},
         status: "created",
         output,
       } as const;
 
       await scope.parent!.state.set(id, resource);
+
+      // TODO(sam): is this necessary? should we instead be pushing into scope.parent.scopes?
       scope.parent!.resources.set(
         id,
         Object.assign(Promise.resolve(resource), output) as PendingResource,
       );
     }
-    scopeState = (await scope.parent!.state.get(id))!;
-    const result = await scope.run(async () => fn.bind(scope)(scope));
-    if (scope.hasReplace) {
-      await scope.parent!.state.set(id, {
-        ...scopeState,
-        // mark this scope as containing a replace operation
-        replace: true,
-      });
-    }
-    return result;
+    return await scope.run(async () => fn.bind(scope)(scope));
   } catch (error) {
-    if (!(error instanceof DestroyedSignal)) {
-      console.log(error);
-      scope.fail();
-    }
+    scope.fail();
     throw error;
-  } finally {
-    if (!scope.hasReplace) {
-      // we will not eagerly call finalize if this scope has a replace operation
-      // WHY: because replaced resources need to flush through to downstream resources
-      // so, we must defer finalization until the very end (app.finalize())
-      await scope.finalize();
-    }
   }
 }
