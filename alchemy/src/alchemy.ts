@@ -354,7 +354,8 @@ async function run<T>(
     }
     return await scope.run(async () => fn.bind(scope)(scope));
   } catch (error) {
-    scope.fail();
+    // console.error(error);
+    scope.fail(error);
     throw error;
   }
 }

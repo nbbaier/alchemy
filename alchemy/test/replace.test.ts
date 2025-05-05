@@ -23,6 +23,7 @@ const Replacable = Resource(
     props: {
       name: string;
       fail?: boolean;
+      child?: boolean;
     },
   ) {
     if (this.phase === "delete") {
@@ -38,6 +39,11 @@ const Replacable = Resource(
       if (props.name !== this.output.name) {
         this.replace();
       }
+    }
+    if (props.child) {
+      await Replacable("child", {
+        name: "child",
+      });
     }
     return this({
       name: props.name,
@@ -182,6 +188,46 @@ describe("Replace", () => {
       // await destroy(scope);
       // replaced resource should be deleted first
       expect(deleted.indexOf("foo-3") < deleted.indexOf("bar-3"));
+    } finally {
+      await destroy(scope);
+    }
+  });
+
+  test("cannot replace a resource that has a pending replacement", async (scope) => {
+    try {
+      let resource = await Replacable("replaceable", {
+        name: "foo-4",
+      });
+      resource = await Replacable("replaceable", {
+        name: "bar-4",
+      });
+      expect(
+        Replacable("replaceable", {
+          name: "baz-4",
+        }),
+      ).rejects.toThrow(
+        "has pending replaced resource that must be deleted first.",
+      );
+    } finally {
+      await destroy(scope);
+    }
+  });
+
+  test("cannot replace a resource that has child resources", async (scope) => {
+    try {
+      await alchemy.run("foo", () =>
+        Replacable("replaceable", {
+          name: "foo-4",
+          child: true,
+        }),
+      );
+      expect(
+        alchemy.run("foo", () =>
+          Replacable("replaceable", {
+            name: "baz-4",
+          }),
+        ),
+      ).rejects.toThrow("has children and cannot be replaced.");
     } finally {
       await destroy(scope);
     }

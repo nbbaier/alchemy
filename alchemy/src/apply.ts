@@ -137,6 +137,15 @@ export async function apply<Out extends Resource>(
                 `Resource "${fqn}" has children and cannot be replaced.`,
               );
             }
+            if (state.replace !== undefined) {
+              // error if if this resource has a pending replacement that hasn't been cleaned up
+              // this is to guarnatee that we do not lose track of the replaced resource and always delete it up
+              // TODO(sam): we could open up `replace` to be an array
+              throw new Error(
+                `Resource "${fqn}" has pending replaced resource that must be deleted first.`,
+              );
+            }
+
             isReplaced = true;
           },
         }),
@@ -146,14 +155,6 @@ export async function apply<Out extends Resource>(
       console.log(`${phase === "create" ? "Created" : "Updated"}: "${fqn}"`);
     }
 
-    console.log(
-      isReplaced
-        ? {
-            // output: oldOutput,
-            props: oldProps,
-          }
-        : undefined,
-    );
     await scope.state.set(id, {
       kind,
       id,
@@ -174,7 +175,7 @@ export async function apply<Out extends Resource>(
     });
     return output as Awaited<Out>;
   } catch (error) {
-    scope.fail();
+    scope.fail(error);
     throw error;
   }
 }

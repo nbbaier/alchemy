@@ -127,7 +127,6 @@ export async function destroyResource(
   // TODO(sam): could we delete in parallel?
   if (options?.replace === undefined && state.replace !== undefined) {
     // we're destroying a resource that also has a pending replace
-    console.log("Deleting pending resource", state.id);
     await destroy(state.replace.output, {
       replace: state.replace,
     });

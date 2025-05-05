@@ -49,7 +49,6 @@ export class Scope {
         scope.parent!.scopes = scope.parent!.scopes.filter(
           (s) => s !== sibling,
         );
-        console.log("finalizing sibling", sibling.scopeName);
         // we just overwrote the scope, we should finalize the previous scope?
         await sibling.finalize();
       }
@@ -117,8 +116,13 @@ export class Scope {
     return [...app, this.stage, ...thisScope];
   }
 
-  public fail() {
-    console.error("Scope failed", this.chain.join("/"));
+  public fail(err?: any) {
+    if (!this.isErrored) {
+      console.error("Failed: ", `"${this.addr}"`);
+      if (err) {
+        console.error(err);
+      }
+    }
     this.isErrored = true;
   }
 
@@ -160,7 +164,6 @@ export class Scope {
     }
     this._isFinalized = true;
     if (!this.isErrored) {
-      console.log(`finalize: '${this.addr}'`);
       // TODO: need to detect if it is in error
       const resourceIds = await this.state.list();
 
@@ -208,21 +211,6 @@ export class Scope {
         return ordinal;
       });
 
-      console.log(
-        sequence.map((item) =>
-          item instanceof Scope
-            ? {
-                type: "scope",
-                id: item.scopeName,
-                seq: item.seq,
-              }
-            : {
-                type: item.type,
-                id: item.state.id,
-                seq: item.state.seq,
-              },
-        ),
-      );
       // now destroy all resources and finalize scopes in sequence order
       for (const node of sequence) {
         if (node instanceof Scope) {
@@ -231,11 +219,6 @@ export class Scope {
         } else {
           const { type, state } = node;
           if (type === "replaced") {
-            console.log(
-              "Delete replaced resource",
-              state.id,
-              state.replace!.props,
-            );
             // replaced resource that needs to be deleted
             await destroy(state.replace!.output, {
               replace: {
@@ -243,7 +226,6 @@ export class Scope {
               },
             });
           } else {
-            console.log("Delete resource", state.id);
             if (state.replace !== undefined) {
               // delete the orphaned resource's replaced resource
               // this is an edge case that indicates that we failed to delete a replaced resource
