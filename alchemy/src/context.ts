@@ -140,5 +140,5 @@ export function context<
       throw new DestroyedSignal();
     },
     create,
-  }) as Context<Out>;
+  }) as Context<any>;
 }
