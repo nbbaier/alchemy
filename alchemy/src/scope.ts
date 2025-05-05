@@ -231,7 +231,6 @@ export class Scope {
               // this is an edge case that indicates that we failed to delete a replaced resource
               // .. and then later orphaned the replacement resource
               // this leaves us with two resource that must be deleted
-              // TODO(sam): what order should we delete them in?
               // TODO(sam): we are using the sequence order of the replacement instead of the replaced resource, is that a problem?
               await destroy(state.replace.output, {
                 replace: state.replace,
