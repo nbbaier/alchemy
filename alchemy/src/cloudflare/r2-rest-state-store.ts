@@ -10,6 +10,13 @@ import {
 } from "./api.js";
 import { createBucket, getBucket } from "./bucket.js";
 
+const retryOptions = [
+  // Retry on transient errors
+  isRetryableError,
+  10, // 5 retry attempts
+  100, // Start with 1 second delay
+] as const;
+
 /**
  * Options for CloudflareR2StateStore
  */
@@ -75,9 +82,7 @@ export class R2RestStateStore implements StateStore {
     try {
       await withExponentialBackoff(
         () => getBucket(this.api, this.bucketName),
-        isRetryableError,
-        5,
-        1000,
+        ...retryOptions,
       );
     } catch (error) {
       // If not, create the alchemy state bucket
@@ -85,9 +90,7 @@ export class R2RestStateStore implements StateStore {
         try {
           await withExponentialBackoff(
             () => createBucket(this.api, this.bucketName),
-            isRetryableError,
-            5,
-            1000,
+            ...retryOptions,
           );
         } catch (error) {
           // this can happen when the bucket is being created in parallel
@@ -143,10 +146,7 @@ export class R2RestStateStore implements StateStore {
 
           return response;
         },
-        // Retry on transient errors
-        isRetryableError,
-        5, // 5 retry attempts
-        1000, // Start with 1 second delay
+        ...retryOptions,
       );
 
       const data = (await response.json()) as any;
@@ -207,10 +207,7 @@ export class R2RestStateStore implements StateStore {
 
           return response;
         },
-        // Retry on transient errors
-        isRetryableError,
-        5, // 5 retry attempts
-        1000, // Start with 1 second delay
+        ...retryOptions,
       );
 
       if (response.status === 404) {
@@ -303,10 +300,7 @@ export class R2RestStateStore implements StateStore {
         }
         return response;
       },
-      // Retry on transient errors
-      isRetryableError,
-      5, // 5 retry attempts
-      1000, // Start with 1 second delay
+      ...retryOptions,
     );
 
     this.cache.set(key, value);
@@ -332,9 +326,7 @@ export class R2RestStateStore implements StateStore {
 
         return response;
       },
-      isRetryableError,
-      5, // 5 retry attempts
-      1000, // Start with 1 second delay
+      ...retryOptions,
     );
 
     this.cache.delete(key);
