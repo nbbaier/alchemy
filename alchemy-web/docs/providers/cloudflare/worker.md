@@ -1,3 +1,8 @@
+---
+title: Cloudflare Workers in Alchemy
+description: Deploy serverless functions to Cloudflare's global network. Learn how to configure Workers with bindings, assets, CRON triggers, and custom domains.
+---
+
 # Worker
 
 A [Cloudflare Worker](https://developers.cloudflare.com/workers/) is a serverless function that runs on Cloudflare's global network.

@@ -1,3 +1,8 @@
+---
+title: File Resource in Alchemy
+description: Create, update, and delete files with Alchemy's filesystem provider. Learn how to manage content, handle nested directories, and update file paths dynamically.
+---
+
 # File
 
 The File resource lets you create, update and delete files in the filesystem with automatic directory creation and cleanup.
