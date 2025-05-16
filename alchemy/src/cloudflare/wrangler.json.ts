@@ -1,7 +1,7 @@
 import type { Context } from "../context.js";
 import { StaticJsonFile } from "../fs/static-json-file.js";
 import { Resource } from "../resource.js";
-import type { Bindings } from "./bindings.js";
+import { Self, type Bindings } from "./bindings.js";
 import type { DurableObjectNamespace } from "./durable-object-namespace.js";
 import type { EventSource } from "./event-source.js";
 import { isQueueEventSource } from "./event-source.js";
@@ -23,6 +23,13 @@ export interface WranglerJsonProps {
    * @default cwd/wrangler.json
    */
   path?: string;
+
+  /**
+   * The main entry point for the worker
+   *
+   * @default worker.entrypoint
+   */
+  main?: string;
 }
 
 /**
@@ -45,6 +52,11 @@ export interface WranglerJson
    * Path to the wrangler.json file
    */
   path: string;
+
+  /**
+   * `wrangler.json` spec
+   */
+  spec: WranglerJsonSpec;
 }
 
 /**
@@ -55,7 +67,7 @@ export const WranglerJson = Resource(
   async function (
     this: Context<WranglerJson>,
     id: string,
-    props: WranglerJsonProps
+    props: WranglerJsonProps,
   ): Promise<WranglerJson> {
     // Default path is wrangler.json in current directory
     const filePath = props.path || "wrangler.jsonc";
@@ -66,7 +78,7 @@ export const WranglerJson = Resource(
 
     if (props.worker.entrypoint === undefined) {
       throw new Error(
-        "Worker must have an entrypoint to generate a wrangler.json"
+        "Worker must have an entrypoint to generate a wrangler.json",
       );
     }
 
@@ -75,7 +87,7 @@ export const WranglerJson = Resource(
     const spec: WranglerJsonSpec = {
       name: worker.name,
       // Use entrypoint as main if it exists
-      main: worker.entrypoint,
+      main: props.main ?? worker.entrypoint,
       // see: https://developers.cloudflare.com/workers/configuration/compatibility-dates/
       compatibility_date: worker.compatibilityDate,
       compatibility_flags: props.worker.compatibilityFlags,
@@ -83,7 +95,7 @@ export const WranglerJson = Resource(
 
     // Process bindings if they exist
     if (worker.bindings) {
-      processBindings(spec, worker.bindings, worker.eventSources);
+      processBindings(spec, worker.bindings, worker.eventSources, worker.name);
     }
 
     // Add environment variables as vars
@@ -97,10 +109,11 @@ export const WranglerJson = Resource(
     return this({
       ...props,
       path: filePath,
+      spec,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  }
+  },
 );
 
 /**
@@ -138,11 +151,29 @@ export interface WranglerJsonSpec {
   routes?: string[];
 
   /**
+   * AI bindings
+   */
+  ai?: {
+    binding: string;
+  };
+
+  /**
+   * Browser bindings
+   */
+  browser?: {
+    binding: string;
+  };
+
+  /**
    * KV Namespace bindings
    */
   kv_namespaces?: {
     binding: string;
     id: string;
+    /**
+     * The ID of the KV namespace used during `wrangler dev`
+     */
+    preview_id?: string;
   }[];
 
   /**
@@ -163,6 +194,10 @@ export interface WranglerJsonSpec {
   r2_buckets?: {
     binding: string;
     bucket_name: string;
+    /**
+     * The preview name of this R2 bucket at the edge.
+     */
+    preview_bucket_name?: string;
   }[];
 
   /**
@@ -219,6 +254,10 @@ export interface WranglerJsonSpec {
     database_id: string;
     database_name: string;
     migrations_dir?: string;
+    /**
+     * The ID of the D1 database used during `wrangler dev`
+     */
+    preview_database_id?: string;
   }[];
 
   /**
@@ -228,6 +267,15 @@ export interface WranglerJsonSpec {
     directory: string;
     binding: string;
   };
+
+  /**
+   * Migrations
+   */
+  migrations?: {
+    tag: string;
+    new_sqlite_classes?: string[];
+    new_classes?: string[];
+  }[];
 
   /**
    * Workflow bindings
@@ -251,7 +299,8 @@ export interface WranglerJsonSpec {
 function processBindings(
   spec: WranglerJsonSpec,
   bindings: Bindings,
-  eventSources: EventSource[] | undefined
+  eventSources: EventSource[] | undefined,
+  workerName: string,
 ): void {
   // Arrays to collect different binding types
   const kvNamespaces: { binding: string; id: string }[] = [];
@@ -287,6 +336,9 @@ function processBindings(
     consumers: [],
   };
 
+  const new_sqlite_classes: string[] = [];
+  const new_classes: string[] = [];
+
   const vectorizeIndexes: { binding: string; index_name: string }[] = [];
 
   for (const eventSource of eventSources ?? []) {
@@ -313,6 +365,18 @@ function processBindings(
         spec.vars = {};
       }
       spec.vars[bindingName] = binding;
+    } else if (binding === Self) {
+      // Self(service) binding
+      services.push({
+        binding: bindingName,
+        service: workerName,
+      });
+    } else if (binding.type === "service") {
+      // Service binding
+      services.push({
+        binding: bindingName,
+        service: binding.id,
+      });
     } else if (binding.type === "kv_namespace") {
       // KV Namespace binding
       kvNamespaces.push({
@@ -331,16 +395,15 @@ function processBindings(
         script_name: doBinding.scriptName,
         environment: doBinding.environment,
       });
+      if (doBinding.sqlite) {
+        new_sqlite_classes.push(doBinding.className);
+      } else {
+        new_classes.push(doBinding.className);
+      }
     } else if (binding.type === "r2_bucket") {
       r2Buckets.push({
         binding: bindingName,
         bucket_name: binding.name,
-      });
-    } else if (binding.type === "service") {
-      // Service binding
-      services.push({
-        binding: bindingName,
-        service: binding.id,
       });
     } else if (binding.type === "secret") {
       // Secret binding
@@ -352,8 +415,8 @@ function processBindings(
       };
     } else if (binding.type === "workflow") {
       workflows.push({
-        name: bindingName,
-        binding: binding.id,
+        name: binding.workflowName,
+        binding: bindingName,
         class_name: binding.className,
       });
     } else if (binding.type === "d1") {
@@ -373,6 +436,20 @@ function processBindings(
         binding: bindingName,
         index_name: binding.name,
       });
+    } else if (binding.type === "browser") {
+      if (spec.browser) {
+        throw new Error(`Browser already bound to ${spec.browser.binding}`);
+      }
+      spec.browser = {
+        binding: bindingName,
+      };
+    } else if (binding.type === "ai") {
+      if (spec.ai) {
+        throw new Error(`AI already bound to ${spec.ai.binding}`);
+      }
+      spec.ai = {
+        binding: bindingName,
+      };
     }
   }
 
@@ -405,5 +482,19 @@ function processBindings(
 
   if (vectorizeIndexes.length > 0) {
     spec.vectorize_indexes = vectorizeIndexes;
+  }
+
+  if (new_sqlite_classes.length > 0 || new_classes.length > 0) {
+    spec.migrations = [
+      {
+        tag: "v1",
+        new_sqlite_classes,
+        new_classes,
+      },
+    ];
+  }
+
+  if (workflows.length > 0) {
+    spec.workflows = workflows;
   }
 }

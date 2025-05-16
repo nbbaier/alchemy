@@ -1,3 +1,8 @@
+---
+title: What is Alchemy?
+description: Alchemy is an embeddable, zero-dependency Infrastructure-as-Code library written in pure TypeScript that runs anywhere JavaScript runs. Learn how it differs from traditional IaC tools.
+---
+
 # What is Alchemy
 
 Alchemy is an embeddable, zero-dependency, Infrastructure-as-Code (IaC) library written in pure TypeScript that runs anywhere that JavaScript runs - including the browser, serverless functions or even durable workflows.
@@ -116,8 +121,10 @@ Alchemy supports custom state backends including file systems, cloud storage, or
 
 ```typescript
 // Use Cloudflare R2 for state
+import { R2RestStateStore } from "alchemy/cloudflare";
+
 const app = await alchemy("my-app", {
-  stateStore: (scope) => new R2StateStore(scope, {
+  stateStore: (scope) => new R2RestStateStore(scope, {
     bucketName: "my-state-bucket"
   })
 });

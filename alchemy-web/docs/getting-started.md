@@ -1,3 +1,8 @@
+---
+title: Getting Started with Alchemy
+description: Quick start guide to using Alchemy, the TypeScript-native Infrastructure-as-Code library. Learn how to install, create resources, and manage their lifecycle.
+---
+
 # Getting Started with Alchemy
 
 > [!TIP]
@@ -7,9 +12,25 @@
 
 Start by installing the Alchemy library using Bun (or your preferred package manager):
 
-```bash
+::: code-group
+
+```sh [bun]
 bun add alchemy
 ```
+
+```sh [npm]
+npm add alchemy
+```
+
+```sh [pnpm]
+pnpm add alchemy
+```
+
+```sh [yarn]
+yarn add alchemy
+```
+
+:::
 
 ## Create Your First Alchemy App
 

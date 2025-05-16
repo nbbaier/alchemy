@@ -1,5 +1,7 @@
 ---
 order: 7
+title: Custom State Store
+description: Learn how to create your own state storage backend for Alchemy to persist infrastructure state in databases, cloud storage, or custom solutions.
 ---
 
 # Custom State Store
@@ -59,7 +61,7 @@ These requirements ensure Alchemy correctly tracks resource state and makes appr
 Alchemy uses a special serialization system to handle JavaScript objects, dates, secrets, and other complex types. Always use the provided `serialize` and `deserialize` functions from Alchemy to properly handle these types:
 
 ```typescript
-import { serialize, deserialize } from "alchemy/serde";
+import { serialize, deserialize } from "alchemy";
 
 // When storing state:
 const serializedData = await serialize(this.scope, value);
@@ -86,9 +88,8 @@ Your custom state store should:
 Here's a skeleton implementation:
 
 ```typescript
-import type { Scope } from "alchemy/scope";
-import { deserialize, serialize } from "alchemy/serde";
-import type { State, StateStore } from "alchemy/state";
+import { deserialize, serialize } from "alchemy";
+import type { Scope, State, StateStore } from "alchemy";
 
 export interface MyCustomStoreOptions {
   // Options specific to your storage backend

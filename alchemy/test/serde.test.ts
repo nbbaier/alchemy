@@ -1,16 +1,16 @@
 import { describe, expect } from "bun:test";
-import { alchemy } from "../src/alchemy";
-import { Secret } from "../src/secret";
-import { deserialize, serialize } from "../src/serde";
-import { BRANCH_PREFIX } from "./util";
+import { alchemy } from "../src/alchemy.js";
+import { Secret } from "../src/secret.js";
+import { deserialize, serialize } from "../src/serde.js";
+import { BRANCH_PREFIX } from "./util.js";
 
-import "../src/test/bun";
+import "../src/test/bun.js";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
 });
 
-describe("serde", () => {
+describe("serde", async () => {
   test("serializes and deserializes primitive values", async (scope) => {
     // Test primitive values
     const testCases = [42, "hello", true, null, undefined];
@@ -68,7 +68,9 @@ describe("serde", () => {
 
     const serialized = await serialize(scope, objWithScope);
     expect(serialized).toEqual({
-      scope: undefined,
+      scope: {
+        "@scope": null,
+      },
       data: "test",
     });
   });
@@ -107,8 +109,77 @@ describe("serde", () => {
       name: "alchemy.run",
       type: "full",
     };
+    const serialized = await serialize(scope, props);
+    expect(serialized).toEqual(props);
+  });
+
+  test("symbol property", async (scope) => {
+    const props = {
+      [Symbol.for("foo")]: "bar",
+    };
 
     const serialized = await serialize(scope, props);
-    console.log(serialized);
+    expect(serialized).toEqual({
+      "Symbol(foo)": "bar",
+    });
+    expect(await deserialize(scope, serialized)).toEqual(props);
+  });
+
+  test("symbol value", async (scope) => {
+    const props = {
+      foo: Symbol.for("bar"),
+    };
+
+    const serialized = await serialize(scope, props);
+    expect(serialized).toEqual({
+      foo: {
+        "@symbol": "Symbol(bar)",
+      },
+    });
+    expect(await deserialize(scope, serialized)).toEqual(props);
+  });
+
+  test("unique symbol property should error", async (scope) => {
+    expect(
+      serialize(scope, {
+        [Symbol()]: "bar",
+      }),
+    ).rejects.toThrow();
+    expect(
+      serialize(scope, {
+        [Symbol("foo")]: "bar",
+      }),
+    ).rejects.toThrow();
+  });
+
+  test("unique symbol value should error", async (scope) => {
+    expect(
+      serialize(scope, {
+        foo: Symbol(),
+      }),
+    ).rejects.toThrow();
+    expect(
+      serialize(scope, {
+        foo: Symbol("bar"),
+      }),
+    ).rejects.toThrow();
+  });
+
+  test("key that looks like a symbol errors", async (scope) => {
+    expect(
+      serialize(scope, {
+        "Symbol(foo)": "bar",
+      }),
+    ).rejects.toThrow();
+    expect(
+      serialize(scope, {
+        "Symbol()": "bar",
+      }),
+    ).rejects.toThrow();
+    expect(
+      serialize(scope, {
+        "Symbol(Symbol.asyncDispose)": "bar",
+      }),
+    ).rejects.toThrow();
   });
 });

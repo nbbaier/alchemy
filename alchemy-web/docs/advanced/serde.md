@@ -1,3 +1,8 @@
+---
+title: Alchemy Serialization System (Serde)
+description: Understand Alchemy's serialization (serde) system for handling JavaScript objects, secrets, dates, and schemas in state files. Learn usage and best practices.
+---
+
 # Serialization and Deserialization in Alchemy
 
 Alchemy uses a sophisticated serialization system to properly handle JavaScript objects, special types, and sensitive data. This system is crucial for correctly storing and retrieving resource state.
@@ -72,7 +77,7 @@ The serialization system properly handles complex object structures including:
 The serialization system is primarily used by Alchemy's state store implementations but can be useful in custom resources too:
 
 ```typescript
-import { serialize, deserialize } from "alchemy/serde";
+import { serialize, deserialize } from "alchemy";
 
 // Serialize an object
 const serializedData = await serialize(scope, complexObject);

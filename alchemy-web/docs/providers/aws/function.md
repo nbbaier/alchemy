@@ -1,3 +1,8 @@
+---
+title: Managing AWS Lambda Functions with Alchemy
+description: Learn how to deploy, update, and manage AWS Lambda Functions using Alchemy for serverless compute in your applications.
+---
+
 # AWS Lambda Function
 
 The Function resource lets you create and manage [AWS Lambda functions](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html) with support for Node.js runtimes, environment variables, and function URLs.
@@ -30,7 +35,6 @@ const func = await Function("api", {
   environment: {
     TABLE_NAME: table.name,
     QUEUE_URL: queue.url,
-    API_KEY: alchemy.secret(process.env.API_KEY)
   }
 });
 ```

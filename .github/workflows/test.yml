@@ -34,9 +34,14 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install
+        run: |
+          bun install
+          # tanstack start doesn't deploy when packages are hoisted ...
+          cd examples/cloudflare-tanstack-start
+          bun install
+          cd ../..
 
-      - name: Check Types
+      - name: Check Types and Lint
         run: bun run check
 
       - name: Configure AWS Credentials
@@ -61,6 +66,8 @@ jobs:
 
           echo "Running tests changed since commit: $BASE_COMMIT"
           bun run test --since "$BASE_COMMIT"
+
+          bun run test:smoke
         env:
           CI: true
           ALCHEMY_STATE_STORE: cloudflare
@@ -76,3 +83,6 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          SECRET_PASSPHRASE: ${{ secrets.SECRET_PASSPHRASE }}
+          UPSTASH_API_KEY: ${{ secrets.UPSTASH_API_KEY }}
+          UPSTASH_EMAIL: sam@alchemy.run

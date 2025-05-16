@@ -1,4 +1,3 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 import type { Assets } from "./assets.js";
 import type { Bindings } from "./bindings.js";
@@ -14,19 +13,16 @@ export type Vite<B extends Bindings> = B extends { ASSETS: any }
 
 export async function Vite<B extends Bindings>(
   id: string,
-  props: ViteProps<B>
+  props: ViteProps<B>,
 ): Promise<Vite<B>> {
+  const defaultAssets = path.join("dist", "client");
   return Website(id, {
     ...props,
     assets:
-      props.assets ??
-      (await (async () => {
-        try {
-          await fs.access(path.join("dist", "client", "index.html"));
-          return path.join(".", "dist", "client");
-        } catch {
-          return path.join(".", "dist");
-        }
-      })()),
+      typeof props.assets === "object"
+        ? {
+            dist: props.assets.dist ?? defaultAssets,
+          }
+        : (props.assets ?? defaultAssets),
   });
 }

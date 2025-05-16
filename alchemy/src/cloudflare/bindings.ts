@@ -5,7 +5,10 @@
  */
 import type { Secret } from "../secret.js";
 import type { AiGateway } from "./ai-gateway.js";
+import type { Ai } from "./ai.js";
 import type { Assets } from "./assets.js";
+import type { Bound } from "./bound.js";
+import type { BrowserRendering } from "./browser-rendering.js";
 import type { R2Bucket } from "./bucket.js";
 import type { D1Database } from "./d1-database.js";
 import type { DurableObjectNamespace } from "./durable-object-namespace.js";
@@ -21,10 +24,17 @@ export type Bindings = {
   [bindingName: string]: Binding;
 };
 
+export declare namespace Bindings {
+  export type Runtime<B extends Bindings> = {
+    [bindingName in keyof B]: Bound<B[bindingName]>;
+  };
+}
+
 /**
  * L2 Binding Resources.
  */
 export type Binding =
+  | Ai
   | AiGateway
   | Assets
   | D1Database
@@ -38,7 +48,12 @@ export type Binding =
   | string
   | VectorizeIndex
   | Worker
-  | Workflow;
+  | Workflow
+  | BrowserRendering
+  | Self;
+
+export type Self = typeof Self;
+export const Self = Symbol.for("Self");
 
 /**
  * Union type for all Worker binding types (API spec)
@@ -107,7 +122,7 @@ export interface WorkerBindingBrowserRendering {
   /** The name of the binding */
   name: string;
   /** Type identifier for Browser Rendering binding */
-  type: "browser_rendering";
+  type: "browser";
 }
 
 /**

@@ -1,20 +1,21 @@
 import { describe, expect } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { alchemy } from "../../src/alchemy";
-import { createCloudflareApi } from "../../src/cloudflare/api";
-import { Assets } from "../../src/cloudflare/assets";
-import { R2Bucket } from "../../src/cloudflare/bucket";
-import { D1Database } from "../../src/cloudflare/d1-database";
-import { DurableObjectNamespace } from "../../src/cloudflare/durable-object-namespace";
-import { KVNamespace } from "../../src/cloudflare/kv-namespace";
-import { Queue } from "../../src/cloudflare/queue";
-import { Worker } from "../../src/cloudflare/worker";
-import { Workflow } from "../../src/cloudflare/workflow";
-import { destroy } from "../../src/destroy";
-import { BRANCH_PREFIX } from "../util";
+import { alchemy } from "../../src/alchemy.js";
+import { createCloudflareApi } from "../../src/cloudflare/api.js";
+import { Assets } from "../../src/cloudflare/assets.js";
+import { Self } from "../../src/cloudflare/bindings.js";
+import { R2Bucket } from "../../src/cloudflare/bucket.js";
+import { D1Database } from "../../src/cloudflare/d1-database.js";
+import { DurableObjectNamespace } from "../../src/cloudflare/durable-object-namespace.js";
+import { KVNamespace } from "../../src/cloudflare/kv-namespace.js";
+import { Queue } from "../../src/cloudflare/queue.js";
+import { Worker } from "../../src/cloudflare/worker.js";
+import { Workflow } from "../../src/cloudflare/workflow.js";
+import { destroy } from "../../src/destroy.js";
+import { BRANCH_PREFIX } from "../util.js";
 
-import "../../src/test/bun";
+import "../../src/test/bun.js";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
@@ -27,7 +28,7 @@ const api = await createCloudflareApi();
 async function assertWorkerDoesNotExist(workerName: string) {
   try {
     const response = await api.get(
-      `/accounts/${api.accountId}/workers/scripts/${workerName}`
+      `/accounts/${api.accountId}/workers/scripts/${workerName}`,
     );
     expect(response.status).toEqual(404);
   } catch (error) {
@@ -412,7 +413,7 @@ describe("Worker Resource", () => {
         format: "cjs",
       });
       await expect(duplicateWorker).rejects.toThrow(
-        `Worker with name '${workerName}' already exists. Please use a unique name.`
+        `Worker with name '${workerName}' already exists. Please use a unique name.`,
       );
     } finally {
       await destroy(scope);
@@ -442,7 +443,7 @@ describe("Worker Resource", () => {
         {
           className: "Counter",
           scriptName: workerName,
-        }
+        },
       );
 
       // Update the worker with the DO binding
@@ -508,7 +509,7 @@ describe("Worker Resource", () => {
       {
         className: "Counter",
         scriptName: workerName,
-      }
+      },
     );
 
     // Create a KV namespace
@@ -608,6 +609,8 @@ describe("Worker Resource", () => {
         url: true,
       });
 
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       expect(worker.id).toEqual(worker.id);
       expect(worker.env?.TEST_API_KEY).toEqual("updated-key-456");
       expect(worker.env?.NODE_ENV).toEqual("production");
@@ -660,7 +663,7 @@ describe("Worker Resource", () => {
         {
           className: "Counter",
           scriptName: workerName,
-        }
+        },
       );
 
       // Update worker with the original Counter binding
@@ -681,7 +684,7 @@ describe("Worker Resource", () => {
         {
           className: "CounterV2",
           scriptName: workerName,
-        }
+        },
       );
 
       // Update worker with the migrated binding
@@ -722,7 +725,7 @@ describe("Worker Resource", () => {
         {
           className: "Counter",
           scriptName: workerName,
-        }
+        },
       );
 
       // Update the worker with the DO binding
@@ -788,23 +791,21 @@ describe("Worker Resource", () => {
         },
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       expect(worker.id).toBeTruthy();
       expect(worker.name).toEqual(workerName);
       expect(worker.bindings).toBeDefined();
       expect(worker.bindings!.STORAGE).toBeDefined();
 
-      if (worker.url) {
-        // Test that the R2 binding is accessible in the worker
-        const response = await fetch(`${worker.url}/r2-info`);
-        expect(response.status).toEqual(200);
-        const data = (await response.json()) as {
-          hasR2: boolean;
-          bucketName: string;
-        };
-        expect(data.hasR2).toEqual(true);
-      }
+      // Test that the R2 binding is accessible in the worker
+      const response = await fetch(`${worker.url}/r2-info`);
+      expect(response.status).toEqual(200);
+      const data = (await response.json()) as {
+        hasR2: boolean;
+        bucketName: string;
+      };
+      expect(data.hasR2).toEqual(true);
     } finally {
       await destroy(scope);
       await assertWorkerDoesNotExist(workerName);
@@ -875,7 +876,7 @@ describe("Worker Resource", () => {
         },
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       expect(worker.id).toBeTruthy();
       expect(worker.name).toEqual(workerName);
@@ -888,7 +889,7 @@ describe("Worker Resource", () => {
           console.log(
             response.status,
             response.statusText,
-            await response.text()
+            await response.text(),
           );
         }
         expect(response.status).toEqual(200);
@@ -915,8 +916,6 @@ describe("Worker Resource", () => {
 
       const apiCall = await get(`${worker.url}/api/data`);
       expect(apiCall).toEqual("Worker with assets is running!");
-    } catch (err) {
-      throw err;
     } finally {
       // Clean up temporary directory
       if (tempDir) {
@@ -1063,7 +1062,7 @@ describe("Worker Resource", () => {
       // expect(worker.assets?._redirects).toEqual(redirectsConfig);
       expect(worker.assets?.html_handling).toEqual("auto-trailing-slash");
       expect(worker.assets?.not_found_handling).toEqual(
-        "single-page-application"
+        "single-page-application",
       );
       expect(worker.assets?.run_worker_first).toEqual(false);
 
@@ -1076,14 +1075,14 @@ describe("Worker Resource", () => {
       expect(indexResponse.headers.get("ABC")).toEqual("456");
       expect(indexResponse.headers.get("X-Frame-Options")).toEqual("DENY");
       expect(indexResponse.headers.get("X-Content-Type-Options")).toEqual(
-        "nosniff"
+        "nosniff",
       );
 
       // Test that custom headers are applied
       const cssResponse = await fetch(`${worker.url}/styles.css`);
       expect(cssResponse.status).toEqual(200);
       expect(cssResponse.headers.get("Cache-Control")).toEqual(
-        "public, max-age=86400"
+        "public, max-age=86400",
       );
       expect(cssResponse.headers.get("XYZ")).toEqual("123");
 
@@ -1267,7 +1266,7 @@ describe("Worker Resource", () => {
         url: true, // Enable workers.dev URL to test the workflow
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       expect(worker.id).toBeTruthy();
       expect(worker.name).toEqual(workerName);
@@ -1309,14 +1308,14 @@ describe("Worker Resource", () => {
         url: true,
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       expect(worker.bindings).toBeDefined();
       expect(Object.keys(worker.bindings || {})).toHaveLength(2);
 
       // Test triggering the second workflow
       const orderResponse = await fetch(
-        `${worker.url!}/trigger-order-workflow`
+        `${worker.url!}/trigger-order-workflow`,
       );
       const orderResult = await orderResponse.json();
       console.log("Order workflow response:", orderResult);
@@ -1427,7 +1426,7 @@ describe("Worker Resource", () => {
         },
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       expect(worker.id).toBeTruthy();
       expect(worker.name).toEqual(workerName);
@@ -1436,23 +1435,21 @@ describe("Worker Resource", () => {
       expect(worker.bindings!.DATABASE.id).toEqual(db.id);
       expect(worker.url).toBeTruthy();
 
-      if (worker.url) {
-        // Initialize the database with a table and data
-        const initResponse = await fetch(`${worker.url}/init-db`);
-        expect(initResponse.status).toEqual(200);
-        const initText = await initResponse.text();
-        expect(initText).toEqual("Database initialized successfully!");
+      // Initialize the database with a table and data
+      const initResponse = await fetch(`${worker.url}/init-db`);
+      expect(initResponse.status).toEqual(200);
+      const initText = await initResponse.text();
+      expect(initText).toEqual("Database initialized successfully!");
 
-        // Query data from the database
-        const queryResponse = await fetch(`${worker.url}/query-db`);
-        expect(queryResponse.status).toEqual(200);
-        const queryData = await queryResponse.json();
-        expect(queryData.success).toEqual(true);
-        expect(queryData.data).toBeArray();
-        expect(queryData.data.length).toBeGreaterThan(0);
-        expect(queryData.data[0].name).toEqual("Test User");
-        expect(queryData.data[0].email).toEqual("test@example.com");
-      }
+      // Query data from the database
+      const queryResponse = await fetch(`${worker.url}/query-db`);
+      expect(queryResponse.status).toEqual(200);
+      const queryData = await queryResponse.json();
+      expect(queryData.success).toEqual(true);
+      expect(queryData.data).toBeArray();
+      expect(queryData.data.length).toBeGreaterThan(0);
+      expect(queryData.data[0].name).toEqual("Test User");
+      expect(queryData.data[0].email).toEqual("test@example.com");
     } finally {
       await destroy(scope);
       await assertWorkerDoesNotExist(workerName);
@@ -1530,7 +1527,7 @@ describe("Worker Resource", () => {
         },
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       expect(worker.id).toBeTruthy();
       expect(worker.name).toEqual(workerName);
@@ -1564,6 +1561,96 @@ describe("Worker Resource", () => {
       await assertWorkerDoesNotExist(workerName);
     }
   }, 120000); // Increased timeout for Queue operations
+
+  test("create and test worker with Self binding", async (scope) => {
+    // Sample ESM worker script with Self binding functionality
+
+    const workerName = `${BRANCH_PREFIX}-test-worker-self`;
+
+    let worker: Worker | undefined = undefined;
+
+    try {
+      // Create a worker with the Self binding
+      worker = await Worker(workerName, {
+        name: workerName,
+        script: `
+          export default {
+            async fetch(request, env, ctx) {
+              const url = new URL(request.url);
+              
+              // Echo endpoint
+              if (url.pathname.startsWith('/echo/')) {
+                const message = url.pathname.split('/echo/')[1];
+                return new Response('Echo: ' + message, {
+                  status: 200,
+                  headers: { 'Content-Type': 'text/plain' }
+                });
+              }
+              
+              // Recursive endpoint that calls itself
+              if (url.pathname.startsWith('/recursive/')) {
+                const parts = url.pathname.split('/recursive/')[1].split('/');
+                const message = parts[0] || '';
+                const count = parseInt(parts[1] || '0', 10);
+                
+                if (count <= 0) {
+                  return new Response('Final result: ' + message, {
+                    status: 200,
+                    headers: { 'Content-Type': 'text/plain' }
+                  });
+                }
+                
+                // Call self using the SELF binding
+                try {
+                  const response = await env.SELF.fetch(
+                    new URL(\`/recursive/\${message}-\${count}/\${count - 1}\`, request.url)
+                  );
+                  return response;
+                } catch (error) {
+                  return new Response('Error calling self: ' + error.message, {
+                    status: 500,
+                    headers: { 'Content-Type': 'text/plain' }
+                  });
+                }
+              }
+              
+              return new Response('Self-binding Worker is running!', {
+                status: 200,
+                headers: { 'Content-Type': 'text/plain' }
+              });
+            }
+          };
+        `,
+        format: "esm",
+        url: true, // Enable workers.dev URL to test the worker
+        bindings: {
+          SELF: Self, // Bind the worker to itself
+        },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      expect(worker.id).toBeTruthy();
+      expect(worker.name).toEqual(workerName);
+      expect(worker.bindings).toBeDefined();
+      expect(worker.url).toBeTruthy();
+
+      // Test the echo endpoint
+      const echoResponse = await fetch(`${worker.url}/echo/hello-world`);
+      expect(echoResponse.status).toEqual(200);
+      const echoText = await echoResponse.text();
+      expect(echoText).toEqual("Echo: hello-world");
+
+      // Test the recursive endpoint with a count of 3
+      const recursiveResponse = await fetch(`${worker.url}/recursive/start/3`);
+      expect(recursiveResponse.status).toEqual(200);
+      const recursiveText = await recursiveResponse.text();
+      expect(recursiveText).toEqual("Final result: start-3-2-1");
+    } finally {
+      await destroy(scope);
+      await assertWorkerDoesNotExist(workerName);
+    }
+  }, 60000); // Increased timeout for Self binding operations
 
   // Test for worker creation using an entrypoint file instead of an inline script
   test("create, update, and delete worker using entrypoint file", async (scope) => {
@@ -1609,7 +1696,7 @@ describe("Worker Resource", () => {
         url: true, // Enable workers.dev URL to test the worker
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Verify the worker was created correctly
       expect(worker.id).toBeTruthy();
@@ -1617,20 +1704,18 @@ describe("Worker Resource", () => {
       expect(worker.format).toEqual("esm");
       expect(worker.url).toBeTruthy();
 
-      if (worker.url) {
-        // Test that the worker is running correctly
-        const response = await fetch(worker.url);
-        expect(response.status).toEqual(200);
-        const text = await response.text();
-        expect(text).toEqual("Hello from entrypoint file!");
+      // Test that the worker is running correctly
+      const response = await fetch(worker.url!);
+      expect(response.status).toEqual(200);
+      const text = await response.text();
+      expect(text).toEqual("Hello from entrypoint file!");
 
-        // Test the JSON endpoint
-        const jsonResponse = await fetch(`${worker.url}/data`);
-        expect(jsonResponse.status).toEqual(200);
-        const data = await jsonResponse.json();
-        expect(data.message).toEqual("Hello from bundled worker!");
-        expect(data.version).toEqual("1.0.0");
-      }
+      // Test the JSON endpoint
+      const jsonResponse = await fetch(`${worker.url}/data`);
+      expect(jsonResponse.status).toEqual(200);
+      const data = await jsonResponse.json();
+      expect(data.message).toEqual("Hello from bundled worker!");
+      expect(data.version).toEqual("1.0.0");
 
       // Update the worker script file
       const updatedWorkerScript = `
@@ -1664,6 +1749,8 @@ describe("Worker Resource", () => {
         format: "esm",
         url: true,
       });
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       if (worker.url) {
         // Test that the worker was updated correctly
@@ -1714,7 +1801,7 @@ describe("Worker Resource", () => {
 
       // Verify the worker exists via API
       const getResponse = await api.get(
-        `/accounts/${api.accountId}/workers/scripts/${workerName}`
+        `/accounts/${api.accountId}/workers/scripts/${workerName}`,
       );
       expect(getResponse.status).toEqual(200);
 
@@ -1751,6 +1838,184 @@ describe("Worker Resource", () => {
     } finally {
       await destroy(scope);
       await assertWorkerDoesNotExist(workerName);
+    }
+  }, 60000); // Increase timeout for Worker operations
+
+  test("create and test worker with worker-to-worker binding", async (scope) => {
+    // Create names for both workers
+    const targetWorkerName = `${BRANCH_PREFIX}-target-worker`;
+    const callerWorkerName = `${BRANCH_PREFIX}-caller-worker`;
+
+    // Sample script for the target worker
+    const targetWorkerScript = `
+      export default {
+        async fetch(request, env, ctx) {
+          const url = new URL(request.url);
+          
+          if (url.pathname === '/api/data') {
+            return Response.json({
+              workerName: "${targetWorkerName}",
+              message: "Hello from target worker!",
+              timestamp: Date.now()
+            });
+          }
+
+          if (url.pathname === '/api/echo') {
+            const body = await request.json();
+            return Response.json({
+              workerName: "${targetWorkerName}",
+              echo: body,
+              received: true
+            });
+          }
+
+          return new Response('Target Worker is running!', {
+            status: 200,
+            headers: { 'Content-Type': 'text/plain' }
+          });
+        }
+      };
+    `;
+
+    // Sample script for the caller worker that will use the worker binding
+    const callerWorkerScript = `
+      export default {
+        async fetch(request, env, ctx) {
+          const url = new URL(request.url);
+          
+          // Call the target worker via binding
+          if (url.pathname === '/call-target') {
+            try {
+              const targetResponse = await env.TARGET_WORKER.fetch(
+                new Request('https://example.com/api/data')
+              );
+              
+              const targetData = await targetResponse.json();
+              
+              return Response.json({
+                success: true,
+                callerName: "${callerWorkerName}",
+                targetResponse: targetData
+              });
+            } catch (error) {
+              return Response.json({
+                success: false,
+                error: error.message
+              }, { status: 500 });
+            }
+          }
+
+          // Echo test with payload to verify data passing works
+          if (url.pathname === '/echo-test') {
+            try {
+              const testPayload = {
+                message: "Test message from caller",
+                timestamp: Date.now()
+              };
+              
+              const targetResponse = await env.TARGET_WORKER.fetch(
+                new Request('https://example.com/api/echo', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(testPayload)
+                })
+              );
+              
+              const echoResponse = await targetResponse.json();
+              
+              return Response.json({
+                success: true,
+                callerName: "${callerWorkerName}",
+                echoResponse
+              });
+            } catch (error) {
+              return Response.json({
+                success: false,
+                error: error.message
+              }, { status: 500 });
+            }
+          }
+
+          return new Response('Caller Worker is running!', {
+            status: 200,
+            headers: { 'Content-Type': 'text/plain' }
+          });
+        }
+      };
+    `;
+
+    let targetWorker: Worker | undefined = undefined;
+    let callerWorker: Worker | undefined = undefined;
+
+    try {
+      // First create the target worker
+      targetWorker = await Worker(targetWorkerName, {
+        name: targetWorkerName,
+        script: targetWorkerScript,
+        format: "esm",
+        url: true, // Enable workers.dev URL
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      expect(targetWorker.id).toBeTruthy();
+      expect(targetWorker.name).toEqual(targetWorkerName);
+      expect(targetWorker.url).toBeTruthy();
+
+      // Create the caller worker with a binding to the target worker
+      callerWorker = await Worker(callerWorkerName, {
+        name: callerWorkerName,
+        script: callerWorkerScript,
+        format: "esm",
+        url: true, // Enable workers.dev URL
+        bindings: {
+          TARGET_WORKER: targetWorker, // Bind to the target worker
+        },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      expect(callerWorker.id).toBeTruthy();
+      expect(callerWorker.name).toEqual(callerWorkerName);
+      expect(callerWorker.url).toBeTruthy();
+      expect(callerWorker.bindings?.TARGET_WORKER).toBeDefined();
+
+      // Test direct access to target worker works
+      const targetResponse = await fetch(targetWorker.url!);
+      expect(targetResponse.status).toEqual(200);
+      const targetText = await targetResponse.text();
+      expect(targetText).toEqual("Target Worker is running!");
+
+      // Test caller worker can access the target worker through binding
+      const callerResponse = await fetch(`${callerWorker.url}/call-target`);
+      expect(callerResponse.status).toEqual(200);
+      const callerData = await callerResponse.json();
+
+      expect(callerData.success).toEqual(true);
+      expect(callerData.callerName).toEqual(callerWorkerName);
+      expect(callerData.targetResponse).toBeDefined();
+      expect(callerData.targetResponse.workerName).toEqual(targetWorkerName);
+      expect(callerData.targetResponse.message).toEqual(
+        "Hello from target worker!",
+      );
+
+      // Test echo functionality to verify data passing works
+      const echoResponse = await fetch(`${callerWorker.url}/echo-test`);
+      expect(echoResponse.status).toEqual(200);
+      const echoData = await echoResponse.json();
+
+      expect(echoData.success).toEqual(true);
+      expect(echoData.echoResponse).toBeDefined();
+      expect(echoData.echoResponse.workerName).toEqual(targetWorkerName);
+      expect(echoData.echoResponse.received).toEqual(true);
+      expect(echoData.echoResponse.echo.message).toEqual(
+        "Test message from caller",
+      );
+    } finally {
+      await destroy(scope);
+      // Verify both workers were deleted
+      await assertWorkerDoesNotExist(targetWorkerName);
+      await assertWorkerDoesNotExist(callerWorkerName);
     }
   }, 60000); // Increase timeout for Worker operations
 });

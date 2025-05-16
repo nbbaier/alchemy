@@ -1,8 +1,10 @@
 import type { Pipeline } from "cloudflare:pipelines";
 import type { Secret } from "../secret.js";
 import type { AiGateway as _AiGateway } from "./ai-gateway.js";
+import type { Ai as _Ai } from "./ai.js";
 import type { Assets } from "./assets.js";
-import type { Binding } from "./bindings.js";
+import type { Binding, Self } from "./bindings.js";
+import type { BrowserRendering } from "./browser-rendering.js";
 import type { R2Bucket as _R2Bucket } from "./bucket.js";
 import type { D1Database as _D1Database } from "./d1-database.js";
 import type { DurableObjectNamespace as _DurableObjectNamespace } from "./durable-object-namespace.js";
@@ -42,4 +44,10 @@ export type Bound<T extends Binding> = T extends _DurableObjectNamespace
                           ? Pipeline<R>
                           : T extends string
                             ? string
-                            : Service;
+                            : T extends BrowserRendering
+                              ? Fetcher
+                              : T extends _Ai<infer M>
+                                ? Ai<M>
+                                : T extends Self
+                                  ? Service
+                                  : Service;

@@ -1,5 +1,6 @@
 import type { Context } from "../context.js";
 import { Resource } from "../resource.js";
+import { handleApiError } from "./api-error.js";
 import { createCloudflareApi, type CloudflareApiOptions } from "./api.js";
 import type {
   AlwaysUseHTTPSValue,
@@ -29,6 +30,12 @@ export interface ZoneProps extends CloudflareApiOptions {
    * The domain name for the zone
    */
   name: string;
+
+  /**
+   * Whether to delete the zone
+   * @default false
+   */
+  delete?: boolean;
 
   /**
    * The type of zone to create
@@ -299,22 +306,21 @@ export const Zone = Resource(
   async function (
     this: Context<Zone>,
     id: string,
-    props: ZoneProps
+    props: ZoneProps,
   ): Promise<Zone> {
     // Create Cloudflare API client with automatic account discovery
     const api = await createCloudflareApi(props);
 
     if (this.phase === "delete") {
-      if (this.output?.id) {
-        // Delete zone
+      if (this.output?.id && props.delete !== false) {
         const deleteResponse = await api.delete(`/zones/${this.output.id}`);
 
         if (!deleteResponse.ok && deleteResponse.status !== 404) {
-          const errorData: any = await deleteResponse.json().catch(() => ({
-            errors: [{ message: deleteResponse.statusText }],
-          }));
-          throw new Error(
-            `Error deleting zone '${props.name}': ${errorData.errors?.[0]?.message || deleteResponse.statusText}`
+          await handleApiError(
+            deleteResponse,
+            "delete",
+            "zone",
+            this.output.id,
           );
         }
       } else {
@@ -329,7 +335,7 @@ export const Zone = Resource(
 
       if (!response.ok) {
         throw new Error(
-          `Error getting zone '${props.name}': ${response.statusText}`
+          `Error getting zone '${props.name}': ${response.statusText}`,
         );
       }
 
@@ -359,77 +365,76 @@ export const Zone = Resource(
           : null,
         settings: await getZoneSettings(api, zoneData.id),
       });
-    } else {
-      // Create new zone
+    }
+    // Create new zone
 
-      const response = await api.post("/zones", {
-        name: props.name,
-        type: props.type || "full",
-        jump_start: props.jumpStart !== false,
-        account: {
-          id: api.accountId,
-        },
-      });
+    const response = await api.post("/zones", {
+      name: props.name,
+      type: props.type || "full",
+      jump_start: props.jumpStart !== false,
+      account: {
+        id: api.accountId,
+      },
+    });
 
-      const body = await response.text();
-      let zoneData;
-      if (!response.ok) {
-        if (response.status === 400 && body.includes("already exists")) {
-          // Zone already exists, fetch it instead
-          console.warn(
-            `Zone '${props.name}' already exists during Zone create, adopting it...`
-          );
-          const getResponse = await api.get(`/zones?name=${props.name}`);
+    const body = await response.text();
+    let zoneData;
+    if (!response.ok) {
+      if (response.status === 400 && body.includes("already exists")) {
+        // Zone already exists, fetch it instead
+        console.warn(
+          `Zone '${props.name}' already exists during Zone create, adopting it...`,
+        );
+        const getResponse = await api.get(`/zones?name=${props.name}`);
 
-          if (!getResponse.ok) {
-            throw new Error(
-              `Error fetching existing zone '${props.name}': ${getResponse.statusText}`
-            );
-          }
-
-          const zones = (
-            (await getResponse.json()) as { result: CloudflareZone[] }
-          ).result;
-          if (zones.length === 0) {
-            throw new Error(
-              `Zone '${props.name}' does not exist, but the name is reserved for another user.`
-            );
-          }
-          zoneData = zones[0];
-        } else {
+        if (!getResponse.ok) {
           throw new Error(
-            `Error creating zone '${props.name}': ${response.statusText}\n${body}`
+            `Error fetching existing zone '${props.name}': ${getResponse.statusText}`,
           );
         }
+
+        const zones = (
+          (await getResponse.json()) as { result: CloudflareZone[] }
+        ).result;
+        if (zones.length === 0) {
+          throw new Error(
+            `Zone '${props.name}' does not exist, but the name is reserved for another user.`,
+          );
+        }
+        zoneData = zones[0];
       } else {
-        zoneData = (JSON.parse(body) as { result: CloudflareZone }).result;
+        throw new Error(
+          `Error creating zone '${props.name}': ${response.statusText}\n${body}`,
+        );
       }
-
-      // Update zone settings if provided
-      if (props.settings) {
-        await updateZoneSettings(api, zoneData.id, props.settings);
-        // Add a small delay to ensure settings are propagated
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      }
-
-      return this({
-        id: zoneData.id,
-        name: zoneData.name,
-        type: zoneData.type,
-        status: zoneData.status,
-        paused: zoneData.paused,
-        accountId: zoneData.account.id,
-        nameservers: zoneData.name_servers,
-        originalNameservers: zoneData.original_name_servers,
-        createdAt: new Date(zoneData.created_on).getTime(),
-        modifiedAt: new Date(zoneData.modified_on).getTime(),
-        activatedAt: zoneData.activated_on
-          ? new Date(zoneData.activated_on).getTime()
-          : null,
-        settings: await getZoneSettings(api, zoneData.id),
-      });
+    } else {
+      zoneData = (JSON.parse(body) as { result: CloudflareZone }).result;
     }
-  }
+
+    // Update zone settings if provided
+    if (props.settings) {
+      await updateZoneSettings(api, zoneData.id, props.settings);
+      // Add a small delay to ensure settings are propagated
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+    return this({
+      id: zoneData.id,
+      name: zoneData.name,
+      type: zoneData.type,
+      status: zoneData.status,
+      paused: zoneData.paused,
+      accountId: zoneData.account.id,
+      nameservers: zoneData.name_servers,
+      originalNameservers: zoneData.original_name_servers,
+      createdAt: new Date(zoneData.created_on).getTime(),
+      modifiedAt: new Date(zoneData.modified_on).getTime(),
+      activatedAt: zoneData.activated_on
+        ? new Date(zoneData.activated_on).getTime()
+        : null,
+      settings: await getZoneSettings(api, zoneData.id),
+    });
+  },
 );
 
 /**
@@ -438,7 +443,7 @@ export const Zone = Resource(
 async function updateZoneSettings(
   api: any,
   zoneId: string,
-  settings: ZoneProps["settings"]
+  settings: ZoneProps["settings"],
 ): Promise<void> {
   if (!settings) return;
 
@@ -472,7 +477,7 @@ async function updateZoneSettings(
           `/zones/${zoneId}/settings/${settingId}`,
           {
             value,
-          } as UpdateZoneSettingParams
+          } as UpdateZoneSettingParams,
         );
 
         if (!response.ok) {
@@ -482,10 +487,10 @@ async function updateZoneSettings(
             return;
           }
           throw new Error(
-            `Failed to update zone setting ${key}: ${response.statusText}`
+            `Failed to update zone setting ${key}: ${response.statusText}`,
           );
         }
-      })
+      }),
   );
 }
 
@@ -494,13 +499,13 @@ async function updateZoneSettings(
  */
 async function getZoneSettings(
   api: any,
-  zoneId: string
+  zoneId: string,
 ): Promise<Zone["settings"]> {
   const settingsResponse = await api.get(`/zones/${zoneId}/settings`);
 
   if (!settingsResponse.ok) {
     throw new Error(
-      `Failed to fetch zone settings: ${settingsResponse.status} ${settingsResponse.statusText}`
+      `Failed to fetch zone settings: ${settingsResponse.status} ${settingsResponse.statusText}`,
     );
   }
 

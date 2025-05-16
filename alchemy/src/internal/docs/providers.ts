@@ -6,6 +6,14 @@ import { Document } from "../../ai/document.js";
 import { alchemy } from "../../alchemy.js";
 import { Folder } from "../../fs/folder.js";
 
+function getArg(arg: string) {
+  const idx = process.argv.findIndex((a) => a === arg);
+  return idx > -1 ? process.argv[idx + 1] : undefined;
+}
+
+const onlyProviderName = getArg("--provider");
+const onlyResourceName = getArg("--resource");
+
 export interface DocsProps {
   /**
    * The output directory for the docs.
@@ -60,7 +68,7 @@ export async function Providers({
   ];
 
   // Get all folders in the alchemy/src directory
-  let providers = (
+  const providers = (
     await fs.readdir(srcDir, {
       withFileTypes: true,
     })
@@ -71,18 +79,17 @@ export async function Providers({
   if (parallel) {
     return await Promise.all(
       providers.map((provider) =>
-        generateProviderDocs({ provider, outDir, parallel })
-      )
+        generateProviderDocs({ provider, outDir, parallel }),
+      ),
     );
-  } else {
-    const generatedProviders = [];
-    for (const provider of providers) {
-      generatedProviders.push(
-        await generateProviderDocs({ provider, outDir, parallel })
-      );
-    }
-    return generatedProviders;
   }
+  const generatedProviders = [];
+  for (const provider of providers) {
+    generatedProviders.push(
+      await generateProviderDocs({ provider, outDir, parallel }),
+    );
+  }
+  return generatedProviders;
 }
 
 async function generateProviderDocs({
@@ -102,7 +109,7 @@ async function generateProviderDocs({
   )
     .filter((dirent) => dirent.isFile())
     .map((dirent) =>
-      path.relative(process.cwd(), path.resolve(provider, dirent.name))
+      path.relative(process.cwd(), path.resolve(provider, dirent.name)),
     )
     .filter((file) => file.endsWith(".ts") && !file.endsWith("index.ts"));
 
@@ -118,18 +125,18 @@ async function generateProviderDocs({
         reasoningEffort: "high",
       },
     },
-    freeze: false,
+    freeze: onlyProviderName === undefined || onlyProviderName !== providerName,
     temperature: 0.1,
     schema: type({
       groups: type({
         identifier: type("string").describe(
-          "The identifier of the file's primary exported Resource/Function/Type, e.g. Bucket or StaticSite, AstroFile, TypeScriptFile"
+          "The identifier of the file's primary exported Resource/Function/Type, e.g. Bucket or StaticSite, AstroFile, TypeScriptFile",
         ),
         filename: type("string").describe(
-          "The filename of the Resource's Document, e.g. bucket.md or static-site.md"
+          "The filename of the Resource's Document, e.g. bucket.md or static-site.md",
         ),
         category: type("'Resource'|'Client'|'Utility'|'Types'").describe(
-          "The classification of the Resource's Document, one of: Resource, Client, Utility, or Types."
+          "The classification of the Resource's Document, one of: Resource, Client, Utility, or Types.",
         ),
       }).array(),
     }),
@@ -163,7 +170,7 @@ async function generateProviderDocs({
   let documents: Document[] = [];
   if (parallel) {
     documents = await Promise.all(
-      groups.filter((g) => g.category === "Resource").map(generateDocument)
+      groups.filter((g) => g.category === "Resource").map(generateDocument),
     );
   } else {
     for (const g of groups.filter((g) => g.category === "Resource")) {
@@ -176,9 +183,10 @@ async function generateProviderDocs({
       title: g.identifier,
       path: path.join(
         providerDocsDir,
-        `${g.filename.replace(".ts", "").replace(".md", "")}.md`
+        `${g.filename.replace(".ts", "").replace(".md", "")}.md`,
       ),
-      freeze: false,
+      freeze:
+        onlyResourceName !== undefined && onlyResourceName !== g.identifier,
       model: {
         id: "claude-3-5-sonnet-latest",
         provider: "anthropic",

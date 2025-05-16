@@ -1,9 +1,9 @@
 import type { Context } from "../context.js";
-import { Resource } from "../resource.js";
+import { Resource, ResourceKind } from "../resource.js";
 import { CloudflareApiError, handleApiError } from "./api-error.js";
 import {
-  CloudflareApi,
   createCloudflareApi,
+  type CloudflareApi,
   type CloudflareApiOptions,
 } from "./api.js";
 
@@ -59,7 +59,10 @@ export interface QueueProps extends CloudflareApiOptions {
 }
 
 export function isQueue(eventSource: any): eventSource is Queue {
-  return "Kind" in eventSource && eventSource.Kind === "cloudflare::Queue";
+  return (
+    ResourceKind in eventSource &&
+    eventSource[ResourceKind] === "cloudflare::Queue"
+  );
 }
 
 /**
@@ -168,56 +171,55 @@ export const Queue = Resource("cloudflare::Queue", async function <
 
     // Return void (a deleted queue has no content)
     return this.destroy();
-  } else {
-    let queueData: CloudflareQueueResponse;
-
-    if (this.phase === "create") {
-      console.log("Creating Cloudflare Queue:", queueName);
-      queueData = await createQueue(api, queueName, props);
-    } else {
-      // Update operation
-      if (this.output?.id) {
-        console.log("Updating Cloudflare Queue:", queueName);
-
-        // Check if name is being changed, which is not allowed
-        if (props.name !== this.output.name) {
-          throw new Error(
-            "Cannot update Queue name after creation. Queue name is immutable."
-          );
-        }
-
-        // Update the queue with new settings
-        queueData = await updateQueue(api, this.output.id, props);
-      } else {
-        // If no ID exists, fall back to creating a new queue
-        console.log(
-          "No existing Queue ID found, creating new Cloudflare Queue:",
-          queueName
-        );
-        queueData = await createQueue(api, queueName, props);
-      }
-    }
-
-    return this({
-      type: "queue",
-      id: queueData.result.queue_id || "",
-      name: queueName,
-      settings: queueData.result.settings
-        ? {
-            deliveryDelay: queueData.result.settings.delivery_delay,
-            deliveryPaused: queueData.result.settings.delivery_paused,
-            messageRetentionPeriod:
-              queueData.result.settings.message_retention_period,
-          }
-        : undefined,
-      createdOn: queueData.result.created_on || new Date().toISOString(),
-      modifiedOn: queueData.result.modified_on || new Date().toISOString(),
-      accountId: api.accountId,
-      // phantom properties
-      Body: undefined as T,
-      Batch: undefined! as MessageBatch<T>,
-    });
   }
+  let queueData: CloudflareQueueResponse;
+
+  if (this.phase === "create") {
+    console.log("Creating Cloudflare Queue:", queueName);
+    queueData = await createQueue(api, queueName, props);
+  } else {
+    // Update operation
+    if (this.output?.id) {
+      console.log("Updating Cloudflare Queue:", queueName);
+
+      // Check if name is being changed, which is not allowed
+      if (props.name !== this.output.name) {
+        throw new Error(
+          "Cannot update Queue name after creation. Queue name is immutable.",
+        );
+      }
+
+      // Update the queue with new settings
+      queueData = await updateQueue(api, this.output.id, props);
+    } else {
+      // If no ID exists, fall back to creating a new queue
+      console.log(
+        "No existing Queue ID found, creating new Cloudflare Queue:",
+        queueName,
+      );
+      queueData = await createQueue(api, queueName, props);
+    }
+  }
+
+  return this({
+    type: "queue",
+    id: queueData.result.queue_id || "",
+    name: queueName,
+    settings: queueData.result.settings
+      ? {
+          deliveryDelay: queueData.result.settings.delivery_delay,
+          deliveryPaused: queueData.result.settings.delivery_paused,
+          messageRetentionPeriod:
+            queueData.result.settings.message_retention_period,
+        }
+      : undefined,
+    createdOn: queueData.result.created_on || new Date().toISOString(),
+    modifiedOn: queueData.result.modified_on || new Date().toISOString(),
+    accountId: api.accountId,
+    // phantom properties
+    Body: undefined as T,
+    Batch: undefined! as MessageBatch<T>,
+  });
 });
 
 /**
@@ -226,7 +228,7 @@ export const Queue = Resource("cloudflare::Queue", async function <
 export async function createQueue(
   api: CloudflareApi,
   queueName: string,
-  props: QueueProps
+  props: QueueProps,
 ): Promise<CloudflareQueueResponse> {
   // Prepare the create payload
   const createPayload: any = {
@@ -253,7 +255,7 @@ export async function createQueue(
 
   const createResponse = await api.post(
     `/accounts/${api.accountId}/queues`,
-    createPayload
+    createPayload,
   );
 
   if (!createResponse.ok) {
@@ -268,10 +270,10 @@ export async function createQueue(
  */
 export async function getQueue(
   api: CloudflareApi,
-  queueId: string
+  queueId: string,
 ): Promise<CloudflareQueueResponse> {
   const response = await api.get(
-    `/accounts/${api.accountId}/queues/${queueId}`
+    `/accounts/${api.accountId}/queues/${queueId}`,
   );
 
   if (!response.ok) {
@@ -286,7 +288,7 @@ export async function getQueue(
  */
 export async function deleteQueue(
   api: CloudflareApi,
-  queueId?: string
+  queueId?: string,
 ): Promise<void> {
   if (!queueId) {
     console.log("No Queue ID provided, skipping delete");
@@ -295,7 +297,7 @@ export async function deleteQueue(
 
   // Delete Queue
   const deleteResponse = await api.delete(
-    `/accounts/${api.accountId}/queues/${queueId}`
+    `/accounts/${api.accountId}/queues/${queueId}`,
   );
 
   if (!deleteResponse.ok && deleteResponse.status !== 404) {
@@ -304,7 +306,7 @@ export async function deleteQueue(
     }));
     throw new CloudflareApiError(
       `Error deleting Cloudflare Queue '${queueId}': ${errorData.errors?.[0]?.message || deleteResponse.statusText}`,
-      deleteResponse
+      deleteResponse,
     );
   }
 }
@@ -318,7 +320,7 @@ export async function deleteQueue(
 export async function updateQueue(
   api: CloudflareApi,
   queueId: string,
-  props: QueueProps
+  props: QueueProps,
 ): Promise<CloudflareQueueResponse> {
   // Prepare the update payload - only include settings
   const updatePayload: any = {};
@@ -344,7 +346,7 @@ export async function updateQueue(
   // Use PATCH for partial updates (only settings can be updated)
   const updateResponse = await api.patch(
     `/accounts/${api.accountId}/queues/${queueId}`,
-    updatePayload
+    updatePayload,
   );
 
   if (!updateResponse.ok) {
@@ -358,14 +360,14 @@ export async function updateQueue(
  * List all Cloudflare Queues in an account
  */
 export async function listQueues(
-  api: CloudflareApi
+  api: CloudflareApi,
 ): Promise<{ name: string; id: string }[]> {
   const response = await api.get(`/accounts/${api.accountId}/queues`);
 
   if (!response.ok) {
     throw new CloudflareApiError(
       `Failed to list queues: ${response.statusText}`,
-      response
+      response,
     );
   }
 
