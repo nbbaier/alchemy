@@ -201,7 +201,7 @@ export const Exec = Resource(
       // Use spawn for better stdio control
       const childProcess = spawn(cmd, args, {
         cwd: props.cwd || process.cwd(),
-        env: { ...process.env, ...props.env },
+        env: props.env ? { ...process.env, ...props.env } : process.env,
         shell: true, // Use shell to handle complex commands
         stdio: inheritStdio ? "inherit" : "pipe", // Inherit stdio when requested
       });
@@ -260,9 +260,7 @@ export const Exec = Resource(
 
 const defaultOptions: SpawnOptions = {
   stdio: "inherit",
-  env: {
-    ...process.env,
-  },
+  env: process.env,
   shell: true,
 };
 
@@ -279,10 +277,9 @@ export async function exec(
     const child = spawn(cmd, args, {
       ...defaultOptions,
       ...options,
-      env: {
-        ...defaultOptions.env,
-        ...options?.env,
-      },
+      env: options?.env 
+        ? { ...process.env, ...options.env }
+        : process.env,
     });
 
     child.on("close", (code) => {
@@ -300,13 +297,13 @@ export async function exec(
 }
 
 async function hashInputs(cwd: string, patterns: string[]) {
-  const { glob, readFile } = await import("node:fs/promises");
-
+  const { readFile } = await import("node:fs/promises");
+  const { glob } = await import("glob");
   const hashes = new Map<string, string>();
 
   await Promise.all(
     patterns.flatMap(async (pattern) => {
-      const files = await Array.fromAsync(glob(pattern, { cwd }));
+      const files = await glob(pattern, { cwd });
       return Promise.all(
         files.map(async (file: string) => {
           const path = join(cwd, file);
