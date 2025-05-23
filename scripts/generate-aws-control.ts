@@ -1322,7 +1322,18 @@ const properties = ${JSON.stringify(properties, null, 2)};
 export default properties;
 `;
 
-  await writeFile(PROPERTIES_FILE, content);
+  // Format the content with prettier
+  const formattedContent = await prettier.format(content, {
+    parser: "typescript",
+    semi: true,
+    singleQuote: false,
+    trailingComma: "es5",
+    printWidth: 100,
+    tabWidth: 2,
+    useTabs: false,
+  });
+
+  await writeFile(PROPERTIES_FILE, formattedContent);
   console.log("Successfully wrote properties file");
 }
 
