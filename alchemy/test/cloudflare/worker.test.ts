@@ -2114,7 +2114,7 @@ describe("Worker Resource", () => {
     }
   }, 60000); // Increase timeout for Worker operations
 
-  test.skipIf(true)("create, update, and delete worker (ESM format) in dispatch namespace", async (scope) => {
+  test.skipIf(!!process.env.DISABLE_WFP_TEST)("create, update, and delete worker (ESM format) in dispatch namespace", async (scope) => {
     const workerName = `${BRANCH_PREFIX}-test-worker-esm-1-dispatch-namespce`;
 
     let worker: Worker | undefined;
