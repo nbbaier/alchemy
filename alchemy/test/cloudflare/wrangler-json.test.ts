@@ -147,10 +147,12 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        expect(spec.name).toEqual(name);
-        expect(spec.main).toEqual(entrypoint);
-        expect(spec.compatibility_date).toEqual(worker.compatibilityDate);
-        expect(spec.compatibility_flags).toEqual(worker.compatibilityFlags);
+        expect(spec).toMatchObject({
+          name,
+          main: entrypoint,
+          compatibility_date: worker.compatibilityDate,
+          compatibility_flags: worker.compatibilityFlags,
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -200,9 +202,12 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        expect(spec.name).toEqual(name);
-        expect(spec.browser).toBeDefined();
-        expect(spec.browser?.binding).toEqual("browser");
+        expect(spec).toMatchObject({
+          name,
+          browser: {
+            binding: "browser",
+          },
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -233,9 +238,12 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        expect(spec.name).toEqual(name);
-        expect(spec.ai).toBeDefined();
-        expect(spec.ai?.binding).toEqual("AI");
+        expect(spec).toMatchObject({
+          name,
+          ai: {
+            binding: "AI",
+          },
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -283,44 +291,36 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        // Verify the worker name and entrypoint
-        expect(spec.name).toEqual(name);
-        expect(spec.main).toEqual(entrypoint);
+        console.log(JSON.stringify(spec, null, 2));
 
-        // Verify the durable object bindings
-        expect(spec.durable_objects).toBeDefined();
+        expect(spec).toMatchObject({
+          name,
+          main: entrypoint,
+          durable_objects: {
+            bindings: [
+              {
+                name: "COUNTER",
+                class_name: "Counter",
+                script_name: name,
+              },
+              {
+                name: "SQLITE_COUNTER",
+                class_name: "SqliteCounter",
+                script_name: name,
+              },
+            ],
+          },
+          migrations: [
+            {
+              tag: "v1",
+              new_classes: ["Counter"],
+              new_sqlite_classes: ["SqliteCounter"],
+            },
+          ],
+        });
+
+        // Verify we have exactly 2 bindings
         expect(spec.durable_objects?.bindings).toHaveLength(2);
-
-        // Find Counter binding
-        const counterBinding = spec.durable_objects?.bindings.find(
-          (b) => b.class_name === "Counter",
-        );
-        expect(counterBinding).toBeDefined();
-        expect(counterBinding?.name).toEqual("COUNTER");
-        expect(counterBinding?.script_name).toEqual(name);
-
-        // Find SqliteCounter binding
-        const sqliteCounterBinding = spec.durable_objects?.bindings.find(
-          (b) => b.class_name === "SqliteCounter",
-        );
-        expect(sqliteCounterBinding).toBeDefined();
-        expect(sqliteCounterBinding?.name).toEqual("SQLITE_COUNTER");
-        expect(sqliteCounterBinding?.script_name).toEqual(name);
-
-        // Verify migrations
-        expect(spec.migrations).toBeDefined();
-        expect(spec.migrations?.length).toEqual(1);
-        expect(spec.migrations?.[0].tag).toEqual("v1");
-
-        // Verify new_classes contains Counter
-        expect(spec.migrations?.[0].new_classes).toContain("Counter");
-        expect(spec.migrations?.[0].new_classes?.length).toEqual(1);
-
-        // Verify new_sqlite_classes contains SqliteCounter
-        expect(spec.migrations?.[0].new_sqlite_classes).toContain(
-          "SqliteCounter",
-        );
-        expect(spec.migrations?.[0].new_sqlite_classes?.length).toEqual(1);
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -357,11 +357,15 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        expect(spec.workflows).toBeDefined();
-        expect(spec.workflows?.length).toEqual(1);
-        expect(spec.workflows?.[0].name).toEqual("test-workflow");
-        expect(spec.workflows?.[0].binding).toEqual("WF");
-        expect(spec.workflows?.[0].class_name).toEqual("TestWorkflow");
+        expect(spec).toMatchObject({
+          workflows: [
+            {
+              name: "test-workflow",
+              binding: "WF",
+              class_name: "TestWorkflow",
+            },
+          ],
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -389,8 +393,11 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        expect(spec.triggers).toBeDefined();
-        expect(spec.triggers?.crons).toEqual(worker.crons!);
+        expect(spec).toMatchObject({
+          triggers: {
+            crons: worker.crons,
+          },
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -411,10 +418,8 @@ describe("WranglerJson Resource", () => {
         // Create a queue
         const queue = await Queue(`${BRANCH_PREFIX}-test-queue`, {
           name: `${BRANCH_PREFIX}-test-queue`,
-          settings: {
-            deliveryDelay: 30,
-            messageRetentionPeriod: 86400,
-          },
+          deliveryDelay: 30,
+          messageRetentionPeriod: 86400,
         });
 
         // Create a workflow for the example

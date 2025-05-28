@@ -28,11 +28,9 @@ import { Queue } from "alchemy/cloudflare";
 
 const queue = await Queue("delayed-queue", {
   name: "delayed-queue",
-  settings: {
-    deliveryDelay: 30, // 30 second delay
-    messageRetentionPeriod: 86400, // Store messages for 1 day
-    deliveryPaused: false
-  }
+  deliveryDelay: 30, // 30 second delay
+  messageRetentionPeriod: 86400, // Store messages for 1 day
+  deliveryPaused: false
 });
 ```
 
