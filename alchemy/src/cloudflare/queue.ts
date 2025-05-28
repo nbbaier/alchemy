@@ -148,6 +148,24 @@ export type Queue<Body = unknown> = QueueResource<Body> &
  *   }
  * });
  *
+ * @example
+ * // consume from a Worker
+ * const queue = await Queue("my-queue");
+ * const worker = await Worker("my-worker", {
+ *   eventSources: [queue]
+ * });
+ *
+ * @example
+ * // consume from a Worker with custom settings
+ * const queue = await Queue("my-queue");
+ * const worker = await Worker("my-worker", {
+ *   eventSources: [{
+ *     queue,
+ *     batchSize: 10,
+ *     maxConcurrency: 5
+ *   }]
+ * });
+ *
  * @see https://developers.cloudflare.com/queues/
  */
 export async function Queue<Body = unknown>(

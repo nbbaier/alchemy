@@ -55,3 +55,50 @@ await Worker("my-worker", {
   }
 });
 ```
+
+## Queue Event Sources
+
+You can configure a worker to consume messages from a queue using event sources. There are two forms:
+
+### Simple Queue Consumption
+
+Consume messages from a queue with default settings.
+
+```ts
+import { Worker, Queue } from "alchemy/cloudflare";
+
+const queue = await Queue("my-queue", {
+  name: "my-queue"
+});
+
+await Worker("my-worker", {
+  name: "my-worker",
+  entrypoint: "src/worker.ts",
+  eventSources: [queue]
+});
+```
+
+### Queue Consumption with Custom Settings
+
+Configure batch size, concurrency, and retry behavior for queue consumption.
+
+```ts
+import { Worker, Queue } from "alchemy/cloudflare";
+
+const queue = await Queue("my-queue", {
+  name: "my-queue"
+});
+
+await Worker("my-worker", {
+  name: "my-worker",
+  entrypoint: "src/worker.ts",
+  eventSources: [{
+    queue,
+    batchSize: 10,
+    maxConcurrency: 5,
+    maxRetries: 3,
+    maxWaitTimeMs: 5000,
+    retryDelay: 30
+  }]
+});
+```

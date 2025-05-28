@@ -9,6 +9,7 @@ import { WranglerJson } from "../../src/cloudflare/wrangler.json.js";
 import { destroy } from "../../src/destroy.js";
 import { BRANCH_PREFIX } from "../util.js";
 
+import { Queue } from "../../src/cloudflare/queue.js";
 import { Workflow } from "../../src/cloudflare/workflow.js";
 import "../../src/test/bun.js";
 
@@ -102,6 +103,22 @@ export class TestWorkflow extends WorkflowEntrypoint<any, any> {
 export default {
   async fetch(request, env, ctx) {
     return new Response('Hello Workflow world!', { status: 200 });
+  }
+};
+`;
+
+const queueWorkerScript = `
+export default {
+  async fetch(request, env, ctx) {
+    return new Response('Hello Queue world!', { status: 200 });
+  },
+  
+  async queue(batch, env, ctx) {
+    for (const message of batch.messages) {
+      console.log('Processing message:', message.body);
+      // Process each message in the batch
+      message.ack();
+    }
   }
 };
 `;
@@ -374,6 +391,90 @@ describe("WranglerJson Resource", () => {
 
         expect(spec.triggers).toBeDefined();
         expect(spec.triggers?.crons).toEqual(worker.crons!);
+      } finally {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        await destroy(scope);
+      }
+    });
+
+    test("with queue binding and event source", async (scope) => {
+      const name = `${BRANCH_PREFIX}-test-worker-queue`;
+      const tempDir = path.join(".out", "alchemy-queue-test");
+      const entrypoint = path.join(tempDir, "worker.ts");
+
+      try {
+        // Create a temporary directory for the entrypoint file
+        await fs.rm(tempDir, { recursive: true, force: true });
+        await fs.mkdir(tempDir, { recursive: true });
+        await fs.writeFile(entrypoint, queueWorkerScript);
+
+        // Create a queue
+        const queue = await Queue(`${BRANCH_PREFIX}-test-queue`, {
+          name: `${BRANCH_PREFIX}-test-queue`,
+          settings: {
+            deliveryDelay: 30,
+            messageRetentionPeriod: 86400,
+          },
+        });
+
+        // Create a workflow for the example
+        const workflow = new Workflow("test-workflow", {
+          className: "TestWorkflow",
+          workflowName: "test-workflow",
+        });
+
+        const worker = await Worker(name, {
+          format: "esm",
+          entrypoint,
+          bindings: {
+            MY_WORKFLOW: workflow,
+            MY_QUEUE: queue,
+            MY_SECRET: alchemy.secret("test-secret"),
+          },
+          compatibilityDate: "2024-10-22",
+          compatibilityFlags: ["nodejs_compat"],
+          eventSources: [
+            {
+              queue,
+              batchSize: 1,
+              maxConcurrency: 1,
+              maxRetries: 3,
+            },
+          ],
+        });
+
+        const { spec } = await WranglerJson(
+          `${BRANCH_PREFIX}-test-wrangler-json-queue`,
+          { worker },
+        );
+
+        expect(spec).toMatchObject({
+          name,
+          main: entrypoint,
+          compatibility_date: "2024-10-22",
+          compatibility_flags: expect.arrayContaining(["nodejs_compat"]),
+          queues: {
+            producers: [
+              {
+                binding: "MY_QUEUE",
+                queue: queue.name,
+              },
+            ],
+            consumers: [
+              {
+                queue: queue.id,
+                max_batch_size: 1,
+                max_concurrency: 1,
+                max_retries: 3,
+              },
+            ],
+          },
+          workflows: [
+            {
+              binding: "MY_WORKFLOW",
+            },
+          ],
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
