@@ -467,7 +467,7 @@ describe("WranglerJson Resource", () => {
             ],
             consumers: [
               {
-                queue: queue.id,
+                queue: queue.name,
                 max_batch_size: 1,
                 max_concurrency: 1,
                 max_retries: 3,

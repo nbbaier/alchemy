@@ -396,7 +396,7 @@ function processBindings(
   for (const eventSource of eventSources ?? []) {
     if (isQueueEventSource(eventSource)) {
       queues.consumers.push({
-        queue: eventSource.queue.id,
+        queue: eventSource.queue.name,
         max_batch_size: eventSource.batchSize,
         max_concurrency: eventSource.maxConcurrency,
         max_retries: eventSource.maxRetries,
@@ -405,7 +405,7 @@ function processBindings(
       });
     } else if (isQueue(eventSource)) {
       queues.consumers.push({
-        queue: eventSource.id,
+        queue: eventSource.name,
       });
     }
   }
