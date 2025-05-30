@@ -58,6 +58,7 @@ import {
   prepareWorkerMetadata,
 } from "./worker-metadata.ts";
 import type { SingleStepMigration } from "./worker-migration.ts";
+import { miniflareWorker } from "./worker-miniflare.ts";
 import { WorkerStub, isWorkerStub } from "./worker-stub.ts";
 import { Workflow, isWorkflow, upsertWorkflow } from "./workflow.ts";
 
@@ -222,6 +223,18 @@ export interface BaseWorkerProps<
    * This is only used when using the rpc property.
    */
   rpc?: (new (...args: any[]) => RPC) | type<RPC>;
+  /**
+   * Whether to run the worker locally using Miniflare instead of deploying to Cloudflare
+   *
+   * When true, starts a local Miniflare development server instead of deploying to Cloudflare
+   * @default false
+   */
+  dev?:
+    | boolean
+    | {
+        enabled: boolean;
+        port?: number;
+      };
 }
 
 export interface InlineWorkerProps<
@@ -789,6 +802,53 @@ export const _Worker = Resource(
       props.compatibilityDate ?? DEFAULT_COMPATIBILITY_DATE;
     const compatibilityFlags = props.compatibilityFlags ?? [];
 
+    // Get current timestamp
+    const now = Date.now();
+
+    if (props.dev || this.scope.dev) {
+      const scriptContent =
+        props.script ??
+        (await bundleWorkerScript({
+          ...props,
+          compatibilityDate,
+          compatibilityFlags,
+        }));
+
+      const { entrypoint, ...rest } = props;
+
+      const miniWorker = await miniflareWorker({
+        ...rest,
+        script: scriptContent,
+        scriptPath: entrypoint ?? process.cwd(),
+        compatibilityDate,
+        compatibilityFlags,
+        workerName,
+      });
+
+      return this({
+        type: "service",
+        id,
+        entrypoint: props.entrypoint,
+        name: workerName,
+        compatibilityDate,
+        compatibilityFlags,
+        format: props.format || "esm", // Include format in the output
+        bindings: props.bindings ?? ({} as B),
+        env: props.env,
+        observability: props.observability,
+        createdAt: now,
+        updatedAt: now,
+        eventSources: props.eventSources,
+        url: miniWorker.url,
+        // Include assets configuration in the output
+        assets: props.assets,
+        // Include cron triggers in the output
+        crons: props.crons,
+        // phantom property
+        Env: undefined!,
+      } as unknown as Worker<B>);
+    }
+
     const uploadWorkerScript = async (props: WorkerProps<B>) => {
       const [oldBindings, oldMetadata] = await Promise.all([
         getWorkerBindings(api, workerName),
@@ -895,9 +955,6 @@ export const _Worker = Resource(
         props.url ?? true,
       );
 
-      // Get current timestamp
-      const now = Date.now();
-
       // Update cron triggers
       if (props.crons) {
         const res = await api.put(
@@ -967,7 +1024,7 @@ export const _Worker = Resource(
       }
     }
 
-    const { scriptMetadata, workerUrl, now } = await uploadWorkerScript(props);
+    const { scriptMetadata, workerUrl } = await uploadWorkerScript(props);
 
     function exportBindings() {
       return Object.fromEntries(
