@@ -52,8 +52,8 @@ export type Bound<T extends Binding> = T extends _DurableObjectNamespace<
                         ? VectorizeIndex
                         : T extends _Queue<infer Body>
                           ? Queue<Body>
-                          : T extends _SecretsStore
-                            ? SecretsStoreBinding
+                          : T extends _SecretsStore<infer S>
+                            ? SecretsStoreBinding<S>
                             : T extends _AnalyticsEngineDataset
                               ? AnalyticsEngineDataset
                               : T extends _Pipeline<infer R>
@@ -70,6 +70,12 @@ export type Bound<T extends Binding> = T extends _DurableObjectNamespace<
                                           ? T
                                           : Service;
 
-interface SecretsStoreBinding {
-  get: (secretName: string) => Promise<string | null>;
+interface SecretsStoreBinding<
+  S extends Record<string, Secret> | undefined = undefined,
+> {
+  get: S extends Record<string, Secret>
+    ? string extends keyof S
+      ? (secretName: string) => Promise<string | null>
+      : (secretName: keyof S) => Promise<string | null>
+    : (secretName: string) => Promise<string | null>;
 }

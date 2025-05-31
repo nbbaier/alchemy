@@ -13,7 +13,9 @@ import type { Bound } from "./bound.ts";
 /**
  * Properties for creating or updating a Secrets Store
  */
-export interface SecretsStoreProps extends CloudflareApiOptions {
+export interface SecretsStoreProps<
+  S extends Record<string, Secret> | undefined = undefined,
+> extends CloudflareApiOptions {
   /**
    * Name of the secrets store
    *
@@ -35,7 +37,7 @@ export interface SecretsStoreProps extends CloudflareApiOptions {
    * });
    * ```
    */
-  secrets?: { [secretName: string]: Secret };
+  secrets?: S;
 
   /**
    * Whether to adopt an existing store with the same name if it exists
@@ -56,22 +58,49 @@ export interface SecretsStoreProps extends CloudflareApiOptions {
 
 export function isSecretsStore(
   resource: Resource,
-): resource is SecretsStoreResource {
+): resource is SecretsStoreResource<any> {
   return resource[ResourceKind] === "cloudflare::SecretsStore";
 }
 
-export interface SecretsStoreResource
-  extends Resource<"cloudflare::SecretsStore">,
-    Omit<SecretsStoreProps, "delete"> {
+export interface SecretsStoreResource<
+  S extends Record<string, Secret> | undefined = undefined,
+> extends Resource<"cloudflare::SecretsStore">,
+    Omit<SecretsStoreProps<S>, "delete"> {
+  /**
+   * The binding type for Cloudflare Workers
+   */
   type: "secrets_store";
+
+  /**
+   * The unique identifier of the secrets store
+   */
   id: string;
+
+  /**
+   * The name of the secrets store
+   */
   name: string;
-  secrets?: { [secretName: string]: Secret };
+
+  /**
+   * The secrets stored in this secrets store
+   * Maps secret names to Secret instances created with alchemy.secret()
+   */
+  secrets?: S;
+
+  /**
+   * Timestamp when the secrets store was created
+   */
   createdAt: number;
+
+  /**
+   * Timestamp when the secrets store was last modified
+   */
   modifiedAt: number;
 }
 
-export type SecretsStore = SecretsStoreResource & Bound<SecretsStoreResource>;
+export type SecretsStore<
+  S extends Record<string, Secret> | undefined = undefined,
+> = SecretsStoreResource<S> & Bound<SecretsStoreResource<S>>;
 
 /**
  * A Cloudflare Secrets Store is a secure, centralized location for storing account-level secrets.
@@ -128,104 +157,103 @@ export type SecretsStore = SecretsStoreResource & Bound<SecretsStoreResource>;
  *   `
  * });
  */
-export async function SecretsStore(
+export async function SecretsStore<
+  const S extends Record<string, Secret> | undefined = undefined,
+>(
   name: string,
-  props: SecretsStoreProps = {},
-): Promise<SecretsStore> {
+  props: SecretsStoreProps<S> = {} as SecretsStoreProps<S>,
+): Promise<SecretsStore<S>> {
   const store = await _SecretsStore(name, props);
   const binding = await bind(store);
   return {
     ...store,
     get: binding.get,
-  };
+  } as SecretsStore<S>;
 }
 
-const _SecretsStore = Resource(
-  "cloudflare::SecretsStore",
-  async function (
-    this: Context<SecretsStoreResource>,
-    id: string,
-    props: SecretsStoreProps,
-  ): Promise<SecretsStoreResource> {
-    const api = await createCloudflareApi(props);
+const _SecretsStore = Resource("cloudflare::SecretsStore", async function <
+  S extends Record<string, Secret> | undefined = undefined,
+>(this: Context<SecretsStoreResource<S>>, id: string, props: SecretsStoreProps<S>): Promise<
+  SecretsStoreResource<S>
+> {
+  const api = await createCloudflareApi(props);
 
-    const name = props.name ?? id;
+  const name = props.name ?? id;
 
-    if (this.phase === "delete") {
-      const storeId = this.output?.id;
-      if (storeId && props.delete !== false) {
-        await deleteSecretsStore(api, storeId);
-      }
-
-      return this.destroy();
+  if (this.phase === "delete") {
+    const storeId = this.output?.id;
+    if (storeId && props.delete !== false) {
+      await deleteSecretsStore(api, storeId);
     }
 
-    let storeId = this.phase === "update" ? this.output?.id || "" : "";
-    let createdAt =
-      this.phase === "update"
-        ? this.output?.createdAt || Date.now()
-        : Date.now();
+    return this.destroy();
+  }
 
-    if (this.phase === "update" && storeId) {
-      const currentSecrets = props.secrets || {};
-      const existingSecretNames = await listSecrets(api, storeId);
+  let storeId = this.phase === "update" ? this.output?.id || "" : "";
+  let createdAt =
+    this.phase === "update" ? this.output?.createdAt || Date.now() : Date.now();
 
-      const secretsToDelete = existingSecretNames.filter(
-        (name) => !(name in currentSecrets),
-      );
+  if (this.phase === "update" && storeId) {
+    const currentSecrets = props.secrets || {};
+    const existingSecretNames = await listSecrets(api, storeId);
 
-      if (secretsToDelete.length > 0) {
-        await deleteSecrets(api, storeId, secretsToDelete);
-      }
+    const secretsToDelete = existingSecretNames.filter(
+      (name) => !(name in currentSecrets),
+    );
 
-      await insertSecrets(api, storeId, props);
-    } else {
-      try {
-        const { id } = await createSecretsStore(api, {
-          ...props,
-          name,
-        });
-        createdAt = Date.now();
-        storeId = id;
-      } catch (error) {
-        if (
-          props.adopt &&
-          error instanceof Error &&
-          error.message.includes("already exists")
-        ) {
-          console.log(`Secrets store '${name}' already exists, adopting it`);
-          const existingStore = await findSecretsStoreByName(api, name);
+    if (secretsToDelete.length > 0) {
+      await deleteSecrets(api, storeId, secretsToDelete);
+    }
 
-          if (!existingStore) {
-            throw new Error(
-              `Failed to find existing secrets store '${name}' for adoption`,
-            );
-          }
+    await insertSecrets(api, storeId, props);
+  } else {
+    try {
+      const { id } = await createSecretsStore(api, {
+        ...props,
+        name,
+      });
+      createdAt = Date.now();
+      storeId = id;
+    } catch (error) {
+      if (
+        props.adopt &&
+        error instanceof Error &&
+        error.message.includes("already exists")
+      ) {
+        console.log(`Secrets store '${name}' already exists, adopting it`);
+        const existingStore = await findSecretsStoreByName(api, name);
 
-          storeId = existingStore.id;
-          createdAt = existingStore.createdAt || Date.now();
-        } else {
-          throw error;
+        if (!existingStore) {
+          throw new Error(
+            `Failed to find existing secrets store '${name}' for adoption`,
+          );
         }
-      }
 
-      await insertSecrets(api, storeId, props);
+        storeId = existingStore.id;
+        createdAt = existingStore.createdAt || Date.now();
+      } else {
+        throw error;
+      }
     }
 
-    return this({
-      type: "secrets_store",
-      id: storeId,
-      name: name,
-      secrets: props.secrets,
-      createdAt: createdAt,
-      modifiedAt: Date.now(),
-    });
-  },
-);
+    await insertSecrets(api, storeId, props);
+  }
 
-export async function createSecretsStore(
+  return this({
+    type: "secrets_store",
+    id: storeId,
+    name: name,
+    secrets: props.secrets,
+    createdAt: createdAt,
+    modifiedAt: Date.now(),
+  });
+});
+
+export async function createSecretsStore<
+  S extends Record<string, Secret> | undefined = undefined,
+>(
   api: CloudflareApi,
-  props: SecretsStoreProps & {
+  props: SecretsStoreProps<S> & {
     name: string;
   },
 ): Promise<{ id: string }> {
@@ -289,11 +317,9 @@ export async function findSecretsStoreByName(
   return null;
 }
 
-export async function insertSecrets(
-  api: CloudflareApi,
-  storeId: string,
-  props: SecretsStoreProps,
-) {
+export async function insertSecrets<
+  S extends Record<string, Secret> | undefined = undefined,
+>(api: CloudflareApi, storeId: string, props: SecretsStoreProps<S>) {
   if (props.secrets && Object.keys(props.secrets).length > 0) {
     const secretEntries = Object.entries(props.secrets);
 

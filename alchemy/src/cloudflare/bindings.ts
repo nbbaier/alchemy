@@ -48,7 +48,7 @@ export type Binding =
   | PipelineResource
   | QueueResource
   | R2BucketResource
-  | SecretsStoreResource
+  | SecretsStoreResource<any>
   | {
       type: "kv_namespace";
       id: string;
