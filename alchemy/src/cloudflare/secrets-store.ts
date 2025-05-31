@@ -33,6 +33,47 @@ export interface SecretsStoreResource
 
 export type SecretsStore = SecretsStoreResource & Bound<SecretsStoreResource>;
 
+/**
+ * A Cloudflare Secrets Store is a secure, centralized location for storing account-level secrets.
+ *
+ * @see https://developers.cloudflare.com/secrets-store/
+ *
+ * @example
+ * // Create a basic secrets store
+ * const store = await SecretsStore("my-secrets", {
+ *   name: "production-secrets"
+ * });
+ *
+ * @example
+ * // Adopt an existing store if it already exists
+ * const existingStore = await SecretsStore("existing-store", {
+ *   name: "existing-secrets-store",
+ *   adopt: true
+ * });
+ *
+ * @example
+ * // When removing from Alchemy state, keep the store in Cloudflare
+ * const preservedStore = await SecretsStore("preserve-store", {
+ *   name: "preserved-secrets-store",
+ *   delete: false
+ * });
+ *
+ * @example
+ * // Use in a Worker binding to access secrets
+ * const worker = await Worker("my-worker", {
+ *   bindings: {
+ *     SECRETS: store
+ *   },
+ *   code: `
+ *     export default {
+ *       async fetch(request, env) {
+ *         const secret = await env.SECRETS.get("api-key");
+ *         return new Response(secret ? "Secret found" : "No secret");
+ *       }
+ *     }
+ *   `
+ * });
+ */
 export async function SecretsStore(
   name: string,
   props: SecretsStoreProps = {},
