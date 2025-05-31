@@ -113,12 +113,6 @@ describe("NeonProject Resource", () => {
       const updatedData: any = await getUpdatedResponse.json();
       expect(updatedData.project.name).toEqual(updatedName);
 
-      const originalWarn = console.warn;
-      const warnings: string[] = [];
-      console.warn = (message: string) => {
-        warnings.push(message);
-      };
-
       try {
         await NeonProject(testId, {
           name: updatedName,
@@ -127,15 +121,11 @@ describe("NeonProject Resource", () => {
           existing_project_id: project.id,
         });
 
-        expect(
-          warnings.some((w) =>
-            w.includes(
-              "Warning: pg_version cannot be updated after project creation",
-            ),
-          ),
-        ).toBe(true);
-      } finally {
-        console.warn = originalWarn;
+        expect(false).toBe(true);
+      } catch (error) {
+        expect((error as Error).message).toContain(
+          "pg_version cannot be updated after project creation",
+        );
       }
     } finally {
       // Always clean up, even if test assertions fail

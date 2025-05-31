@@ -542,8 +542,8 @@ export const NeonProject = Resource(
           this.output?.pg_version &&
           props.pg_version !== this.output.pg_version
         ) {
-          console.warn(
-            `Warning: pg_version cannot be updated after project creation. The project will keep its current PostgreSQL version (${this.output.pg_version}). To use a different version, create a new project.`,
+          throw new Error(
+            `pg_version cannot be updated after project creation. The project will keep its current PostgreSQL version (${this.output.pg_version}). To use a different version, create a new project.`,
           );
         }
 
@@ -578,8 +578,8 @@ export const NeonProject = Resource(
               existingProject.project?.pg_version &&
               props.pg_version !== existingProject.project.pg_version
             ) {
-              console.warn(
-                `Warning: pg_version cannot be updated after project creation. The project will keep its current PostgreSQL version (${existingProject.project.pg_version}). To use a different version, create a new project.`,
+              throw new Error(
+                `pg_version cannot be updated after project creation. The project will keep its current PostgreSQL version (${existingProject.project.pg_version}). To use a different version, create a new project.`,
               );
             }
 
