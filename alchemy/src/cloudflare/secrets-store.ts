@@ -168,9 +168,9 @@ const _SecretsStore = Resource(
 
     if (this.phase === "update" && storeId) {
       const currentSecrets = props.secrets || {};
-      const previousSecrets = this.output?.secrets || {};
+      const existingSecretNames = await listSecrets(api, storeId);
 
-      const secretsToDelete = Object.keys(previousSecrets).filter(
+      const secretsToDelete = existingSecretNames.filter(
         (name) => !(name in currentSecrets),
       );
 
