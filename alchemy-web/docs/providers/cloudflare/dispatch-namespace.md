@@ -82,20 +82,7 @@ const userNamespace = await DispatchNamespace("user-workers", {
 
 // Create dispatcher worker that routes requests
 const dispatcher = await Worker("dispatcher", {
-  script: `
-    export default {
-      async fetch(request, env) {
-        const url = new URL(request.url);
-        const userWorkerName = url.pathname.split('/')[1];
-        
-        if (userWorkerName && env.NAMESPACE) {
-          return env.NAMESPACE.get(userWorkerName).fetch(request);
-        }
-        
-        return new Response('Dispatcher worker running', { status: 200 });
-      }
-    }
-  `,
+  entrypoint: "./src/dispatcher.ts",
   bindings: {
     NAMESPACE: userNamespace
   }
@@ -103,16 +90,37 @@ const dispatcher = await Worker("dispatcher", {
 
 // Deploy user worker to the dispatch namespace
 const userWorker = await Worker("user-worker", {
-  script: `
-    export default {
-      async fetch(request) {
-        return new Response('Hello from user worker!', { 
-          status: 200,
-          headers: { 'Content-Type': 'text/plain' }
-        });
-      }
-    }
-  `,
+  entrypoint: "./src/user-worker.ts",
   dispatchNamespace: userNamespace
 });
+```
+
+The dispatcher worker code (`./src/dispatcher.ts`):
+
+```ts
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const userWorkerName = url.pathname.split('/')[1];
+    
+    if (userWorkerName && env.NAMESPACE) {
+      return env.NAMESPACE.get(userWorkerName).fetch(request);
+    }
+    
+    return new Response('Dispatcher worker running', { status: 200 });
+  }
+}
+```
+
+The user worker code (`./src/user-worker.ts`):
+
+```ts
+export default {
+  async fetch(request) {
+    return new Response('Hello from user worker!', { 
+      status: 200,
+      headers: { 'Content-Type': 'text/plain' }
+    });
+  }
+}
 ```
