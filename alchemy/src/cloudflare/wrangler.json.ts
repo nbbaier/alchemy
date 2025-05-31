@@ -318,6 +318,11 @@ export interface WranglerJsonSpec {
    * Pipelines
    */
   pipelines?: { binding: string; pipeline: string }[];
+
+  /**
+   * Dispatch namespace bindings
+   */
+  dispatch_namespaces?: { binding: string; namespace: string }[];
 }
 
 /**
@@ -374,6 +379,7 @@ function processBindings(
     localConnectionString: string;
   }[] = [];
   const pipelines: { binding: string; pipeline: string }[] = [];
+  const dispatchNamespaces: { binding: string; namespace: string }[] = [];
 
   for (const eventSource of eventSources ?? []) {
     if (isQueueEventSource(eventSource)) {
@@ -509,7 +515,10 @@ function processBindings(
     } else if (binding.type === "json") {
       // TODO(sam): anything to do here? not sure wrangler.json supports this
     } else if (binding.type === "dispatch_namespace") {
-      // TODO(sam): dispatch namespaces are not supported in wrangler.json yet
+      dispatchNamespaces.push({
+        binding: bindingName,
+        namespace: binding.namespace,
+      });
     } else {
       // biome-ignore lint/correctness/noVoidTypeReturn: it returns never
       return assertNever(binding);
@@ -571,5 +580,9 @@ function processBindings(
 
   if (pipelines.length > 0) {
     spec.pipelines = pipelines;
+  }
+
+  if (dispatchNamespaces.length > 0) {
+    spec.dispatch_namespaces = dispatchNamespaces;
   }
 }

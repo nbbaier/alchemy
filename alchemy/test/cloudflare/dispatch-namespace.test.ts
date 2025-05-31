@@ -2,7 +2,7 @@ import { test } from "bun:test";
 import { DispatchNamespace } from "../../src/cloudflare/dispatch-namespace.js";
 import { Worker } from "../../src/cloudflare/worker.js";
 
-test.skipIf(!!process.env.DISABLE_WFP_TEST)("dispatch namespace", async () => {
+test("dispatch namespace", async () => {
   const namespace = await DispatchNamespace("test-dispatch-namespace", {
     namespace: "test-dispatch-namespace",
   });
@@ -52,11 +52,9 @@ test.skipIf(!!process.env.DISABLE_WFP_TEST)("dispatch namespace", async () => {
   console.log("User worker dispatch namespace:", userWorker.dispatchNamespace);
 });
 
-test.skipIf(!!process.env.DISABLE_WFP_TEST)(
-  "dispatch namespace with string",
-  async () => {
-    const userWorker = await Worker("test-string-dispatch-worker", {
-      script: `
+test("dispatch namespace with string", async () => {
+  const userWorker = await Worker("test-string-dispatch-worker", {
+    script: `
       export default {
         async fetch(request) {
           return new Response('Hello from string dispatch namespace worker!', { 
@@ -65,35 +63,28 @@ test.skipIf(!!process.env.DISABLE_WFP_TEST)(
         }
       }
     `,
-      dispatchNamespace: "string-namespace",
-    });
+    dispatchNamespace: "string-namespace",
+  });
 
-    console.log(
-      "Created worker with string dispatch namespace:",
-      userWorker.id,
-    );
-    console.log("String dispatch namespace:", userWorker.dispatchNamespace);
-  },
-);
+  console.log("Created worker with string dispatch namespace:", userWorker.id);
+  console.log("String dispatch namespace:", userWorker.dispatchNamespace);
+});
 
-test.skipIf(!!process.env.DISABLE_WFP_TEST)(
-  "dispatch namespace adoption",
-  async () => {
-    const namespace1 = await DispatchNamespace("adopt-test-namespace", {
-      namespace: "adopt-test-namespace",
-    });
+test("dispatch namespace adoption", async () => {
+  const namespace1 = await DispatchNamespace("adopt-test-namespace", {
+    namespace: "adopt-test-namespace",
+  });
 
-    console.log("Created first namespace:", namespace1.id);
+  console.log("Created first namespace:", namespace1.id);
 
-    const namespace2 = await DispatchNamespace("adopt-test-namespace-2", {
-      namespace: "adopt-test-namespace",
-      adopt: true,
-    });
+  const namespace2 = await DispatchNamespace("adopt-test-namespace-2", {
+    namespace: "adopt-test-namespace",
+    adopt: true,
+  });
 
-    console.log("Adopted namespace:", namespace2.id);
-    console.log(
-      "Namespace names match:",
-      namespace1.namespace === namespace2.namespace,
-    );
-  },
-);
+  console.log("Adopted namespace:", namespace2.id);
+  console.log(
+    "Namespace names match:",
+    namespace1.namespace === namespace2.namespace,
+  );
+});

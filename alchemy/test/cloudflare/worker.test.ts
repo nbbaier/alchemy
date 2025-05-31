@@ -2114,30 +2114,28 @@ describe("Worker Resource", () => {
     }
   }, 60000); // Increase timeout for Worker operations
 
-  test.skipIf(!!process.env.DISABLE_WFP_TEST)(
-    "create, update, and delete worker (ESM format) in dispatch namespace",
-    async (scope) => {
-      const workerName = `${BRANCH_PREFIX}-test-worker-esm-1-dispatch-namespce`;
+  test("create, update, and delete worker (ESM format) in dispatch namespace", async (scope) => {
+    const workerName = `${BRANCH_PREFIX}-test-worker-esm-1-dispatch-namespce`;
 
-      let worker: Worker | undefined;
-      try {
-        // Create a worker with ESM format
-        worker = await Worker(workerName, {
-          name: workerName,
-          script: esmWorkerScript,
-          dispatchNamespace: "test-dispatch-namespace",
-          format: "esm", // Explicitly using ESM
-        });
+    let worker: Worker | undefined;
+    try {
+      // Create a worker with ESM format
+      worker = await Worker(workerName, {
+        name: workerName,
+        script: esmWorkerScript,
+        dispatchNamespace: "test-dispatch-namespace",
+        format: "esm", // Explicitly using ESM
+      });
 
-        // Apply to create the worker
-        expect(worker.id).toBeTruthy();
-        expect(worker.name).toEqual(workerName);
-        expect(worker.format).toEqual("esm");
-        expect(worker.url).toBeUndefined();
-        expect(worker.dispatchNamespace).toEqual("test-dispatch-namespace");
+      // Apply to create the worker
+      expect(worker.id).toBeTruthy();
+      expect(worker.name).toEqual(workerName);
+      expect(worker.format).toEqual("esm");
+      expect(worker.url).toBeUndefined();
+      expect(worker.dispatchNamespace).toEqual("test-dispatch-namespace");
 
-        // Update the worker with a new ESM script
-        const updatedEsmScript = `
+      // Update the worker with a new ESM script
+      const updatedEsmScript = `
         export default {
           async fetch(request, env, ctx) {
             return new Response('Hello updated ESM world!', { status: 200 });
@@ -2145,18 +2143,17 @@ describe("Worker Resource", () => {
         };
       `;
 
-        worker = await Worker(workerName, {
-          name: workerName,
-          script: updatedEsmScript,
-          format: "esm",
-          dispatchNamespace: "test-dispatch-namespace",
-        });
+      worker = await Worker(workerName, {
+        name: workerName,
+        script: updatedEsmScript,
+        format: "esm",
+        dispatchNamespace: "test-dispatch-namespace",
+      });
 
-        expect(worker.id).toEqual(worker.id);
-      } finally {
-        await destroy(scope);
-        await assertWorkerDoesNotExist(workerName);
-      }
-    },
-  );
+      expect(worker.id).toEqual(worker.id);
+    } finally {
+      await destroy(scope);
+      await assertWorkerDoesNotExist(workerName);
+    }
+  });
 });
