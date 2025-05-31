@@ -18,6 +18,7 @@ import {
 } from "./api.js";
 import type { Assets } from "./assets.js";
 import { type Binding, type Bindings, Json } from "./bindings.js";
+import type { DispatchNamespace } from "./dispatch-namespace.js";
 import type { Bound } from "./bound.js";
 import { isBucket } from "./bucket.js";
 import { bundleWorkerScript } from "./bundle/bundle-worker.js";
@@ -204,7 +205,7 @@ export interface BaseWorkerProps<B extends Bindings = Bindings>
    *
    * @see https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/get-started/user-workers/
    */
-  dispatchNamespace?: string;
+  dispatchNamespace?: string | DispatchNamespace;
 }
 
 export interface InlineWorkerProps<B extends Bindings = Bindings>
@@ -857,11 +858,9 @@ export async function deleteWorker<B extends Bindings>(
   const targetUrl = props.dispatchNamespace
     ? `/accounts/${api.accountId}/workers/dispatch/namespaces/${props.dispatchNamespace}/scripts/${workerName}`
     : `/accounts/${api.accountId}/workers/scripts/${workerName}`;
-    
+
   // Delete worker
-  const deleteResponse = await api.delete(
-    targetUrl,
-  );
+  const deleteResponse = await api.delete(targetUrl);
 
   // Check for success (2xx status code)
   if (!deleteResponse.ok && deleteResponse.status !== 404) {
@@ -925,15 +924,11 @@ export async function putWorker(
         : `/accounts/${api.accountId}/workers/scripts/${workerName}`;
 
       // Upload worker script with bindings
-      const uploadResponse = await api.put(
-        targetUploadUrl,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
+      const uploadResponse = await api.put(targetUploadUrl, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
         },
-      );
+      });
 
       // Check if the upload was successful
       if (!uploadResponse.ok) {

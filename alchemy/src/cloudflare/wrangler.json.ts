@@ -508,6 +508,8 @@ function processBindings(
       });
     } else if (binding.type === "json") {
       // TODO(sam): anything to do here? not sure wrangler.json supports this
+    } else if (binding.type === "dispatch_namespace") {
+      // TODO(sam): dispatch namespaces are not supported in wrangler.json yet
     } else {
       // biome-ignore lint/correctness/noVoidTypeReturn: it returns never
       return assertNever(binding);

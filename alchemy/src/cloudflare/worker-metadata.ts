@@ -1,6 +1,7 @@
 import type { Context } from "../context.js";
 import { slugify } from "../util/slugify.js";
 import { Self, type Bindings, type WorkerBindingSpec } from "./bindings.js";
+
 import type { DurableObjectNamespace } from "./durable-object-namespace.js";
 import { createAssetConfig, type AssetUploadResult } from "./worker-assets.js";
 import type { SingleStepMigration } from "./worker-migration.js";
@@ -231,7 +232,10 @@ export async function prepareWorkerMetadata<B extends Bindings>(
   };
 
   if (props.dispatchNamespace) {
-    meta.dispatch_namespace = props.dispatchNamespace;
+    meta.dispatch_namespace =
+      typeof props.dispatchNamespace === "string"
+        ? props.dispatchNamespace
+        : props.dispatchNamespace.namespace;
   }
 
   // If we have asset upload results, add them to the metadata
@@ -290,6 +294,12 @@ export async function prepareWorkerMetadata<B extends Bindings>(
         type: "service",
         name: bindingName,
         service: binding.name,
+      });
+    } else if (binding.type === "dispatch_namespace") {
+      meta.bindings.push({
+        type: "dispatch_namespace",
+        name: bindingName,
+        namespace: binding.namespace,
       });
     } else if (binding.type === "durable_object_namespace") {
       meta.bindings.push({

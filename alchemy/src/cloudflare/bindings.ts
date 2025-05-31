@@ -12,6 +12,7 @@ import type { Bound } from "./bound.js";
 import type { BrowserRendering } from "./browser-rendering.js";
 import type { R2BucketResource } from "./bucket.js";
 import type { D1DatabaseResource } from "./d1-database.js";
+import type { DispatchNamespace } from "./dispatch-namespace.js";
 import type { DurableObjectNamespace } from "./durable-object-namespace.js";
 import type { HyperdriveResource } from "./hyperdrive.js";
 import type { KVNamespaceResource } from "./kv-namespace.js";
@@ -41,6 +42,7 @@ export type Binding =
   | Assets
   | D1DatabaseResource
   | AnalyticsEngineDataset
+  | DispatchNamespace
   | DurableObjectNamespace
   | HyperdriveResource
   | KVNamespaceResource

@@ -16,6 +16,7 @@ export * from "./d1-clone.js";
 export * from "./d1-database.js";
 export * from "./d1-export.js";
 export * from "./d1-import.js";
+export * from "./dispatch-namespace.js";
 export * from "./dns-records.js";
 export * from "./durable-object-namespace.js";
 export * from "./hyperdrive.js";
