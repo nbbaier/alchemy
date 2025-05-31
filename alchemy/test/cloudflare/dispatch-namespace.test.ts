@@ -44,12 +44,12 @@ test("dispatch namespace", async () => {
         }
       }
     `,
-    dispatchNamespace: namespace,
+    namespace: namespace,
   });
 
   console.log("Created user worker in dispatch namespace:", userWorker.id);
 
-  console.log("User worker dispatch namespace:", userWorker.dispatchNamespace);
+  console.log("User worker dispatch namespace:", userWorker.namespace);
 });
 
 test("dispatch namespace with string", async () => {
@@ -63,11 +63,11 @@ test("dispatch namespace with string", async () => {
         }
       }
     `,
-    dispatchNamespace: "string-namespace",
+    namespace: "string-namespace",
   });
 
   console.log("Created worker with string dispatch namespace:", userWorker.id);
-  console.log("String dispatch namespace:", userWorker.dispatchNamespace);
+  console.log("String dispatch namespace:", userWorker.namespace);
 });
 
 test("dispatch namespace adoption", async () => {

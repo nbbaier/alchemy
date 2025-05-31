@@ -51,7 +51,7 @@ const userNamespace = await DispatchNamespace("user-workers", {
 
 const userWorker = await Worker("user-worker", {
   entrypoint: "./src/user-worker.ts",
-  dispatchNamespace: userNamespace
+  namespace: userNamespace
 });
 ```
 
@@ -91,7 +91,7 @@ const dispatcher = await Worker("dispatcher", {
 // Deploy user worker to the dispatch namespace
 const userWorker = await Worker("user-worker", {
   entrypoint: "./src/user-worker.ts",
-  dispatchNamespace: userNamespace
+  namespace: userNamespace
 });
 ```
 

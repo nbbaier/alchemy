@@ -205,7 +205,7 @@ export interface BaseWorkerProps<B extends Bindings = Bindings>
    *
    * @see https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/get-started/user-workers/
    */
-  dispatchNamespace?: string | DispatchNamespace;
+  namespace?: string | DispatchNamespace;
 }
 
 export interface InlineWorkerProps<B extends Bindings = Bindings>
@@ -855,8 +855,8 @@ export async function deleteWorker<B extends Bindings>(
 ) {
   const workerName = props.workerName;
 
-  const targetUrl = props.dispatchNamespace
-    ? `/accounts/${api.accountId}/workers/dispatch/namespaces/${props.dispatchNamespace}/scripts/${workerName}`
+  const targetUrl = props.namespace
+    ? `/accounts/${api.accountId}/workers/dispatch/namespaces/${props.namespace}/scripts/${workerName}`
     : `/accounts/${api.accountId}/workers/scripts/${workerName}`;
 
   // Delete worker

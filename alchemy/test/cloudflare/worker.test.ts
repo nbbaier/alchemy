@@ -2123,7 +2123,7 @@ describe("Worker Resource", () => {
       worker = await Worker(workerName, {
         name: workerName,
         script: esmWorkerScript,
-        dispatchNamespace: "test-dispatch-namespace",
+        namespace: "test-dispatch-namespace",
         format: "esm", // Explicitly using ESM
       });
 
@@ -2132,7 +2132,7 @@ describe("Worker Resource", () => {
       expect(worker.name).toEqual(workerName);
       expect(worker.format).toEqual("esm");
       expect(worker.url).toBeUndefined();
-      expect(worker.dispatchNamespace).toEqual("test-dispatch-namespace");
+      expect(worker.namespace).toEqual("test-dispatch-namespace");
 
       // Update the worker with a new ESM script
       const updatedEsmScript = `
@@ -2147,7 +2147,7 @@ describe("Worker Resource", () => {
         name: workerName,
         script: updatedEsmScript,
         format: "esm",
-        dispatchNamespace: "test-dispatch-namespace",
+        namespace: "test-dispatch-namespace",
       });
 
       expect(worker.id).toEqual(worker.id);

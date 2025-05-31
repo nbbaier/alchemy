@@ -231,11 +231,11 @@ export async function prepareWorkerMetadata<B extends Bindings>(
     },
   };
 
-  if (props.dispatchNamespace) {
+  if (props.namespace) {
     meta.dispatch_namespace =
-      typeof props.dispatchNamespace === "string"
-        ? props.dispatchNamespace
-        : props.dispatchNamespace.namespace;
+      typeof props.namespace === "string"
+        ? props.namespace
+        : props.namespace.namespace;
   }
 
   // If we have asset upload results, add them to the metadata

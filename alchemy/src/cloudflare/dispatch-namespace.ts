@@ -76,7 +76,7 @@ export interface DispatchNamespace
  * // Deploy a user worker to the dispatch namespace:
  * const userWorker = await Worker("user-worker", {
  *   entrypoint: "./src/user-worker.ts",
- *   dispatchNamespace: userNamespace
+ *   namespace: userNamespace
  * });
  *
  * @see https://developers.cloudflare.com/cloudflare-for-platforms/workers-for-platforms/get-started/user-workers/
