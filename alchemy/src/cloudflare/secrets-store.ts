@@ -9,9 +9,31 @@ import {
 } from "./api.ts";
 import type { Bound } from "./bound.ts";
 
+/**
+ * Properties for creating or updating a Secrets Store
+ */
 export interface SecretsStoreProps extends CloudflareApiOptions {
+  /**
+   * Name of the secrets store
+   *
+   * @default id
+   */
   name?: string;
+
+  /**
+   * Whether to adopt an existing store with the same name if it exists
+   * If true and a store with the same name exists, it will be adopted rather than creating a new one
+   *
+   * @default false
+   */
   adopt?: boolean;
+
+  /**
+   * Whether to delete the store.
+   * If set to false, the store will remain but the resource will be removed from state
+   *
+   * @default true
+   */
   delete?: boolean;
 }
 
