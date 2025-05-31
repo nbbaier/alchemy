@@ -1,6 +1,7 @@
 import type { Context } from "../context.ts";
 import { Resource, ResourceKind } from "../resource.ts";
 import { bind } from "../runtime/bind.ts";
+import type { Secret } from "../secret.ts";
 import { handleApiError } from "./api-error.ts";
 import {
   createCloudflareApi,
@@ -19,6 +20,22 @@ export interface SecretsStoreProps extends CloudflareApiOptions {
    * @default id
    */
   name?: string;
+
+  /**
+   * Secrets to store in the secrets store
+   * Maps secret names to Secret instances created with alchemy.secret()
+   *
+   * @example
+   * ```ts
+   * const store = await SecretsStore("my-store", {
+   *   secrets: {
+   *     API_KEY: alchemy.secret(process.env.API_KEY),
+   *     DATABASE_URL: alchemy.secret(process.env.DATABASE_URL)
+   *   }
+   * });
+   * ```
+   */
+  secrets?: { [secretName: string]: Secret };
 
   /**
    * Whether to adopt an existing store with the same name if it exists
@@ -49,6 +66,7 @@ export interface SecretsStoreResource
   type: "secrets_store";
   id: string;
   name: string;
+  secrets?: { [secretName: string]: Secret };
   createdAt: number;
   modifiedAt: number;
 }
@@ -67,10 +85,24 @@ export type SecretsStore = SecretsStoreResource & Bound<SecretsStoreResource>;
  * });
  *
  * @example
+ * // Create a secrets store with initial secrets
+ * const store = await SecretsStore("my-secrets", {
+ *   name: "production-secrets",
+ *   secrets: {
+ *     API_KEY: alchemy.secret(process.env.API_KEY),
+ *     DATABASE_URL: alchemy.secret(process.env.DATABASE_URL),
+ *     JWT_SECRET: alchemy.secret(process.env.JWT_SECRET)
+ *   }
+ * });
+ *
+ * @example
  * // Adopt an existing store if it already exists
  * const existingStore = await SecretsStore("existing-store", {
  *   name: "existing-secrets-store",
- *   adopt: true
+ *   adopt: true,
+ *   secrets: {
+ *     NEW_SECRET: alchemy.secret("new-value")
+ *   }
  * });
  *
  * @example
@@ -89,8 +121,8 @@ export type SecretsStore = SecretsStoreResource & Bound<SecretsStoreResource>;
  *   code: `
  *     export default {
  *       async fetch(request, env) {
- *         const secret = await env.SECRETS.get("api-key");
- *         return new Response(secret ? "Secret found" : "No secret");
+ *         const apiKey = await env.SECRETS.get("API_KEY");
+ *         return new Response(apiKey ? "Secret found" : "No secret");
  *       }
  *     }
  *   `
@@ -135,6 +167,18 @@ const _SecretsStore = Resource(
         : Date.now();
 
     if (this.phase === "update" && storeId) {
+      const currentSecrets = props.secrets || {};
+      const previousSecrets = this.output?.secrets || {};
+
+      const secretsToDelete = Object.keys(previousSecrets).filter(
+        (name) => !(name in currentSecrets),
+      );
+
+      if (secretsToDelete.length > 0) {
+        await deleteSecrets(api, storeId, secretsToDelete);
+      }
+
+      await insertSecrets(api, storeId, props);
     } else {
       try {
         const { id } = await createSecretsStore(api, {
@@ -164,12 +208,15 @@ const _SecretsStore = Resource(
           throw error;
         }
       }
+
+      await insertSecrets(api, storeId, props);
     }
 
     return this({
       type: "secrets_store",
       id: storeId,
       name: name,
+      secrets: props.secrets,
       createdAt: createdAt,
       modifiedAt: Date.now(),
     });
@@ -240,4 +287,95 @@ export async function findSecretsStoreByName(
   }
 
   return null;
+}
+
+export async function insertSecrets(
+  api: CloudflareApi,
+  storeId: string,
+  props: SecretsStoreProps,
+) {
+  if (props.secrets && Object.keys(props.secrets).length > 0) {
+    const secretEntries = Object.entries(props.secrets);
+
+    const BATCH_SIZE = 100;
+
+    for (let i = 0; i < secretEntries.length; i += BATCH_SIZE) {
+      const batch = secretEntries.slice(i, i + BATCH_SIZE);
+
+      const bulkPayload = batch.map(([name, secret]) => ({
+        name,
+        value: secret.unencrypted,
+        scopes: [],
+      }));
+
+      const bulkResponse = await api.post(
+        `/accounts/${api.accountId}/secrets_store/stores/${storeId}/secrets`,
+        bulkPayload,
+      );
+
+      if (!bulkResponse.ok) {
+        const errorData: any = await bulkResponse.json().catch(() => ({
+          errors: [{ message: bulkResponse.statusText }],
+        }));
+        const errorMessage =
+          errorData.errors?.[0]?.message || bulkResponse.statusText;
+
+        throw new Error(`Error creating secrets batch: ${errorMessage}`);
+      }
+    }
+  }
+}
+
+export async function deleteSecrets(
+  api: CloudflareApi,
+  storeId: string,
+  secretNames: string[],
+) {
+  if (secretNames.length > 0) {
+    const deleteResponse = await api.delete(
+      `/accounts/${api.accountId}/secrets_store/stores/${storeId}/secrets`,
+      {
+        body: JSON.stringify(secretNames),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (!deleteResponse.ok && deleteResponse.status !== 404) {
+      await handleApiError(
+        deleteResponse,
+        "delete",
+        "secrets",
+        secretNames.join(", "),
+      );
+    }
+  }
+}
+
+export async function listSecrets(
+  api: CloudflareApi,
+  storeId: string,
+): Promise<string[]> {
+  const response = await api.get(
+    `/accounts/${api.accountId}/secrets_store/stores/${storeId}/secrets`,
+  );
+
+  if (!response.ok) {
+    await handleApiError(response, "list", "secrets", "all");
+  }
+
+  const data = (await response.json()) as {
+    result: Array<{
+      id: string;
+      name: string;
+      created: string;
+      modified: string;
+      status: string;
+    }>;
+    success: boolean;
+    errors: any[];
+  };
+
+  return data.result.map((secret) => secret.name);
 }

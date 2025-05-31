@@ -1,5 +1,6 @@
 import { describe, expect } from "bun:test";
 import { alchemy } from "../../src/alchemy.js";
+import { secret } from "../../src/secret.js";
 import { createCloudflareApi } from "../../src/cloudflare/api.js";
 import { SecretsStore } from "../../src/cloudflare/secrets-store.js";
 import { BRANCH_PREFIX } from "../util.js";
@@ -109,4 +110,65 @@ describe("SecretsStore Resource", () => {
     const store = data.result.find((s: any) => s.id === storeId);
     expect(store).toBeFalsy();
   }
+
+  test("create secrets store with secrets", async (scope) => {
+    let secretsStore: SecretsStore | undefined;
+    try {
+      secretsStore = await SecretsStore(`${testId}-with-secrets`, {
+        name: `${BRANCH_PREFIX}-test-store-with-secrets`,
+        secrets: {
+          API_KEY: secret("test-api-key-value"),
+          DATABASE_URL: secret("test-db-url-value"),
+        },
+      });
+
+      expect(secretsStore.id).toBeTruthy();
+      expect(secretsStore.name).toEqual(
+        `${BRANCH_PREFIX}-test-store-with-secrets`,
+      );
+      expect(secretsStore.secrets).toBeTruthy();
+      expect(Object.keys(secretsStore.secrets!)).toEqual([
+        "API_KEY",
+        "DATABASE_URL",
+      ]);
+
+      await assertSecretsStoreExists(secretsStore.id);
+    } finally {
+      await alchemy.destroy(scope);
+      if (secretsStore) {
+        await assertSecretsStoreNotExists(secretsStore.id);
+      }
+    }
+  });
+
+  test("update secrets in store", async (scope) => {
+    let secretsStore: SecretsStore | undefined;
+    try {
+      secretsStore = await SecretsStore(`${testId}-update-secrets`, {
+        name: `${BRANCH_PREFIX}-test-store-update`,
+        secrets: {
+          INITIAL_SECRET: secret("initial-value"),
+        },
+      });
+
+      secretsStore = await SecretsStore(`${testId}-update-secrets`, {
+        name: `${BRANCH_PREFIX}-test-store-update`,
+        secrets: {
+          UPDATED_SECRET: secret("updated-value"),
+          NEW_SECRET: secret("new-value"),
+        },
+      });
+
+      expect(secretsStore.secrets).toBeTruthy();
+      expect(Object.keys(secretsStore.secrets!)).toEqual([
+        "UPDATED_SECRET",
+        "NEW_SECRET",
+      ]);
+    } finally {
+      await alchemy.destroy(scope);
+      if (secretsStore) {
+        await assertSecretsStoreNotExists(secretsStore.id);
+      }
+    }
+  });
 });
