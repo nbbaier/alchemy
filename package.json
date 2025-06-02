@@ -15,6 +15,7 @@
     "generate:aws-control": "bun ./scripts/generate-aws-control.ts",
     "publish:npm": "bun run --filter alchemy publish:npm",
     "test": "bun ./alchemy/test/run.ts --vitest",
+    "test:force": "bun vitest run",
     "test:smoke": "./scripts/smoke.sh"
   },
   "workspaces": [
