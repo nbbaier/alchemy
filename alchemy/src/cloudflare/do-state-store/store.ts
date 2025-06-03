@@ -126,7 +126,7 @@ export class DOStateStore implements StateStore {
     const token = this.options.worker?.token ?? process.env.ALCHEMY_STATE_TOKEN;
     if (!token) {
       throw new Error(
-        "DOFSStateStore requires an API key. Please set options.worker.token or the ALCHEMY_STATE_API_KEY environment variable.",
+        "DOStateStore requires an API key. Please set options.worker.token or the ALCHEMY_STATE_TOKEN environment variable.",
       );
     }
     if (this.options.worker?.url) {
@@ -141,11 +141,11 @@ export class DOStateStore implements StateStore {
       }
       if (res.status === 401) {
         throw new Error(
-          "A worker URL was provided to DOFSStateStore, but the token is incorrect. Correct the token or remove the worker URL to create a new worker.",
+          "A worker URL was provided to DOStateStore, but the token is incorrect. Correct the token or remove the worker URL to create a new worker.",
         );
       }
       throw new Error(
-        `A worker URL was provided to DOFSStateStore, but the worker status is ${res.status} ${res.statusText}.`,
+        `A worker URL was provided to DOStateStore, but the worker status is ${res.status} ${res.statusText}.`,
       );
     }
     const api = await createCloudflareApi(this.options);
