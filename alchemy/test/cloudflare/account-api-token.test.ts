@@ -5,6 +5,7 @@ import {
   type CloudflareApi,
   createCloudflareApi,
 } from "../../src/cloudflare/api.js";
+import { DOStateStore } from "../../src/cloudflare/do-state-store/store.js";
 import { destroy } from "../../src/destroy.js";
 import { BRANCH_PREFIX } from "../util.js";
 
@@ -15,6 +16,7 @@ let api: CloudflareApi;
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
+  stateStore: (scope) => new DOStateStore(scope),
 });
 
 describe("AccountApiToken Resource", () => {

@@ -2,6 +2,7 @@ import { describe, expect } from "bun:test";
 import { alchemy } from "../../src/alchemy.js";
 import { createCloudflareApi } from "../../src/cloudflare/api.js";
 import { R2Bucket } from "../../src/cloudflare/bucket.js";
+import { DOStateStore } from "../../src/cloudflare/do-state-store/store.js";
 import {
   Pipeline,
   type PipelineRecord,
@@ -14,6 +15,7 @@ import "../../src/test/bun.js";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
+  stateStore: (scope) => new DOStateStore(scope),
 });
 
 // Create a Cloudflare API client for verification

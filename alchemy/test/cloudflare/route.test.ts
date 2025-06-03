@@ -1,6 +1,7 @@
 import { afterAll, describe, expect } from "bun:test";
 import { alchemy } from "../../src/alchemy.js";
 import { createCloudflareApi } from "../../src/cloudflare/api.js";
+import { DOStateStore } from "../../src/cloudflare/do-state-store/store.js";
 import { Route } from "../../src/cloudflare/route.js";
 import { Worker } from "../../src/cloudflare/worker.js";
 import { Zone } from "../../src/cloudflare/zone.js";
@@ -12,6 +13,7 @@ import "../../src/test/bun.js";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
+  stateStore: (scope) => new DOStateStore(scope),
 });
 
 const testDomain = `${BRANCH_PREFIX}-route-test.com`;

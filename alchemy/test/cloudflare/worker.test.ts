@@ -8,6 +8,7 @@ import { Assets } from "../../src/cloudflare/assets.js";
 import { Self } from "../../src/cloudflare/bindings.js";
 import { R2Bucket } from "../../src/cloudflare/bucket.js";
 import { D1Database } from "../../src/cloudflare/d1-database.js";
+import { DOStateStore } from "../../src/cloudflare/do-state-store/store.js";
 import { DurableObjectNamespace } from "../../src/cloudflare/durable-object-namespace.js";
 import { KVNamespace } from "../../src/cloudflare/kv-namespace.js";
 import { Queue } from "../../src/cloudflare/queue.js";
@@ -20,6 +21,7 @@ import "../../src/test/bun.js";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
+  stateStore: (scope) => new DOStateStore(scope),
 });
 
 // Create a Cloudflare API client for verification

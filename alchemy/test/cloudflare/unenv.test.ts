@@ -1,6 +1,7 @@
 import { describe, expect } from "bun:test";
 import * as path from "node:path";
 import { alchemy } from "../../src/alchemy.js";
+import { DOStateStore } from "../../src/cloudflare/do-state-store/store.js";
 import { Worker } from "../../src/cloudflare/worker.js";
 import { destroy } from "../../src/destroy.js";
 import { BRANCH_PREFIX } from "../util.js";
@@ -11,6 +12,7 @@ import "../../src/test/bun.js";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
+  stateStore: (scope) => new DOStateStore(scope),
 });
 
 describe("Worker Unenv Tests", () => {

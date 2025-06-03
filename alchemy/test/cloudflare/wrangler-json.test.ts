@@ -3,6 +3,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { alchemy } from "../../src/alchemy.js";
 import { Ai } from "../../src/cloudflare/ai.js";
+import { DOStateStore } from "../../src/cloudflare/do-state-store/store.js";
 import { DurableObjectNamespace } from "../../src/cloudflare/durable-object-namespace.js";
 import { Worker } from "../../src/cloudflare/worker.js";
 import { WranglerJson } from "../../src/cloudflare/wrangler.json.js";
@@ -14,6 +15,7 @@ import "../../src/test/bun.js";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
+  stateStore: (scope) => new DOStateStore(scope),
 });
 
 const esmWorkerScript = `

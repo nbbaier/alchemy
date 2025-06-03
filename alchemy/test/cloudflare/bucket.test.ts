@@ -9,12 +9,14 @@ import {
   R2Bucket,
   withJurisdiction,
 } from "../../src/cloudflare/bucket.js";
+import { DOStateStore } from "../../src/cloudflare/index.js";
 import { BRANCH_PREFIX } from "../util.js";
 
 import "../../src/test/bun.js";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
+  stateStore: (scope) => new DOStateStore(scope),
 });
 
 describe("R2 Bucket Resource", async () => {

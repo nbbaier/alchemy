@@ -1,5 +1,6 @@
 import { describe, expect } from "bun:test";
 import { alchemy } from "../../src/alchemy.js";
+import { DOStateStore } from "../../src/cloudflare/do-state-store/store.js";
 import { VectorizeIndex } from "../../src/cloudflare/vectorize-index.js";
 import { VectorizeMetadataIndex } from "../../src/cloudflare/vectorize-metadata-index.js";
 import { BRANCH_PREFIX } from "../util.js";
@@ -8,6 +9,7 @@ import "../../src/test/bun.js";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
+  stateStore: (scope) => new DOStateStore(scope),
 });
 
 describe("Vectorize Metadata Index Resource", async () => {
