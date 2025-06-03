@@ -5,7 +5,7 @@ import { createCloudflareApi } from "../../src/cloudflare/api.ts";
 import { SecretsStore } from "../../src/cloudflare/secrets-store.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
-import "../../src/test/vitest.ts";
+import "../../src/test/bun.ts";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
