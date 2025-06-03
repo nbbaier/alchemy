@@ -1,6 +1,5 @@
 import { describe, expect } from "bun:test";
 import { alchemy } from "../../src/alchemy.js";
-import { DOStateStore } from "../../src/cloudflare/do-state-store/store.js";
 import { PermissionGroups } from "../../src/cloudflare/permission-groups.js";
 import { BRANCH_PREFIX } from "../util.js";
 
@@ -8,7 +7,6 @@ import "../../src/test/bun.js";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
-  stateStore: (scope) => new DOStateStore(scope),
 });
 
 describe("PermissionGroups Resource", () => {

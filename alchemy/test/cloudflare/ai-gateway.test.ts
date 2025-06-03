@@ -2,7 +2,6 @@ import { describe, expect } from "bun:test";
 import { alchemy } from "../../src/alchemy.js";
 import { AiGateway } from "../../src/cloudflare/ai-gateway.js";
 import { createCloudflareApi } from "../../src/cloudflare/api.js";
-import { DOStateStore } from "../../src/cloudflare/do-state-store/store.js";
 import { destroy } from "../../src/destroy.js";
 import { BRANCH_PREFIX } from "../util.js";
 // must import this or else alchemy.test won't exist
@@ -13,7 +12,6 @@ const api = await createCloudflareApi();
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
-  stateStore: (scope) => new DOStateStore(scope),
 });
 
 describe("AiGateway Resource", () => {

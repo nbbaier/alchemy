@@ -1,7 +1,6 @@
 import { describe, expect } from "bun:test";
 import { alchemy } from "../../src/alchemy.js";
 import { createCloudflareApi } from "../../src/cloudflare/api.js";
-import { DOStateStore } from "../../src/cloudflare/do-state-store/store.js";
 import { listQueueConsumers } from "../../src/cloudflare/queue-consumer.js";
 import { Queue } from "../../src/cloudflare/queue.js";
 import { Worker } from "../../src/cloudflare/worker.js";
@@ -13,7 +12,6 @@ import "../../src/test/bun.js";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
-  stateStore: (scope) => new DOStateStore(scope),
 });
 
 const api = await createCloudflareApi({});

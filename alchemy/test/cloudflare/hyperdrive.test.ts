@@ -1,7 +1,6 @@
 import { describe, expect } from "bun:test";
 import { alchemy } from "../../src/alchemy.js";
 import { createCloudflareApi } from "../../src/cloudflare/api.js";
-import { DOStateStore } from "../../src/cloudflare/do-state-store/store.js";
 import {
   Hyperdrive,
   type HyperdriveResource,
@@ -18,7 +17,6 @@ const api = await createCloudflareApi();
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
-  stateStore: (scope) => new DOStateStore(scope),
 });
 
 describe("Hyperdrive Resource", () => {

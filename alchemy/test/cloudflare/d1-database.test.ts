@@ -2,14 +2,12 @@ import { describe, expect } from "bun:test";
 import { alchemy } from "../../src/alchemy.js";
 import { createCloudflareApi } from "../../src/cloudflare/api.js";
 import { D1Database, listDatabases } from "../../src/cloudflare/d1-database.js";
-import { DOStateStore } from "../../src/cloudflare/do-state-store/store.js";
 import { BRANCH_PREFIX } from "../util.js";
 
 import "../../src/test/bun.js";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
-  stateStore: (scope) => new DOStateStore(scope),
 });
 
 describe("D1 Database Resource", async () => {
