@@ -185,15 +185,9 @@ export function test(meta: ImportMeta, defaultOptions?: TestOptions): test {
 
     return it(
       testName,
-      (ctx) => {
-        // Get the current describe block name from the test context
-        let describeBlockName = "";
-        if (ctx.task.suite?.name) {
-          describeBlockName = `${ctx.task.suite.name}/`;
-        }
-
-        return alchemy.run(
-          `${describeBlockName}${testName}`,
+      () =>
+        alchemy.run(
+          testName,
           {
             ...options,
             parent: scope,
@@ -201,8 +195,7 @@ export function test(meta: ImportMeta, defaultOptions?: TestOptions): test {
           async (scope) => {
             await scope.run(() => fn(scope));
           },
-        );
-      },
+        ),
       timeout,
     );
   }
