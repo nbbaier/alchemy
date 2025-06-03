@@ -11,7 +11,7 @@ import {
 } from "../../src/neon/project.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 // must import this or else alchemy.test won't exist
-import "../../src/test/bun.ts";
+import "../../src/test/vitest.ts";
 
 // Create API client for verification
 const api = createNeonApi();

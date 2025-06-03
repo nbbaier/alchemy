@@ -5,7 +5,7 @@ import { destroy } from "../../src/destroy.ts";
 import { Product } from "../../src/stripe/product.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
-import "../../src/test/bun.ts";
+import "../../src/test/vitest.ts";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,

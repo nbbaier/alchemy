@@ -6,7 +6,7 @@ import { destroy } from "../../src/destroy.ts";
 import { CopyFile } from "../../src/fs/copy-file.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
-import "../../src/test/bun.ts";
+import "../../src/test/vitest.ts";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,

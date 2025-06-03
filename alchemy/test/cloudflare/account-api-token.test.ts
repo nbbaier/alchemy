@@ -8,7 +8,7 @@ import {
 import { destroy } from "../../src/destroy.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
-import "../../src/test/bun.ts";
+import "../../src/test/vitest.ts";
 
 // Create API client for verification
 let api: CloudflareApi;

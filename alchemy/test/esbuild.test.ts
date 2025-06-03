@@ -6,7 +6,7 @@ import { Bundle } from "../src/esbuild/bundle.ts";
 import { BRANCH_PREFIX, exists } from "./util.ts";
 
 import { destroy } from "../src/destroy.ts";
-import "../src/test/bun.ts";
+import "../src/test/vitest.ts";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,

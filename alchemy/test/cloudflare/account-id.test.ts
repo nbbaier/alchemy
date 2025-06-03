@@ -5,7 +5,7 @@ import { createCloudflareApi } from "../../src/cloudflare/api.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import { destroy } from "../../src/destroy.ts";
-import "../../src/test/bun.ts";
+import "../../src/test/vitest.ts";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,

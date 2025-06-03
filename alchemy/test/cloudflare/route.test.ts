@@ -9,7 +9,7 @@ import { destroy } from "../../src/destroy.ts";
 import type { Scope } from "../../src/scope.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 // must import this or else alchemy.test won't exist
-import "../../src/test/bun.ts";
+import "../../src/test/vitest.ts";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,

@@ -4,7 +4,7 @@ import { VectorizeIndex } from "../../src/cloudflare/vectorize-index.ts";
 import { VectorizeMetadataIndex } from "../../src/cloudflare/vectorize-metadata-index.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
-import "../../src/test/bun.ts";
+import "../../src/test/vitest.ts";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,

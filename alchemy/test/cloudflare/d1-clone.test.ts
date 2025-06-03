@@ -5,7 +5,7 @@ import { cloneD1Database } from "../../src/cloudflare/d1-clone.ts";
 import { D1Database } from "../../src/cloudflare/d1-database.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
-import "../../src/test/bun.ts";
+import "../../src/test/vitest.ts";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,

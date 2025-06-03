@@ -7,7 +7,7 @@ import {
   type Meter as MeterOutput,
   type MeterProps,
 } from "../../src/stripe/meter.ts";
-import "../../src/test/bun.ts";
+import "../../src/test/vitest.ts";
 
 const BRANCH_PREFIX = process.env.BRANCH_PREFIX || "local";
 

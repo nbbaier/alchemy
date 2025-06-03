@@ -10,7 +10,7 @@ import { destroy } from "../../src/destroy.ts";
 import { isSecret } from "../../src/secret.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 // must import this or else alchemy.test won't exist
-import "../../src/test/bun.ts";
+import "../../src/test/vitest.ts";
 
 const client = new SSMClient({});
 

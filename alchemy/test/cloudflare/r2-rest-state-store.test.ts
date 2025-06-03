@@ -5,7 +5,7 @@ import { getBucket } from "../../src/cloudflare/bucket.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import { R2RestStateStore } from "../../src/cloudflare/r2-rest-state-store.ts";
-import "../../src/test/bun.ts";
+import "../../src/test/vitest.ts";
 
 describe("R2RestStateStore", async () => {
   const test = alchemy.test(import.meta, {
