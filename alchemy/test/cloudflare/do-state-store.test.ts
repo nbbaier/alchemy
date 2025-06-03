@@ -1,13 +1,13 @@
 import { afterAll, describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.js";
 import { createCloudflareApi } from "../../src/cloudflare/api.js";
-
 import {
   DOStateStore,
   getWorkerScriptMetadata,
 } from "../../src/cloudflare/index.js";
-import "../../src/test/bun.js";
 import { BRANCH_PREFIX } from "../util.js";
+
+import "../../src/test/vitest.js";
 
 describe("DOStateStore", async () => {
   const workerName = `${BRANCH_PREFIX}-alchemy-state`;
