@@ -1,5 +1,6 @@
 import path from "node:path";
 import { bundle } from "../../esbuild/index.ts";
+import { withExponentialBackoff } from "../../util/retry.ts";
 import { handleApiError } from "../api-error.ts";
 import type { CloudflareApi } from "../api.ts";
 import { putWorker } from "../worker.ts";
@@ -12,6 +13,15 @@ interface DOStateStoreClientOptions {
   token: string;
 }
 
+class StateStoreError extends Error {
+  constructor(
+    message: string,
+    readonly retryable: boolean,
+  ) {
+    super(message);
+  }
+}
+
 export class DOStateStoreClient {
   constructor(private readonly options: DOStateStoreClientOptions) {}
 
@@ -19,29 +29,41 @@ export class DOStateStoreClient {
     method: T,
     params: DOStateStoreAPI.API[T]["params"],
   ): Promise<DOStateStoreAPI.API[T]["result"]> {
-    const res = await this.fetch("/rpc", {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
+    return await withExponentialBackoff(
+      async () => {
+        const res = await this.fetch("/rpc", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            method,
+            params,
+          }),
+        });
+        if (!res.headers.get("Content-Type")?.includes("application/json")) {
+          throw new StateStoreError(
+            `Unexpected response of type "${res.headers.get("Content-Type")}" from state store: ${res.status} ${res.statusText} ${await res.text()}`,
+            true,
+          );
+        }
+        const body = await res.json<DOStateStoreAPI.Response>();
+        if (!body.success) {
+          throw new StateStoreError(
+            `State store "${method}" request failed with status ${res.status}: ${body.error}`,
+            res.status >= 500,
+          );
+        }
+        return body.result;
       },
-      body: JSON.stringify({
-        method,
-        params,
-      }),
-    });
-    if (!res.headers.get("Content-Type")?.includes("application/json")) {
-      throw new Error(
-        `Unexpected response of type "${res.headers.get("Content-Type")}" from state store: ${res.status} ${res.statusText} ${await res.text()}`,
-      );
-    }
-    const body = await res.json<DOStateStoreAPI.Response>();
-    if (!body.success) {
-      throw new Error(
-        `State store "${method}" request failed with status ${res.status}: ${body.error}`,
-      );
-    }
-    return body.result;
+      (error) => {
+        if (error instanceof StateStoreError) {
+          return error.retryable;
+        }
+        return true;
+      },
+    );
   }
 
   async validate(): Promise<Response> {
