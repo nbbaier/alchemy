@@ -1,7 +1,7 @@
 import type { Context } from "../context.ts";
 import { Resource, ResourceKind } from "../resource.ts";
 import { bind } from "../runtime/bind.ts";
-import type { Secret } from "../secret.ts";
+import { secret, type Secret } from "../secret.ts";
 import { handleApiError } from "./api-error.ts";
 import {
   createCloudflareApi,
@@ -25,19 +25,19 @@ export interface SecretsStoreProps<
 
   /**
    * Secrets to store in the secrets store
-   * Maps secret names to Secret instances created with alchemy.secret()
+   * Maps secret names to secret values (string) or Secret instances
    *
    * @example
    * ```ts
    * const store = await SecretsStore("my-store", {
    *   secrets: {
-   *     API_KEY: alchemy.secret(process.env.API_KEY),
+   *     API_KEY: "my-api-key-value",
    *     DATABASE_URL: alchemy.secret(process.env.DATABASE_URL)
    *   }
    * });
    * ```
    */
-  secrets?: S;
+  secrets?: { [K in keyof S]: string | Secret };
 
   /**
    * Whether to adopt an existing store with the same name if it exists
@@ -58,11 +58,11 @@ export interface SecretsStoreProps<
 
 export function isSecretsStore(
   resource: Resource,
-): resource is SecretsStoreResource<any> {
+): resource is SecretsStore<any> {
   return resource[ResourceKind] === "cloudflare::SecretsStore";
 }
 
-export interface SecretsStoreResource<
+export interface SecretsStore<
   S extends Record<string, Secret> | undefined = undefined,
 > extends Resource<"cloudflare::SecretsStore">,
     Omit<SecretsStoreProps<S>, "delete"> {
@@ -98,9 +98,9 @@ export interface SecretsStoreResource<
   modifiedAt: number;
 }
 
-export type SecretsStore<
+export type SecretsStoreWithBinding<
   S extends Record<string, Secret> | undefined = undefined,
-> = SecretsStoreResource<S> & Bound<SecretsStoreResource<S>>;
+> = SecretsStore<S> & Bound<SecretsStore<S>>;
 
 /**
  * A Cloudflare Secrets Store is a secure, centralized location for storing account-level secrets.
@@ -162,19 +162,32 @@ export async function SecretsStore<
 >(
   name: string,
   props: SecretsStoreProps<S> = {} as SecretsStoreProps<S>,
-): Promise<SecretsStore<S>> {
-  const store = await _SecretsStore(name, props);
+): Promise<SecretsStoreWithBinding<S>> {
+  // Convert string values to Secret instances
+  const normalizedProps: SecretsStoreProps<S> = {
+    ...props,
+    secrets: props.secrets
+      ? (Object.fromEntries(
+          Object.entries(props.secrets).map(([key, value]) => [
+            key,
+            typeof value === "string" ? secret(value) : value,
+          ]),
+        ) as S)
+      : undefined,
+  };
+
+  const store = await _SecretsStore(name, normalizedProps);
   const binding = await bind(store);
   return {
     ...store,
     get: binding.get,
-  } as SecretsStore<S>;
+  } as SecretsStoreWithBinding<S>;
 }
 
 const _SecretsStore = Resource("cloudflare::SecretsStore", async function <
   S extends Record<string, Secret> | undefined = undefined,
->(this: Context<SecretsStoreResource<S>>, id: string, props: SecretsStoreProps<S>): Promise<
-  SecretsStoreResource<S>
+>(this: Context<SecretsStore<S>>, id: string, props: SecretsStoreProps<S>): Promise<
+  SecretsStore<S>
 > {
   const api = await createCloudflareApi(props);
 
@@ -243,7 +256,7 @@ const _SecretsStore = Resource("cloudflare::SecretsStore", async function <
     type: "secrets_store",
     id: storeId,
     name: name,
-    secrets: props.secrets,
+    secrets: props.secrets as S,
     createdAt: createdAt,
     modifiedAt: Date.now(),
   });
@@ -328,9 +341,9 @@ export async function insertSecrets<
     for (let i = 0; i < secretEntries.length; i += BATCH_SIZE) {
       const batch = secretEntries.slice(i, i + BATCH_SIZE);
 
-      const bulkPayload = batch.map(([name, secret]) => ({
+      const bulkPayload = batch.map(([name, secretValue]) => ({
         name,
-        value: secret.unencrypted,
+        value: (secretValue as Secret).unencrypted,
         scopes: [],
       }));
 

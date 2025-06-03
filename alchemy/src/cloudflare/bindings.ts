@@ -12,7 +12,7 @@ import type { Bound } from "./bound.ts";
 import type { BrowserRendering } from "./browser-rendering.ts";
 import type { R2BucketResource } from "./bucket.ts";
 import type { D1DatabaseResource } from "./d1-database.ts";
-import type { SecretsStoreResource } from "./secrets-store.ts";
+import type { SecretsStore } from "./secrets-store.ts";
 import type { DurableObjectNamespace } from "./durable-object-namespace.ts";
 import type { HyperdriveResource } from "./hyperdrive.ts";
 import type { KVNamespaceResource } from "./kv-namespace.ts";
@@ -49,7 +49,7 @@ export type Binding =
   | PipelineResource
   | QueueResource
   | R2BucketResource
-  | SecretsStoreResource<any>
+  | SecretsStore<any>
   | {
       type: "kv_namespace";
       id: string;

@@ -21,19 +21,20 @@ describe("SecretsStore Resource", () => {
         name: `${BRANCH_PREFIX}-test-store`,
       });
 
-      expect(secretsStore.id).toBeTruthy();
-      expect(secretsStore.name).toEqual(`${BRANCH_PREFIX}-test-store`);
+      expect(secretsStore).toBeTruthy();
+      expect(secretsStore!.id).toBeTruthy();
+      expect(secretsStore!.name).toEqual(`${BRANCH_PREFIX}-test-store`);
 
-      await assertSecretsStoreExists(secretsStore.id);
+      await assertSecretsStoreExists(secretsStore!.id);
 
       secretsStore = await SecretsStore(testId, {
         name: `${BRANCH_PREFIX}-test-store`,
       });
 
-      expect(secretsStore.id).toEqual(secretsStore.id);
-      expect(secretsStore.name).toEqual(`${BRANCH_PREFIX}-test-store`);
+      expect(secretsStore!.id).toEqual(secretsStore!.id);
+      expect(secretsStore!.name).toEqual(`${BRANCH_PREFIX}-test-store`);
 
-      await assertSecretsStoreExists(secretsStore.id);
+      await assertSecretsStoreExists(secretsStore!.id);
     } finally {
       await alchemy.destroy(scope);
       if (secretsStore) {
@@ -59,7 +60,9 @@ describe("SecretsStore Resource", () => {
       });
     } finally {
       await alchemy.destroy(scope);
-      await assertSecretsStoreNotExists(secretsStore!.id);
+      if (secretsStore) {
+        await assertSecretsStoreNotExists(secretsStore.id);
+      }
     }
   });
 
@@ -83,7 +86,9 @@ describe("SecretsStore Resource", () => {
       });
     } finally {
       await alchemy.destroy(scope);
-      await assertSecretsStoreNotExists(secretsStore!.id);
+      if (secretsStore) {
+        await assertSecretsStoreNotExists(secretsStore.id);
+      }
     }
   });
 

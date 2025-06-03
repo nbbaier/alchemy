@@ -12,7 +12,7 @@ import type { DurableObjectNamespace as _DurableObjectNamespace } from "./durabl
 import type { HyperdriveResource as _Hyperdrive } from "./hyperdrive.ts";
 import type { PipelineResource as _Pipeline } from "./pipeline.ts";
 import type { QueueResource as _Queue } from "./queue.ts";
-import type { SecretsStoreResource as _SecretsStore } from "./secrets-store.ts";
+import type { SecretsStore as _SecretsStore } from "./secrets-store.ts";
 import type { VectorizeIndexResource as _VectorizeIndex } from "./vectorize-index.ts";
 import type { Worker as _Worker } from "./worker.ts";
 import type { Workflow as _Workflow } from "./workflow.ts";
@@ -76,9 +76,7 @@ export type Bound<T extends Binding> = T extends _DurableObjectNamespace<
 interface SecretsStoreBinding<
   S extends Record<string, Secret> | undefined = undefined,
 > {
-  get: S extends Record<string, Secret>
-    ? string extends keyof S
-      ? (secretName: string) => Promise<string | null>
-      : (secretName: keyof S) => Promise<string | null>
-    : (secretName: string) => Promise<string | null>;
+  get(
+    key: (S extends Record<string, any> ? keyof S : never) | (string & {}),
+  ): Promise<string>;
 }
