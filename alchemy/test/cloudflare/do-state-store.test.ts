@@ -1,4 +1,4 @@
-import { describe, expect } from "vitest";
+import { afterAll, describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.js";
 import { createCloudflareApi } from "../../src/cloudflare/api.js";
 
