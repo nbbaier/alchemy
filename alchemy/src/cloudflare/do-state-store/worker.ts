@@ -1,205 +1,187 @@
-import { DurableObject } from "cloudflare:workers";
+import { DurableObject, WorkerEntrypoint } from "cloudflare:workers";
 import { Fs } from "dofs";
-import crypto from "node:crypto";
+import { timingSafeEqual } from "node:crypto";
+import type { State } from "../../state.ts";
+import type { DOStateStoreAPI } from "./types.ts";
 
 interface Env {
   DOFS_STATE_STORE: DurableObjectNamespace<DOFSStateStore>;
   DOFS_TOKEN: string;
 }
 
-export default {
-  fetch: async (request: Request, env: Env) => {
-    if (!isAuthorized(request, env)) {
-      return new Response("Unauthorized", { status: 401 });
+export default class extends WorkerEntrypoint<Env> {
+  override async fetch(request: Request) {
+    try {
+      const result = await this.handle(request);
+      const body: DOStateStoreAPI.Response = {
+        success: true,
+        status: 200,
+        result: result ?? undefined,
+      };
+      return Response.json(body, { status: body.status });
+    } catch (error) {
+      return APIError.fromUnknown(error).toResponse();
     }
-    if (request.url.endsWith("/status")) {
-      return new Response("OK");
-    }
-    if (request.method !== "POST") {
-      return new Response("Method not allowed", { status: 405 });
-    }
-    const id = env.DOFS_STATE_STORE.idFromName("default");
-    const stub = env.DOFS_STATE_STORE.get(id);
-    return await stub.fetch(request);
-  },
-} satisfies ExportedHandler<Env>;
-
-const isAuthorized = (request: Request, env: Env) => {
-  const encoder = new TextEncoder();
-  const token = request.headers.get("Authorization")?.split(" ")[1];
-  if (!token) {
-    return false;
   }
-  return crypto.timingSafeEqual(
-    encoder.encode(token),
-    encoder.encode(env.DOFS_TOKEN),
-  );
-};
+
+  private async handle(request: Request) {
+    if (!this.authorize(request)) {
+      throw new APIError("Unauthorized", 401);
+    }
+    const stub = this.getStub(request);
+    const body = await this.parseBody(request);
+    switch (body.method) {
+      case "validate":
+        return null;
+      case "all":
+        return await stub.all(body.params.prefix);
+      case "count":
+        return await stub.count(body.params.prefix);
+      case "delete":
+        return await stub.delete(body.params.key);
+      case "get":
+        return await stub.get(body.params.key);
+      case "getBatch":
+        return await stub.getBatch(body.params.keys);
+      case "list":
+        return await stub.list(body.params.prefix);
+      case "set":
+        return await stub.set(body.params.key, body.params.value);
+      default: {
+        const _: never = body;
+        throw new APIError("Method not found", 404);
+      }
+    }
+  }
+
+  private authorize(request: Request): boolean {
+    const token = request.headers.get("Authorization")?.split(" ")[1];
+    if (!token) {
+      return false;
+    }
+    return timingSafeEqual(
+      new TextEncoder().encode(token),
+      new TextEncoder().encode(this.env.DOFS_TOKEN),
+    );
+  }
+
+  private getStub(request: Request): DurableObjectStub<DOFSStateStore> {
+    const url = new URL(request.url);
+    const app = url.searchParams.get("app");
+    const stage = url.searchParams.get("stage");
+    if (!app || !stage) {
+      throw new APIError("Missing app or stage", 400);
+    }
+    return this.env.DOFS_STATE_STORE.get(
+      this.env.DOFS_STATE_STORE.idFromName(`${app}/${stage}`),
+    );
+  }
+
+  private async parseBody(request: Request): Promise<DOStateStoreAPI.Request> {
+    try {
+      return await request.json<DOStateStoreAPI.Request>();
+    } catch {
+      throw new APIError("Invalid JSON", 400);
+    }
+  }
+}
+
+class APIError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+  }
+
+  toResponse(): Response {
+    return Response.json(
+      {
+        success: false,
+        status: this.status,
+        error: this.message,
+      },
+      { status: this.status },
+    );
+  }
+
+  static fromUnknown(error: unknown): APIError {
+    if (error instanceof APIError) {
+      return error;
+    }
+    if (error instanceof Error) {
+      return new APIError(error.message, 500);
+    }
+    return new APIError("An unknown error occurred.", 500);
+  }
+}
 
 export class DOFSStateStore extends DurableObject<Env> {
   fs = new Fs(this.ctx, this.env, {
     chunkSize: 256 * 1024,
   });
 
-  override async fetch(request: Request) {
-    const { method, prefix, key, keys, value } = (await request.json()) as {
-      method: string;
-      prefix: string;
-      key?: string;
-      keys?: string[];
-      value?: Record<string, unknown>;
-    };
-    try {
-      switch (method) {
-        case "get": {
-          if (!key) {
-            return new Response("Key is required", { status: 400 });
-          }
-          const file = await this.get(prefix, key);
-          if (!file) {
-            return new Response("Not found", { status: 404 });
-          }
-          return new Response(file);
-        }
-        case "getBatch": {
-          if (!keys) {
-            return new Response("Keys are required", { status: 400 });
-          }
-          return Response.json(await this.getBatch(prefix, keys));
-        }
-        case "list":
-          return Response.json(this.list(prefix));
-        case "count":
-          return Response.json(this.list(prefix).length);
-        case "all":
-          return Response.json(await this.all(prefix));
-        case "set": {
-          if (!key) {
-            return new Response("Key is required", { status: 400 });
-          }
-          if (!value) {
-            return new Response("Value is required", { status: 400 });
-          }
-          await this.set(prefix, key, value);
-          return new Response("OK");
-        }
-        case "delete": {
-          if (!key) {
-            return new Response("Key is required", { status: 400 });
-          }
-          this.delete(prefix, key);
-          return new Response("OK");
-        }
-        default:
-          return new Response("Method not found", { status: 404 });
-      }
-    } catch (error) {
-      console.error(error);
-      return Response.json(
-        {
-          error: error instanceof Error ? error.message : "Unknown error",
-          request: {
-            method,
-            prefix,
-            key,
-            keys,
-            value,
-          },
-        },
-        { status: 500 },
-      );
-    }
-  }
-
-  async get(prefix: string, key: string): Promise<string | undefined> {
-    try {
-      const file = this.fs.readFile(this.formatPath(prefix, key), {
-        encoding: "utf8",
-      });
-      return new Response(file).text();
-    } catch {
-      return undefined;
-    }
-  }
-
-  async getBatch(
-    prefix: string,
-    keys: string[],
-  ): Promise<Record<string, string>> {
-    console.log({
-      method: "getBatch",
-      prefix,
-      keys,
-    });
-    const results: Record<string, string> = {};
-    await Promise.all(
-      keys.map(async (key) => {
-        const result = await this.get(prefix, key);
-        if (result) {
-          results[key] = result;
-        }
-      }),
-    );
-    return results;
-  }
-
-  list(prefix: string): string[] {
-    const path = this.formatPath(prefix);
-    if (!this.isDirectory(path)) {
-      return [];
-    }
-    return this.fs
-      .listDir(path, { recursive: true })
-      .filter((item) => item !== "." && item !== "..")
-      .map((item) => this.formatKey(prefix, item));
-  }
-
   async all(prefix: string): Promise<Record<string, string>> {
-    console.log({
-      method: "all",
-      prefix,
-    });
-    return this.getBatch(prefix, this.list(prefix));
+    const keys = this.list(prefix);
+    return await this.getBatch(keys);
   }
 
-  async set(
-    prefix: string,
-    key: string,
-    value: Record<string, unknown>,
-  ): Promise<void> {
-    const path = this.formatPath(prefix, key);
-    console.log({
-      method: "set",
-      prefix,
-      key,
-      path,
-      value,
-    });
-    this.ensureDir(path);
-    await this.fs.writeFile(path, JSON.stringify(value));
+  count(prefix: string): number {
+    return this.list(prefix).length;
   }
 
-  delete(prefix: string, key: string): void {
-    const path = this.formatPath(prefix, key);
+  delete(key: string): void {
     try {
-      this.fs.unlink(path);
+      this.fs.unlink(key);
     } catch (error) {
-      if (error instanceof Error && error.message.includes("ENOENT")) {
+      if (isErrorCode(error, "ENOENT")) {
         return;
       }
       throw error;
     }
   }
 
-  private isDirectory(path: string): boolean {
+  async get(key: string): Promise<string | undefined> {
     try {
-      return this.fs.stat(path).isDirectory;
+      const file = this.fs.readFile(key);
+      return new Response(file).text();
     } catch (error) {
-      if (error instanceof Error && error.message.includes("ENOENT")) {
-        return false;
+      if (isErrorCode(error, "ENOENT")) {
+        return undefined;
       }
       throw error;
     }
+  }
+
+  async getBatch(keys: string[]): Promise<Record<string, string>> {
+    const result: Record<string, string> = {};
+    await Promise.all(
+      keys.map(async (key) => {
+        const value = await this.get(key);
+        if (value) {
+          result[key] = value;
+        }
+      }),
+    );
+    return result;
+  }
+
+  list(prefix: string): string[] {
+    try {
+      return this.fs
+        .listDir(prefix, { recursive: true })
+        .filter((item) => item !== "." && item !== "..");
+    } catch (error) {
+      if (isErrorCode(error, "ENOENT")) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async set(key: string, value: State): Promise<void> {
+    this.ensureDir(key);
+    await this.fs.writeFile(key, JSON.stringify(value));
   }
 
   private ensureDir(path: string): void {
@@ -210,20 +192,8 @@ export class DOFSStateStore extends DurableObject<Env> {
       // directory already exists, ignore
     }
   }
-
-  private formatPath(prefix: string, key?: string) {
-    return [prefix, key]
-      .filter((part) => part !== undefined)
-      .flatMap((part) => part.split("/"))
-      .map((part) => encodeURIComponent(part))
-      .join("/");
-  }
-
-  private formatKey(prefix: string, path: string) {
-    return path
-      .replace(`${prefix}/`, "")
-      .split("/")
-      .map(decodeURIComponent)
-      .join(":");
-  }
 }
+
+const isErrorCode = (error: unknown, code: string) => {
+  return error instanceof Error && "message" in error && error.message === code;
+};

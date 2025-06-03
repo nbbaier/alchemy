@@ -12,10 +12,10 @@ import { BRANCH_PREFIX } from "../util.js";
 describe("DOStateStore", async () => {
   const workerName = `${BRANCH_PREFIX}-alchemy-state`;
   const test = alchemy.test(import.meta, {
-    // Isolate the default state store bucket from other tests' stores
     stateStore: (scope) =>
       new DOStateStore(scope, {
         worker: {
+          // Isolate the default state store bucket from other tests' stores
           name: workerName,
         },
       }),
