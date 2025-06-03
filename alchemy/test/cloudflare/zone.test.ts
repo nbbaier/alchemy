@@ -5,7 +5,7 @@ import { Zone } from "../../src/cloudflare/zone.ts";
 import { destroy } from "../../src/destroy.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
-import "../../src/test/vitest.ts";
+import "../../src/test/bun.ts";
 
 const api = await createCloudflareApi();
 

@@ -5,7 +5,7 @@ import { createGitHubClient } from "../../src/github/client.ts";
 import { RepositoryEnvironment } from "../../src/github/repository-environment.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
-import "../../src/test/vitest.ts";
+import "../../src/test/bun.ts";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,

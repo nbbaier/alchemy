@@ -8,7 +8,7 @@ import { destroy } from "../../src/destroy.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 // must import this or else alchemy.test won't exist
 import { CloudflareApiError } from "../../src/cloudflare/api-error.ts";
-import "../../src/test/vitest.ts";
+import "../../src/test/bun.ts";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,

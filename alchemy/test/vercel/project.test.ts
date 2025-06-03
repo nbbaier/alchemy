@@ -6,7 +6,7 @@ import { Project } from "../../src/vercel/project.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 // must import this or else alchemy.test won't exist
-import "../../src/test/vitest.ts";
+import "../../src/test/bun.ts";
 
 const api = await createVercelApi({
   baseUrl: "https://api.vercel.com/v11",

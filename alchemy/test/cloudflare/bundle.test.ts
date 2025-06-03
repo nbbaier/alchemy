@@ -3,7 +3,7 @@ import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { Worker } from "../../src/cloudflare/worker.ts";
 import { destroy } from "../../src/destroy.ts";
-import "../../src/test/vitest.ts";
+import "../../src/test/bun.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 import { fetchAndExpectOK } from "./fetch-utils.ts";
 

@@ -8,7 +8,7 @@ import { BRANCH_PREFIX } from "../util.ts";
 import { fetchAndExpectOK } from "./fetch-utils.ts";
 
 import path from "node:path";
-import "../../src/test/vitest.ts";
+import "../../src/test/bun.ts";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,

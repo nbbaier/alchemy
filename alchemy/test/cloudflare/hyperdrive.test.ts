@@ -11,7 +11,7 @@ import { NeonProject } from "../../src/neon/project.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 import { fetchAndExpectOK } from "./fetch-utils.ts";
 // must import this or else alchemy.test won't exist
-import "../../src/test/vitest.ts";
+import "../../src/test/bun.ts";
 
 // Create API client for verification
 const api = await createCloudflareApi();
