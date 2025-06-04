@@ -3,7 +3,7 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
 import { handleApiError } from "./api-error.ts";
-import { createNeonApi, type NeonApiOptions } from "./api.ts";
+import { createNeonApi, type NeonApiOptions, type NeonApi } from "./api.ts";
 
 /**
  * A Neon region where projects can be provisioned
@@ -268,7 +268,7 @@ export interface NeonEndpoint {
     /**
      * PostgreSQL settings
      */
-    pg_settings: Record<string, any>;
+    pg_settings: Record<string, string>;
   };
 }
 
@@ -355,7 +355,11 @@ interface NeonApiResponse {
     created_at: string;
     updated_at: string;
     proxy_host?: string;
-    [key: string]: any;
+    compute_time_seconds?: number;
+    active_time_seconds?: number;
+    cpu_used_sec?: number;
+    written_data_bytes?: number;
+    data_transfer_bytes?: number;
   };
   connection_uris?: Array<{
     connection_uri: string;
@@ -422,7 +426,7 @@ interface NeonApiResponse {
     updated_at: string;
     proxy_host: string;
     settings: {
-      pg_settings: Record<string, any>;
+      pg_settings: Record<string, string>;
     };
   }>;
 }
@@ -638,7 +642,7 @@ export const NeonProject = Resource(
  * Helper function to create a new Neon project
  */
 async function createNewProject(
-  api: any,
+  api: NeonApi,
   props: NeonProjectProps,
 ): Promise<NeonApiResponse> {
   const defaultEndpoint = props.default_endpoint ?? true;
@@ -670,7 +674,7 @@ async function createNewProject(
  * @returns Complete project data with all related resources
  */
 async function getProject(
-  api: any,
+  api: NeonApi,
   projectId: string,
   initialData: Partial<NeonApiResponse> = {},
 ): Promise<NeonApiResponse> {
@@ -730,7 +734,7 @@ async function getProject(
  * @returns Promise that resolves when all operations complete
  */
 async function waitForOperations(
-  api: any,
+  api: NeonApi,
   operations: Array<{
     id: string;
     project_id: string;
@@ -778,8 +782,9 @@ async function waitForOperations(
       );
 
       if (operationResponse.ok) {
-        const operationData = await operationResponse.json();
-        operationStatus = operationData.operation?.status;
+        const operationData: { operation?: { status?: string } } =
+          await operationResponse.json();
+        operationStatus = operationData.operation?.status || "unknown";
       } else {
         throw new Error(
           `Failed to check operation ${operation.id} status: HTTP ${operationResponse.status}`,
@@ -810,7 +815,7 @@ async function waitForOperations(
  * @throws Error if project details cannot be retrieved
  */
 async function getProjectDetails(
-  api: any,
+  api: NeonApi,
   projectId: string,
 ): Promise<NeonApiResponse> {
   const response = await api.get(`/projects/${projectId}`);
@@ -832,7 +837,7 @@ async function getProjectDetails(
  * @throws Error if branch details cannot be retrieved
  */
 async function getBranchDetails(
-  api: any,
+  api: NeonApi,
   projectId: string,
   branchId: string,
 ): Promise<{ branch: NeonBranch }> {
@@ -855,7 +860,7 @@ async function getBranchDetails(
  * @throws Error if endpoint details cannot be retrieved
  */
 async function getEndpointDetails(
-  api: any,
+  api: NeonApi,
   projectId: string,
   branchId: string,
 ): Promise<{ endpoints: NeonEndpoint[] }> {
