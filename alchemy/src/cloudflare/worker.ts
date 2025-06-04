@@ -1248,7 +1248,7 @@ async function getWorkerBindings(api: CloudflareApi, workerName: string) {
  * @param api CloudflareApi instance
  * @param workerName Name of the worker script
  */
-async function deleteQueueConsumers<B extends Bindings>(
+async function deleteQueueConsumers(
   api: CloudflareApi,
   workerName: string,
 ): Promise<void> {
