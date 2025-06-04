@@ -147,7 +147,6 @@ export async function upsertStateStoreWorker(
       workerName,
     );
   }
-  await new Promise((resolve) => setTimeout(resolve, 1000));
 }
 
 async function getWorkerStatus(api: CloudflareApi, workerName: string) {

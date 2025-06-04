@@ -69,6 +69,8 @@ export class DOStateStore implements StateStore {
         url: this.options.worker.url,
         token,
       });
+      // The worker is already created and should be ready to use.
+      // If it's not, we'll fail fast with a helpful error message.
       const res = await client.validate();
       if (res.status === 200) {
         return client;
@@ -88,12 +90,16 @@ export class DOStateStore implements StateStore {
       getAccountSubdomain(api),
       upsertStateStoreWorker(api, workerName, token),
     ]);
-    return new DOStateStoreClient({
+    const client = new DOStateStoreClient({
       app: this.scope.appName ?? "alchemy",
       stage: this.scope.stage,
       url: `https://${workerName}.${subdomain}.workers.dev`,
       token,
     });
+    // This ensures the token is correct and the worker is ready to use.
+    // RPC methods are retried, which is what we want here in case the worker is not ready yet.
+    await client.rpc("validate", null);
+    return client;
   }
 
   private async getClient() {
