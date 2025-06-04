@@ -870,8 +870,6 @@ try {
 
   // Generate types and get resource types for documentation
   const { resourceTypesByService } = await generateAwsControlTypes();
-  // Generate types and get resource types for documentation
-  const { resourceTypesByService } = await generateAwsControlTypes();
 
   // Generate documentation
   await generateDocumentation(resourceTypesByService);
