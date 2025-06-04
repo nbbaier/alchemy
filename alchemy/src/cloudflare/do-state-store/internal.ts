@@ -63,6 +63,8 @@ export class DOStateStoreClient {
         }
         return true;
       },
+      5,
+      500,
     );
   }
 
