@@ -241,7 +241,7 @@ export interface InlineWorkerProps<
   B extends Bindings | undefined = Bindings,
   RPC extends Rpc.WorkerEntrypointBranded = Rpc.WorkerEntrypointBranded,
 > extends BaseWorkerProps<B, RPC> {
-  script: string;
+  script: string | NoBundleResult;
   entrypoint?: undefined;
   noBundle?: false;
 }

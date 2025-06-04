@@ -1,6 +1,4 @@
-import fs from "node:fs/promises";
 import { Self, type Bindings } from "./bindings.js";
-import type { WorkerProps } from "./worker.js";
 
 import type {
   Miniflare,
@@ -8,8 +6,10 @@ import type {
   WorkerOptions,
 } from "miniflare";
 import { AsyncMutex } from "../util/mutex.js";
+import type { NoBundleResult } from "./bundle/bundle-worker.js";
 import { isQueueEventSource } from "./event-source.js";
 import { isQueue } from "./queue.js";
+import type { WorkerProps } from "./worker.js";
 
 let _mf: Miniflare | undefined;
 
@@ -22,38 +22,48 @@ const workerPorts: {
   [workerName: string]: number;
 } = {};
 
-export async function miniflareWorker(
-  props: WorkerProps & {
-    compatibilityDate: string;
-    compatibilityFlags: string[];
-    workerName: string;
-    script: string;
-    scriptPath: string;
-    format?: "esm" | "cjs";
-  },
-) {
+export async function miniflareWorker(props: {
+  compatibilityDate: string;
+  compatibilityFlags: string[];
+  workerName: string;
+  script: string | NoBundleResult;
+  scriptPath: string;
+  format?: "esm" | "cjs";
+  bindings?: Bindings;
+  url?: boolean;
+  assets?: WorkerProps["assets"];
+  eventSources?: WorkerProps["eventSources"];
+}) {
   const worker: WorkerOptions = {
     name: props.workerName,
-    script: props.script,
+    script:
+      typeof props.script === "string"
+        ? props.script
+        : props.script[props.scriptPath].toString("utf-8"),
     // needed for imports
     scriptPath: props.scriptPath,
-    modules: true,
-    // modulesRules: [
-    //   { type: "ESModule", include: ["**/libsodium*"], fallthrough: true },
-    // ],
+    modules:
+      typeof props.script === "string"
+        ? true
+        : Object.entries(props.script).map(([path, contents]) => ({
+            type: props.format === "esm" ? "ESModule" : "CommonJS",
+            path,
+            contents: Uint8Array.from(contents),
+          })),
     compatibilityDate: props.compatibilityDate,
     compatibilityFlags: props.compatibilityFlags,
-    unsafeDirectSockets: props.url
-      ? [
-          {
-            host: "localhost",
-            // TODO(sam): per-Worker port
-            port: (workerPorts[props.workerName] ??= port++), //await findOpenPortStartingFrom(9000)),
-          },
-        ]
-      : undefined,
+    unsafeDirectSockets:
+      props.url !== false
+        ? [
+            {
+              host: "localhost",
+              // TODO(sam): per-Worker port
+              port: (workerPorts[props.workerName] ??= port++), //await findOpenPortStartingFrom(9000)),
+            },
+          ]
+        : undefined,
   };
-  await fs.writeFile("script.js", props.script);
+  // await fs.writeFile("script.js", props.script);
 
   const bindings = (props.bindings ?? {}) as Bindings;
 
@@ -180,6 +190,8 @@ export async function miniflareWorker(
       (worker.analyticsEngineDatasets ??= {})[bindingName] = {
         dataset: binding.dataset,
       };
+    } else if (binding.type === "version_metadata") {
+      // TODO(sam): how to configure this?
     } else {
       // @ts-expect-error - we should never reach here
       throw new Error(`Unsupported binding type: ${binding.type}`);
