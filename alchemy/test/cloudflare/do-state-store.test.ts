@@ -1,10 +1,11 @@
-import { afterAll, describe, expect } from "vitest";
+import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.js";
 import { createCloudflareApi } from "../../src/cloudflare/api.js";
 import {
   DOStateStore,
   getWorkerScriptMetadata,
 } from "../../src/cloudflare/index.js";
+import { destroy } from "../../src/destroy.js";
 import { BRANCH_PREFIX } from "../util.js";
 
 import "../../src/test/vitest.js";
@@ -22,21 +23,22 @@ describe("DOStateStore", async () => {
   });
   const api = await createCloudflareApi();
 
-  test("optimistically creates alchemy-state worker", async () => {
-    const worker = await getWorkerScriptMetadata(api, workerName);
+  test("optimistically creates alchemy-state worker", async (scope) => {
+    try {
+      const worker = await getWorkerScriptMetadata(api, workerName);
 
-    expect(worker).toBeDefined();
-    expect(worker?.id).toEqual(workerName);
-  });
-
-  afterAll(async () => {
-    const res = await api.delete(
-      `/accounts/${api.accountId}/workers/scripts/${workerName}`,
-    );
-    if (!res.ok) {
-      throw new Error(
-        `Failed to delete worker ${workerName}: ${res.status} ${res.statusText}`,
+      expect(worker).toBeDefined();
+      expect(worker?.id).toEqual(workerName);
+    } finally {
+      await destroy(scope);
+      const res = await api.delete(
+        `/accounts/${api.accountId}/workers/scripts/${workerName}`,
       );
+      if (!res.ok) {
+        throw new Error(
+          `Failed to delete worker ${workerName}: ${res.status} ${res.statusText}`,
+        );
+      }
     }
   });
 });
