@@ -98,13 +98,21 @@ export class DOStateStoreClient {
 
 const TAG = "alchemy-state-store:2025-06-03";
 
+const cache = new Map<string, string>();
+
 export async function upsertStateStoreWorker(
   api: CloudflareApi,
   workerName: string,
   token: string,
 ) {
+  const key = `worker:${workerName}`;
+  const cached = cache.get(key);
+  if (cached === TAG) {
+    return;
+  }
   const { found, tag } = await getWorkerStatus(api, workerName);
   if (found && tag === TAG) {
+    cache.set(key, TAG);
     return;
   }
   const script = await bundleWorkerScript();
@@ -149,6 +157,7 @@ export async function upsertStateStoreWorker(
       workerName,
     );
   }
+  cache.set(key, TAG);
 }
 
 async function getWorkerStatus(api: CloudflareApi, workerName: string) {
@@ -173,6 +182,11 @@ async function getWorkerStatus(api: CloudflareApi, workerName: string) {
 }
 
 export async function getAccountSubdomain(api: CloudflareApi) {
+  const key = `subdomain:${api.accountId}`;
+  const cached = cache.get(key);
+  if (cached) {
+    return cached;
+  }
   const res = await api.get(`/accounts/${api.accountId}/workers/subdomain`);
   if (!res.ok) {
     throw new Error(
@@ -180,7 +194,9 @@ export async function getAccountSubdomain(api: CloudflareApi) {
     );
   }
   const json: { result: { subdomain: string } } = await res.json();
-  return json.result.subdomain;
+  const subdomain = json.result.subdomain;
+  cache.set(key, subdomain);
+  return subdomain;
 }
 
 async function bundleWorkerScript() {
