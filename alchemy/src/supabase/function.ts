@@ -1,7 +1,18 @@
 import type { Context } from "../context.ts";
-import { Resource, ResourceKind, ResourceID, ResourceFQN, ResourceScope, ResourceSeq } from "../resource.ts";
+import {
+  Resource,
+  ResourceKind,
+  ResourceID,
+  ResourceFQN,
+  ResourceScope,
+  ResourceSeq,
+} from "../resource.ts";
 import { Scope } from "../scope.ts";
-import { createSupabaseApi, type SupabaseApiOptions, type SupabaseApi } from "./api.ts";
+import {
+  createSupabaseApi,
+  type SupabaseApiOptions,
+  type SupabaseApi,
+} from "./api.ts";
 import { handleApiError } from "./api-error.ts";
 
 export interface FunctionProps extends SupabaseApiOptions {
@@ -76,9 +87,15 @@ export const Function = Resource(
         error instanceof Error &&
         error.message.includes("already exists")
       ) {
-        const existingFunc = await findFunctionByName(api, props.projectRef, name);
+        const existingFunc = await findFunctionByName(
+          api,
+          props.projectRef,
+          name,
+        );
         if (!existingFunc) {
-          throw new Error(`Failed to find existing function '${name}' for adoption`);
+          throw new Error(
+            `Failed to find existing function '${name}' for adoption`,
+          );
         }
         return this(existingFunc);
       }
@@ -133,7 +150,9 @@ async function deleteFunction(
   projectRef: string,
   slug: string,
 ): Promise<void> {
-  const response = await api.delete(`/projects/${projectRef}/functions/${slug}`);
+  const response = await api.delete(
+    `/projects/${projectRef}/functions/${slug}`,
+  );
   if (!response.ok && response.status !== 404) {
     await handleApiError(response, "deleting", "function", slug);
   }
@@ -148,7 +167,7 @@ async function findFunctionByName(
   if (!response.ok) {
     await handleApiError(response, "listing", "functions");
   }
-  const functions = await response.json() as any[];
+  const functions = (await response.json()) as any[];
   const match = functions.find((func: any) => func.name === name);
   return match ? mapFunctionResponse(match) : null;
 }

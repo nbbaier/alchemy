@@ -70,8 +70,7 @@ export class SupabaseApi {
         return response;
       },
       (error) =>
-        error instanceof InternalError ||
-        error instanceof TooManyRequestsError,
+        error instanceof InternalError || error instanceof TooManyRequestsError,
       5,
       1000,
     );

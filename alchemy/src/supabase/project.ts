@@ -1,7 +1,18 @@
 import type { Context } from "../context.ts";
-import { Resource, ResourceKind, ResourceID, ResourceFQN, ResourceScope, ResourceSeq } from "../resource.ts";
+import {
+  Resource,
+  ResourceKind,
+  ResourceID,
+  ResourceFQN,
+  ResourceScope,
+  ResourceSeq,
+} from "../resource.ts";
 import { Scope } from "../scope.ts";
-import { createSupabaseApi, type SupabaseApiOptions, type SupabaseApi } from "./api.ts";
+import {
+  createSupabaseApi,
+  type SupabaseApiOptions,
+  type SupabaseApi,
+} from "./api.ts";
 import { handleApiError } from "./api-error.ts";
 
 export interface ProjectProps extends SupabaseApiOptions {
@@ -75,7 +86,9 @@ export const Project = Resource(
       ) {
         const existingProject = await findProjectByName(api, name);
         if (!existingProject) {
-          throw new Error(`Failed to find existing project '${name}' for adoption`);
+          throw new Error(
+            `Failed to find existing project '${name}' for adoption`,
+          );
         }
         return this(existingProject);
       }
@@ -92,7 +105,7 @@ async function createProject(
   if (!response.ok) {
     await handleApiError(response, "creating", "project", params.name);
   }
-  const data = await response.json() as any;
+  const data = (await response.json()) as any;
   return {
     [ResourceKind]: "supabase::Project",
     [ResourceID]: data.id,
@@ -116,7 +129,7 @@ async function getProject(
   if (!response.ok) {
     await handleApiError(response, "getting", "project", ref);
   }
-  const data = await response.json() as any;
+  const data = (await response.json()) as any;
   return {
     [ResourceKind]: "supabase::Project",
     [ResourceID]: data.id,
@@ -148,7 +161,7 @@ async function findProjectByName(
   if (!response.ok) {
     await handleApiError(response, "listing", "projects");
   }
-  const projects = await response.json() as any[];
+  const projects = (await response.json()) as any[];
   const match = projects.find((project: any) => project.name === name);
   return match ? await getProject(api, match.id) : null;
 }

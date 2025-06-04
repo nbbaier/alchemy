@@ -1,7 +1,18 @@
 import type { Context } from "../context.ts";
-import { Resource, ResourceKind, ResourceID, ResourceFQN, ResourceScope, ResourceSeq } from "../resource.ts";
+import {
+  Resource,
+  ResourceKind,
+  ResourceID,
+  ResourceFQN,
+  ResourceScope,
+  ResourceSeq,
+} from "../resource.ts";
 import { Scope } from "../scope.ts";
-import { createSupabaseApi, type SupabaseApiOptions, type SupabaseApi } from "./api.ts";
+import {
+  createSupabaseApi,
+  type SupabaseApiOptions,
+  type SupabaseApi,
+} from "./api.ts";
 import { handleApiError } from "./api-error.ts";
 
 export interface BucketProps extends SupabaseApiOptions {
@@ -64,9 +75,15 @@ export const Bucket = Resource(
         error instanceof Error &&
         error.message.includes("already exists")
       ) {
-        const existingBucket = await findBucketByName(api, props.projectRef, name);
+        const existingBucket = await findBucketByName(
+          api,
+          props.projectRef,
+          name,
+        );
         if (!existingBucket) {
-          throw new Error(`Failed to find existing bucket '${name}' for adoption`);
+          throw new Error(
+            `Failed to find existing bucket '${name}' for adoption`,
+          );
         }
         return this(existingBucket);
       }
@@ -80,7 +97,10 @@ async function createBucket(
   projectRef: string,
   params: any,
 ): Promise<BucketResource> {
-  const response = await api.post(`/projects/${projectRef}/storage/buckets`, params);
+  const response = await api.post(
+    `/projects/${projectRef}/storage/buckets`,
+    params,
+  );
   if (!response.ok) {
     await handleApiError(response, "creating", "bucket", params.name);
   }
@@ -97,7 +117,7 @@ async function getBucket(
   if (!response.ok) {
     await handleApiError(response, "listing", "buckets");
   }
-  const buckets = await response.json() as any[];
+  const buckets = (await response.json()) as any[];
   const bucket = buckets.find((b: any) => b.name === name);
   if (!bucket) {
     throw new Error(`Bucket '${name}' not found`);
@@ -110,7 +130,9 @@ async function deleteBucket(
   projectRef: string,
   name: string,
 ): Promise<void> {
-  const response = await api.delete(`/projects/${projectRef}/storage/buckets/${name}`);
+  const response = await api.delete(
+    `/projects/${projectRef}/storage/buckets/${name}`,
+  );
   if (!response.ok && response.status !== 404) {
     await handleApiError(response, "deleting", "bucket", name);
   }

@@ -1,7 +1,18 @@
 import type { Context } from "../context.ts";
-import { Resource, ResourceKind, ResourceID, ResourceFQN, ResourceScope, ResourceSeq } from "../resource.ts";
+import {
+  Resource,
+  ResourceKind,
+  ResourceID,
+  ResourceFQN,
+  ResourceScope,
+  ResourceSeq,
+} from "../resource.ts";
 import { Scope } from "../scope.ts";
-import { createSupabaseApi, type SupabaseApiOptions, type SupabaseApi } from "./api.ts";
+import {
+  createSupabaseApi,
+  type SupabaseApiOptions,
+  type SupabaseApi,
+} from "./api.ts";
 import { handleApiError } from "./api-error.ts";
 
 export interface SecretProps extends SupabaseApiOptions {
@@ -26,13 +37,13 @@ export const Secret = Resource(
   "supabase::Secret",
   async function (
     this: Context<SecretResource>,
-    id: string,
+    _id: string,
     props: SecretProps,
   ): Promise<SecretResource> {
     const api = await createSupabaseApi(props);
 
     if (this.phase === "delete") {
-      const secretNames = this.output?.secrets.map(s => s.name) || [];
+      const secretNames = this.output?.secrets.map((s) => s.name) || [];
       if (secretNames.length > 0) {
         await deleteSecrets(api, props.projectRef, secretNames);
       }
@@ -42,7 +53,9 @@ export const Secret = Resource(
     if (this.phase === "update" && this.output) {
       await createSecrets(api, props.projectRef, props.secrets);
       const secrets = await getSecrets(api, props.projectRef);
-      const filteredSecrets = secrets.filter(s => Object.keys(props.secrets).includes(s.name));
+      const filteredSecrets = secrets.filter((s) =>
+        Object.keys(props.secrets).includes(s.name),
+      );
       return this({
         [ResourceKind]: "supabase::Secret",
         [ResourceID]: `${props.projectRef}-secrets`,
@@ -57,7 +70,9 @@ export const Secret = Resource(
     try {
       await createSecrets(api, props.projectRef, props.secrets);
       const secrets = await getSecrets(api, props.projectRef);
-      const filteredSecrets = secrets.filter(s => Object.keys(props.secrets).includes(s.name));
+      const filteredSecrets = secrets.filter((s) =>
+        Object.keys(props.secrets).includes(s.name),
+      );
       return this({
         [ResourceKind]: "supabase::Secret",
         [ResourceID]: `${props.projectRef}-secrets`,
@@ -74,8 +89,8 @@ export const Secret = Resource(
         error.message.includes("already exists")
       ) {
         const existingSecrets = await getSecrets(api, props.projectRef);
-        const matchingSecrets = existingSecrets.filter(s => 
-          Object.keys(props.secrets).includes(s.name)
+        const matchingSecrets = existingSecrets.filter((s) =>
+          Object.keys(props.secrets).includes(s.name),
         );
         return this({
           [ResourceKind]: "supabase::Secret",
@@ -102,7 +117,10 @@ async function createSecrets(
     value,
   }));
 
-  const response = await api.post(`/projects/${projectRef}/secrets`, secretsArray);
+  const response = await api.post(
+    `/projects/${projectRef}/secrets`,
+    secretsArray,
+  );
   if (!response.ok) {
     await handleApiError(response, "creating", "secrets");
   }

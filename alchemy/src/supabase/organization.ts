@@ -1,7 +1,18 @@
 import type { Context } from "../context.ts";
-import { Resource, ResourceKind, ResourceID, ResourceFQN, ResourceScope, ResourceSeq } from "../resource.ts";
+import {
+  Resource,
+  ResourceKind,
+  ResourceID,
+  ResourceFQN,
+  ResourceScope,
+  ResourceSeq,
+} from "../resource.ts";
 import { Scope } from "../scope.ts";
-import { createSupabaseApi, type SupabaseApiOptions, type SupabaseApi } from "./api.ts";
+import {
+  createSupabaseApi,
+  type SupabaseApiOptions,
+  type SupabaseApi,
+} from "./api.ts";
 import { handleApiError } from "./api-error.ts";
 
 export interface OrganizationProps extends SupabaseApiOptions {
@@ -55,7 +66,9 @@ export const Organization = Resource(
       ) {
         const existingOrg = await findOrganizationByName(api, name);
         if (!existingOrg) {
-          throw new Error(`Failed to find existing organization '${name}' for adoption`);
+          throw new Error(
+            `Failed to find existing organization '${name}' for adoption`,
+          );
         }
         return this(existingOrg);
       }
@@ -83,7 +96,7 @@ async function getOrganization(
   if (!response.ok) {
     await handleApiError(response, "getting", "organization", slug);
   }
-  const data = await response.json() as any;
+  const data = (await response.json()) as any;
   return {
     [ResourceKind]: "supabase::Organization",
     [ResourceID]: data.id,
@@ -106,7 +119,7 @@ async function findOrganizationByName(
   if (!response.ok) {
     await handleApiError(response, "listing", "organizations");
   }
-  const orgs = await response.json() as any[];
+  const orgs = (await response.json()) as any[];
   const match = orgs.find((org: any) => org.name === name);
   return match ? await getOrganization(api, match.id) : null;
 }

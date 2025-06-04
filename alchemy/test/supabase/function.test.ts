@@ -1,6 +1,5 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
-import { Function } from "../../src/supabase/function.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import "../../src/test/vitest.ts";
@@ -10,7 +9,7 @@ const test = alchemy.test(import.meta, {
 });
 
 describe("Function", () => {
-  test("should create a function", async (scope) => {
+  test("should create a function", async (_scope) => {
     expect(true).toBe(true); // Placeholder test
   });
 });
