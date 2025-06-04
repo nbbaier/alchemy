@@ -179,7 +179,8 @@ export const NeonEndpoint = Resource(
 
           const listData: any = await listResponse.json();
           const existingEndpoint = listData.endpoints?.find(
-            (ep: NeonEndpointType) => ep.branch_id === props.branch_id && ep.type === props.type,
+            (ep: NeonEndpointType) =>
+              ep.branch_id === props.branch_id && ep.type === props.type,
           );
 
           if (existingEndpoint) {
