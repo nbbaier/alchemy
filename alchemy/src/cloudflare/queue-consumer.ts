@@ -459,6 +459,10 @@ export async function listQueueConsumersForWorker(
     `/accounts/${api.accountId}/workers/scripts/${workerName}/queue-consumers?perPage=100`,
   );
 
+  if (response.status === 404) {
+    return [];
+  }
+
   if (!response.ok) {
     return await handleApiError(
       response,
@@ -495,8 +499,6 @@ export async function listQueueConsumersForWorker(
       total_pages: number;
     };
   };
-
-  console.log(data);
 
   return data.result.map((consumer) => ({
     queueName: consumer.queue_name,
