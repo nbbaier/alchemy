@@ -24,42 +24,42 @@ export interface BranchProps extends SupabaseApiOptions {
    * Reference to the project (string ID or Project resource)
    */
   project: string | ProjectResource;
-  
+
   /**
    * Name of the branch
    */
   branchName: string;
-  
+
   /**
    * Git branch to associate with this database branch (optional)
    */
   gitBranch?: string;
-  
+
   /**
    * Whether the branch should be persistent (optional)
    */
   persistent?: boolean;
-  
+
   /**
    * Region for the branch (optional)
    */
   region?: string;
-  
+
   /**
    * Desired instance size (optional)
    */
   desiredInstanceSize?: string;
-  
+
   /**
    * Release channel (optional)
    */
   releaseChannel?: string;
-  
+
   /**
    * Whether to adopt an existing branch instead of failing on conflict
    */
   adopt?: boolean;
-  
+
   /**
    * Whether to delete the branch on resource destruction
    */
@@ -74,57 +74,57 @@ export interface BranchResource extends Resource<"supabase::Branch"> {
    * Unique identifier of the branch
    */
   id: string;
-  
+
   /**
    * Name of the branch
    */
   name: string;
-  
+
   /**
    * Reference to the parent project
    */
   projectRef: string;
-  
+
   /**
    * Reference to the parent project
    */
   parentProjectRef: string;
-  
+
   /**
    * Whether this is the default branch
    */
   isDefault: boolean;
-  
+
   /**
    * Git branch associated with this database branch
    */
   gitBranch: string;
-  
+
   /**
    * Pull request number if applicable
    */
   prNumber?: number;
-  
+
   /**
    * Latest check run ID
    */
   latestCheckRunId?: number;
-  
+
   /**
    * Whether the branch is persistent
    */
   persistent: boolean;
-  
+
   /**
    * Current status of the branch
    */
   status: string;
-  
+
   /**
    * Creation timestamp
    */
   createdAt: string;
-  
+
   /**
    * Last update timestamp
    */
@@ -174,7 +174,8 @@ export const Branch = Resource(
     props: BranchProps,
   ): Promise<BranchResource> {
     const api = await createSupabaseApi(props);
-    const projectRef = typeof props.project === "string" ? props.project : props.project.id;
+    const projectRef =
+      typeof props.project === "string" ? props.project : props.project.id;
 
     if (this.phase === "delete") {
       const branchId = this.output?.id;
@@ -240,7 +241,9 @@ async function getBranch(
   projectRef: string,
   branchId: string,
 ): Promise<BranchResource> {
-  const response = await api.get(`/projects/${projectRef}/branches/${branchId}`);
+  const response = await api.get(
+    `/projects/${projectRef}/branches/${branchId}`,
+  );
   if (!response.ok) {
     await handleApiError(response, "getting", "branch", branchId);
   }
@@ -253,7 +256,9 @@ async function deleteBranch(
   projectRef: string,
   branchId: string,
 ): Promise<void> {
-  const response = await api.delete(`/projects/${projectRef}/branches/${branchId}`);
+  const response = await api.delete(
+    `/projects/${projectRef}/branches/${branchId}`,
+  );
   if (!response.ok && response.status !== 404) {
     await handleApiError(response, "deleting", "branch", branchId);
   }

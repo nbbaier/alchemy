@@ -24,27 +24,27 @@ export interface SSOProviderProps extends SupabaseApiOptions {
    * Reference to the project (string ID or Project resource)
    */
   project: string | ProjectResource;
-  
+
   /**
    * Type of SSO provider (e.g., "saml", "oidc")
    */
   type: string;
-  
+
   /**
    * Provider-specific metadata configuration
    */
   metadata?: Record<string, any>;
-  
+
   /**
    * Allowed domains for this SSO provider
    */
   domains?: string[];
-  
+
   /**
    * Whether to adopt an existing SSO provider instead of failing on conflict
    */
   adopt?: boolean;
-  
+
   /**
    * Whether to delete the SSO provider on resource destruction
    */
@@ -59,27 +59,27 @@ export interface SSOProviderResource extends Resource<"supabase::SSOProvider"> {
    * Unique identifier of the SSO provider
    */
   id: string;
-  
+
   /**
    * Type of SSO provider
    */
   type: string;
-  
+
   /**
    * Provider-specific metadata configuration
    */
   metadata: Record<string, any>;
-  
+
   /**
    * Allowed domains for this SSO provider
    */
   domains: string[];
-  
+
   /**
    * Creation timestamp
    */
   createdAt: string;
-  
+
   /**
    * Last update timestamp
    */
@@ -126,7 +126,8 @@ export const SSOProvider = Resource(
     props: SSOProviderProps,
   ): Promise<SSOProviderResource> {
     const api = await createSupabaseApi(props);
-    const projectRef = typeof props.project === "string" ? props.project : props.project.id;
+    const projectRef =
+      typeof props.project === "string" ? props.project : props.project.id;
 
     if (this.phase === "delete") {
       const providerId = this.output?.id;
@@ -137,11 +138,7 @@ export const SSOProvider = Resource(
     }
 
     if (this.phase === "update" && this.output?.id) {
-      const provider = await getSSOProvider(
-        api,
-        projectRef,
-        this.output.id,
-      );
+      const provider = await getSSOProvider(api, projectRef, this.output.id);
       return this(provider);
     }
 

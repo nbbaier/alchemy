@@ -24,32 +24,32 @@ export interface BucketProps extends SupabaseApiOptions {
    * Reference to the project (string ID or Project resource)
    */
   project: string | ProjectResource;
-  
+
   /**
    * Name of the bucket (optional, defaults to resource ID)
    */
   name?: string;
-  
+
   /**
    * Whether the bucket should be publicly accessible
    */
   public?: boolean;
-  
+
   /**
    * Maximum file size limit in bytes
    */
   fileSizeLimit?: number;
-  
+
   /**
    * Allowed MIME types for uploads
    */
   allowedMimeTypes?: string[];
-  
+
   /**
    * Whether to adopt an existing bucket instead of failing on conflict
    */
   adopt?: boolean;
-  
+
   /**
    * Whether to delete the bucket on resource destruction
    */
@@ -64,27 +64,27 @@ export interface BucketResource extends Resource<"supabase::Bucket"> {
    * Unique identifier of the bucket
    */
   id: string;
-  
+
   /**
    * Name of the bucket
    */
   name: string;
-  
+
   /**
    * Owner of the bucket
    */
   owner: string;
-  
+
   /**
    * Whether the bucket is publicly accessible
    */
   public: boolean;
-  
+
   /**
    * Creation timestamp
    */
   createdAt: string;
-  
+
   /**
    * Last update timestamp
    */
@@ -104,7 +104,8 @@ export const Bucket = Resource(
   ): Promise<BucketResource> {
     const api = await createSupabaseApi(props);
     const name = props.name ?? id;
-    const projectRef = typeof props.project === "string" ? props.project : props.project.id;
+    const projectRef =
+      typeof props.project === "string" ? props.project : props.project.id;
 
     if (this.phase === "delete") {
       const bucketName = this.output?.name;
@@ -133,11 +134,7 @@ export const Bucket = Resource(
         error instanceof Error &&
         error.message.includes("already exists")
       ) {
-        const existingBucket = await findBucketByName(
-          api,
-          projectRef,
-          name,
-        );
+        const existingBucket = await findBucketByName(api, projectRef, name);
         if (!existingBucket) {
           throw new Error(
             `Failed to find existing bucket '${name}' for adoption`,

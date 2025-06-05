@@ -23,7 +23,7 @@ export interface OrganizationProps extends SupabaseApiOptions {
    * Name of the organization (optional, defaults to resource ID)
    */
   name?: string;
-  
+
   /**
    * Whether to adopt an existing organization instead of failing on conflict
    */
@@ -39,22 +39,22 @@ export interface OrganizationResource
    * Unique identifier of the organization
    */
   id: string;
-  
+
   /**
    * Display name of the organization
    */
   name: string;
-  
+
   /**
    * Billing plan for the organization
    */
   plan?: string;
-  
+
   /**
    * Opt-in tags for the organization
    */
   optInTags?: string[];
-  
+
   /**
    * Allowed release channels for the organization
    */

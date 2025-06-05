@@ -26,42 +26,42 @@ export interface FunctionProps extends SupabaseApiOptions {
    * Reference to the project (string ID or Project resource)
    */
   project: string | ProjectResource;
-  
+
   /**
    * Name of the function (optional, defaults to resource ID)
    */
   name?: string;
-  
+
   /**
    * Function body as a string (for inline functions)
    */
   body?: string;
-  
+
   /**
    * Path to the main entry file (for file-based functions with bundling)
    */
   main?: string;
-  
+
   /**
    * Import map for Deno imports
    */
   importMap?: Record<string, string>;
-  
+
   /**
    * Custom entrypoint URL
    */
   entrypointUrl?: string;
-  
+
   /**
    * Whether to verify JWT tokens
    */
   verifyJwt?: boolean;
-  
+
   /**
    * Whether to adopt an existing function instead of failing on conflict
    */
   adopt?: boolean;
-  
+
   /**
    * Whether to delete the function on resource destruction
    */
@@ -76,32 +76,32 @@ export interface FunctionResource extends Resource<"supabase::Function"> {
    * Unique identifier of the function
    */
   id: string;
-  
+
   /**
    * URL-safe slug of the function
    */
   slug: string;
-  
+
   /**
    * Display name of the function
    */
   name: string;
-  
+
   /**
    * Current status of the function
    */
   status: string;
-  
+
   /**
    * Current version number of the function
    */
   version: number;
-  
+
   /**
    * Creation timestamp
    */
   createdAt: string;
-  
+
   /**
    * Last update timestamp
    */
@@ -142,7 +142,7 @@ export function isFunction(resource: Resource): resource is FunctionResource {
  *   project: "proj-123",
  *   body: `
  *     import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
- *     
+ *
  *     serve((req) => {
  *       return new Response("Secure API Response");
  *     });
@@ -162,7 +162,8 @@ export const Function = Resource(
   ): Promise<FunctionResource> {
     const api = await createSupabaseApi(props);
     const name = props.name ?? id;
-    const projectRef = typeof props.project === "string" ? props.project : props.project.id;
+    const projectRef =
+      typeof props.project === "string" ? props.project : props.project.id;
 
     let functionBody = props.body;
     if (props.main && !props.body) {
@@ -206,11 +207,7 @@ export const Function = Resource(
         error instanceof Error &&
         error.message.includes("already exists")
       ) {
-        const existingFunc = await findFunctionByName(
-          api,
-          projectRef,
-          name,
-        );
+        const existingFunc = await findFunctionByName(api, projectRef, name);
         if (!existingFunc) {
           throw new Error(
             `Failed to find existing function '${name}' for adoption`,

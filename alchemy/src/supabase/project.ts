@@ -23,37 +23,37 @@ export interface ProjectProps extends SupabaseApiOptions {
    * Name of the project (optional, defaults to resource ID)
    */
   name?: string;
-  
+
   /**
    * ID of the organization that will own this project
    */
   organizationId: string;
-  
+
   /**
    * Region where the project will be hosted
    */
   region: string;
-  
+
   /**
    * Database password for the project
    */
   dbPass: string;
-  
+
   /**
    * Desired instance size for the project
    */
   desiredInstanceSize?: string;
-  
+
   /**
    * Template URL for project initialization
    */
   templateUrl?: string;
-  
+
   /**
    * Whether to adopt an existing project instead of failing on conflict
    */
   adopt?: boolean;
-  
+
   /**
    * Whether to delete the project on resource destruction
    */
@@ -68,32 +68,32 @@ export interface ProjectResource extends Resource<"supabase::Project"> {
    * Unique identifier of the project
    */
   id: string;
-  
+
   /**
    * ID of the organization that owns this project
    */
   organizationId: string;
-  
+
   /**
    * Display name of the project
    */
   name: string;
-  
+
   /**
    * Region where the project is hosted
    */
   region: string;
-  
+
   /**
    * Creation timestamp
    */
   createdAt: string;
-  
+
   /**
    * Current status of the project
    */
   status: string;
-  
+
   /**
    * Database configuration details
    */
@@ -102,17 +102,17 @@ export interface ProjectResource extends Resource<"supabase::Project"> {
      * Database host
      */
     host: string;
-    
+
     /**
      * Database version
      */
     version: string;
-    
+
     /**
      * PostgreSQL engine version
      */
     postgresEngine: string;
-    
+
     /**
      * Release channel
      */

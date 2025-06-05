@@ -24,12 +24,12 @@ export interface SecretProps extends SupabaseApiOptions {
    * Reference to the project (string ID or Project resource)
    */
   project: string | ProjectResource;
-  
+
   /**
    * Key-value pairs of secrets to create/update
    */
   secrets: Record<string, string>;
-  
+
   /**
    * Whether to adopt existing secrets instead of failing on conflict
    */
@@ -44,7 +44,7 @@ export interface SecretResource extends Resource<"supabase::Secret"> {
    * Reference to the project
    */
   projectRef: string;
-  
+
   /**
    * Array of secret name-value pairs
    */
@@ -53,7 +53,7 @@ export interface SecretResource extends Resource<"supabase::Secret"> {
      * Name of the secret
      */
     name: string;
-    
+
     /**
      * Value of the secret
      */
@@ -96,7 +96,8 @@ export const Secret = Resource(
     props: SecretProps,
   ): Promise<SecretResource> {
     const api = await createSupabaseApi(props);
-    const projectRef = typeof props.project === "string" ? props.project : props.project.id;
+    const projectRef =
+      typeof props.project === "string" ? props.project : props.project.id;
 
     if (this.phase === "delete") {
       const secretNames = this.output?.secrets.map((s) => s.name) || [];
