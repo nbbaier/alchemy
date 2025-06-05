@@ -15,28 +15,107 @@ import {
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
 
+/**
+ * Properties for creating or updating a Supabase Project
+ */
 export interface ProjectProps extends SupabaseApiOptions {
+  /**
+   * Name of the project (optional, defaults to resource ID)
+   */
   name?: string;
+  
+  /**
+   * ID of the organization that will own this project
+   */
   organizationId: string;
+  
+  /**
+   * Region where the project will be hosted
+   */
   region: string;
+  
+  /**
+   * Database password for the project
+   */
   dbPass: string;
+  
+  /**
+   * Desired instance size for the project
+   */
   desiredInstanceSize?: string;
+  
+  /**
+   * Template URL for project initialization
+   */
   templateUrl?: string;
+  
+  /**
+   * Whether to adopt an existing project instead of failing on conflict
+   */
   adopt?: boolean;
+  
+  /**
+   * Whether to delete the project on resource destruction
+   */
   delete?: boolean;
 }
 
+/**
+ * Supabase Project resource
+ */
 export interface ProjectResource extends Resource<"supabase::Project"> {
+  /**
+   * Unique identifier of the project
+   */
   id: string;
+  
+  /**
+   * ID of the organization that owns this project
+   */
   organizationId: string;
+  
+  /**
+   * Display name of the project
+   */
   name: string;
+  
+  /**
+   * Region where the project is hosted
+   */
   region: string;
+  
+  /**
+   * Creation timestamp
+   */
   createdAt: string;
+  
+  /**
+   * Current status of the project
+   */
   status: string;
+  
+  /**
+   * Database configuration details
+   */
   database?: {
+    /**
+     * Database host
+     */
     host: string;
+    
+    /**
+     * Database version
+     */
     version: string;
+    
+    /**
+     * PostgreSQL engine version
+     */
     postgresEngine: string;
+    
+    /**
+     * Release channel
+     */
     releaseChannel: string;
   };
 }
@@ -45,6 +124,27 @@ export function isProject(resource: Resource): resource is ProjectResource {
   return resource[ResourceKind] === "supabase::Project";
 }
 
+/**
+ * Create and manage Supabase Projects
+ *
+ * @example
+ * // Create a basic project:
+ * const project = Project("my-project", {
+ *   organizationId: "org-123",
+ *   region: "us-east-1",
+ *   dbPass: "secure-password"
+ * });
+ *
+ * @example
+ * // Create a project with custom configuration:
+ * const project = Project("my-project", {
+ *   organizationId: myOrg.id,
+ *   name: "My Custom Project",
+ *   region: "us-west-2",
+ *   dbPass: "secure-password",
+ *   desiredInstanceSize: "small"
+ * });
+ */
 export const Project = Resource(
   "supabase::Project",
   async function (

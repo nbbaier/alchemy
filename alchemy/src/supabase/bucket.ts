@@ -14,23 +14,80 @@ import {
   type SupabaseApi,
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
+import type { ProjectResource } from "./project.ts";
 
+/**
+ * Properties for creating or updating a Supabase Storage Bucket
+ */
 export interface BucketProps extends SupabaseApiOptions {
-  projectRef: string;
+  /**
+   * Reference to the project (string ID or Project resource)
+   */
+  project: string | ProjectResource;
+  
+  /**
+   * Name of the bucket (optional, defaults to resource ID)
+   */
   name?: string;
+  
+  /**
+   * Whether the bucket should be publicly accessible
+   */
   public?: boolean;
+  
+  /**
+   * Maximum file size limit in bytes
+   */
   fileSizeLimit?: number;
+  
+  /**
+   * Allowed MIME types for uploads
+   */
   allowedMimeTypes?: string[];
+  
+  /**
+   * Whether to adopt an existing bucket instead of failing on conflict
+   */
   adopt?: boolean;
+  
+  /**
+   * Whether to delete the bucket on resource destruction
+   */
   delete?: boolean;
 }
 
+/**
+ * Supabase Storage Bucket resource
+ */
 export interface BucketResource extends Resource<"supabase::Bucket"> {
+  /**
+   * Unique identifier of the bucket
+   */
   id: string;
+  
+  /**
+   * Name of the bucket
+   */
   name: string;
+  
+  /**
+   * Owner of the bucket
+   */
   owner: string;
+  
+  /**
+   * Whether the bucket is publicly accessible
+   */
   public: boolean;
+  
+  /**
+   * Creation timestamp
+   */
   createdAt: string;
+  
+  /**
+   * Last update timestamp
+   */
   updatedAt: string;
 }
 
@@ -47,22 +104,23 @@ export const Bucket = Resource(
   ): Promise<BucketResource> {
     const api = await createSupabaseApi(props);
     const name = props.name ?? id;
+    const projectRef = typeof props.project === "string" ? props.project : props.project.id;
 
     if (this.phase === "delete") {
       const bucketName = this.output?.name;
       if (bucketName && props.delete !== false) {
-        await deleteBucket(api, props.projectRef, bucketName);
+        await deleteBucket(api, projectRef, bucketName);
       }
       return this.destroy();
     }
 
     if (this.phase === "update" && this.output?.name) {
-      const bucket = await getBucket(api, props.projectRef, this.output.name);
+      const bucket = await getBucket(api, projectRef, this.output.name);
       return this(bucket);
     }
 
     try {
-      const bucket = await createBucket(api, props.projectRef, {
+      const bucket = await createBucket(api, projectRef, {
         name,
         public: props.public,
         file_size_limit: props.fileSizeLimit,
@@ -77,7 +135,7 @@ export const Bucket = Resource(
       ) {
         const existingBucket = await findBucketByName(
           api,
-          props.projectRef,
+          projectRef,
           name,
         );
         if (!existingBucket) {

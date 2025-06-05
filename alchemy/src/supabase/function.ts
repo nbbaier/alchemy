@@ -14,32 +14,145 @@ import {
   type SupabaseApi,
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
+import type { ProjectResource } from "./project.ts";
+import { Bundle } from "../esbuild/bundle.ts";
+import fs from "node:fs/promises";
 
+/**
+ * Properties for creating or updating a Supabase Edge Function
+ */
 export interface FunctionProps extends SupabaseApiOptions {
-  projectRef: string;
+  /**
+   * Reference to the project (string ID or Project resource)
+   */
+  project: string | ProjectResource;
+  
+  /**
+   * Name of the function (optional, defaults to resource ID)
+   */
   name?: string;
+  
+  /**
+   * Function body as a string (for inline functions)
+   */
   body?: string;
+  
+  /**
+   * Path to the main entry file (for file-based functions with bundling)
+   */
+  main?: string;
+  
+  /**
+   * Import map for Deno imports
+   */
   importMap?: Record<string, string>;
+  
+  /**
+   * Custom entrypoint URL
+   */
   entrypointUrl?: string;
+  
+  /**
+   * Whether to verify JWT tokens
+   */
   verifyJwt?: boolean;
+  
+  /**
+   * Whether to adopt an existing function instead of failing on conflict
+   */
   adopt?: boolean;
+  
+  /**
+   * Whether to delete the function on resource destruction
+   */
   delete?: boolean;
 }
 
+/**
+ * Supabase Edge Function resource
+ */
 export interface FunctionResource extends Resource<"supabase::Function"> {
+  /**
+   * Unique identifier of the function
+   */
   id: string;
+  
+  /**
+   * URL-safe slug of the function
+   */
   slug: string;
+  
+  /**
+   * Display name of the function
+   */
   name: string;
+  
+  /**
+   * Current status of the function
+   */
   status: string;
+  
+  /**
+   * Current version number of the function
+   */
   version: number;
+  
+  /**
+   * Creation timestamp
+   */
   createdAt: string;
+  
+  /**
+   * Last update timestamp
+   */
   updatedAt: string;
 }
 
+/**
+ * Type guard to check if a resource is a Function
+ */
 export function isFunction(resource: Resource): resource is FunctionResource {
   return resource[ResourceKind] === "supabase::Function";
 }
 
+/**
+ * Create and manage Supabase Edge Functions
+ *
+ * @example
+ * // Create a function with inline code:
+ * const func = Function("hello-world", {
+ *   project: "proj-123",
+ *   body: `
+ *     export default function handler(req: Request) {
+ *       return new Response("Hello World!");
+ *     }
+ *   `
+ * });
+ *
+ * @example
+ * // Create a function with file-based entrypoint:
+ * const func = Function("api-handler", {
+ *   project: myProject,
+ *   main: "./functions/api-handler.ts"
+ * });
+ *
+ * @example
+ * // Create a function with import map and JWT verification:
+ * const func = Function("secure-api", {
+ *   project: "proj-123",
+ *   body: `
+ *     import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+ *     
+ *     serve((req) => {
+ *       return new Response("Secure API Response");
+ *     });
+ *   `,
+ *   importMap: {
+ *     "std/": "https://deno.land/std@0.168.0/"
+ *   },
+ *   verifyJwt: true
+ * });
+ */
 export const Function = Resource(
   "supabase::Function",
   async function (
@@ -49,33 +162,39 @@ export const Function = Resource(
   ): Promise<FunctionResource> {
     const api = await createSupabaseApi(props);
     const name = props.name ?? id;
+    const projectRef = typeof props.project === "string" ? props.project : props.project.id;
+
+    let functionBody = props.body;
+    if (props.main && !props.body) {
+      functionBody = await bundleFunctionCode(props.main);
+    }
 
     if (this.phase === "delete") {
       const functionSlug = this.output?.slug;
       if (functionSlug && props.delete !== false) {
-        await deleteFunction(api, props.projectRef, functionSlug);
+        await deleteFunction(api, projectRef, functionSlug);
       }
       return this.destroy();
     }
 
     if (this.phase === "update" && this.output?.slug) {
-      if (props.body) {
-        await deployFunction(api, props.projectRef, this.output.slug, {
-          body: props.body,
+      if (functionBody) {
+        await deployFunction(api, projectRef, this.output.slug, {
+          body: functionBody,
           import_map: props.importMap,
           entrypoint_url: props.entrypointUrl,
           verify_jwt: props.verifyJwt,
         });
       }
-      const func = await getFunction(api, props.projectRef, this.output.slug);
+      const func = await getFunction(api, projectRef, this.output.slug);
       return this(func);
     }
 
     try {
-      const func = await createFunction(api, props.projectRef, {
+      const func = await createFunction(api, projectRef, {
         slug: name,
         name,
-        body: props.body,
+        body: functionBody,
         import_map: props.importMap,
         entrypoint_url: props.entrypointUrl,
         verify_jwt: props.verifyJwt,
@@ -89,7 +208,7 @@ export const Function = Resource(
       ) {
         const existingFunc = await findFunctionByName(
           api,
-          props.projectRef,
+          projectRef,
           name,
         );
         if (!existingFunc) {
@@ -170,6 +289,35 @@ async function findFunctionByName(
   const functions = (await response.json()) as any[];
   const match = functions.find((func: any) => func.name === name);
   return match ? mapFunctionResponse(match) : null;
+}
+
+async function bundleFunctionCode(entrypoint: string): Promise<string> {
+  try {
+    const bundle = await Bundle("supabase-function", {
+      entryPoint: entrypoint,
+      format: "esm",
+      target: "esnext",
+      platform: "browser",
+      minify: false,
+      conditions: ["deno", "worker", "browser"],
+      keepNames: true,
+      loader: {
+        ".ts": "ts",
+        ".js": "js",
+        ".json": "json",
+      },
+    });
+
+    if (bundle.content) {
+      return bundle.content;
+    }
+    if (bundle.path) {
+      return await fs.readFile(bundle.path, "utf-8");
+    }
+    throw new Error("Failed to create bundle");
+  } catch (error) {
+    throw new Error(`Failed to bundle function code: ${error}`);
+  }
 }
 
 function mapFunctionResponse(data: any): FunctionResource {

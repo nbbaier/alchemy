@@ -14,22 +14,75 @@ import {
   type SupabaseApi,
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
+import type { ProjectResource } from "./project.ts";
 
+/**
+ * Properties for creating or updating a Supabase SSO Provider
+ */
 export interface SSOProviderProps extends SupabaseApiOptions {
-  projectRef: string;
+  /**
+   * Reference to the project (string ID or Project resource)
+   */
+  project: string | ProjectResource;
+  
+  /**
+   * Type of SSO provider (e.g., "saml", "oidc")
+   */
   type: string;
+  
+  /**
+   * Provider-specific metadata configuration
+   */
   metadata?: Record<string, any>;
+  
+  /**
+   * Allowed domains for this SSO provider
+   */
   domains?: string[];
+  
+  /**
+   * Whether to adopt an existing SSO provider instead of failing on conflict
+   */
   adopt?: boolean;
+  
+  /**
+   * Whether to delete the SSO provider on resource destruction
+   */
   delete?: boolean;
 }
 
+/**
+ * Supabase SSO Provider resource
+ */
 export interface SSOProviderResource extends Resource<"supabase::SSOProvider"> {
+  /**
+   * Unique identifier of the SSO provider
+   */
   id: string;
+  
+  /**
+   * Type of SSO provider
+   */
   type: string;
+  
+  /**
+   * Provider-specific metadata configuration
+   */
   metadata: Record<string, any>;
+  
+  /**
+   * Allowed domains for this SSO provider
+   */
   domains: string[];
+  
+  /**
+   * Creation timestamp
+   */
   createdAt: string;
+  
+  /**
+   * Last update timestamp
+   */
   updatedAt: string;
 }
 
@@ -39,6 +92,32 @@ export function isSSOProvider(
   return resource[ResourceKind] === "supabase::SSOProvider";
 }
 
+/**
+ * Create and manage Supabase SSO Providers
+ *
+ * @example
+ * // Create a SAML SSO provider:
+ * const ssoProvider = SSOProvider("company-saml", {
+ *   project: "proj-123",
+ *   type: "saml",
+ *   metadata: {
+ *     entity_id: "https://company.com/saml",
+ *     metadata_url: "https://company.com/saml/metadata"
+ *   },
+ *   domains: ["company.com"]
+ * });
+ *
+ * @example
+ * // Create an OIDC SSO provider:
+ * const ssoProvider = SSOProvider("google-oidc", {
+ *   project: myProject,
+ *   type: "oidc",
+ *   metadata: {
+ *     issuer: "https://accounts.google.com",
+ *     client_id: "your-client-id"
+ *   }
+ * });
+ */
 export const SSOProvider = Resource(
   "supabase::SSOProvider",
   async function (
@@ -47,11 +126,12 @@ export const SSOProvider = Resource(
     props: SSOProviderProps,
   ): Promise<SSOProviderResource> {
     const api = await createSupabaseApi(props);
+    const projectRef = typeof props.project === "string" ? props.project : props.project.id;
 
     if (this.phase === "delete") {
       const providerId = this.output?.id;
       if (providerId && props.delete !== false) {
-        await deleteSSOProvider(api, props.projectRef, providerId);
+        await deleteSSOProvider(api, projectRef, providerId);
       }
       return this.destroy();
     }
@@ -59,14 +139,14 @@ export const SSOProvider = Resource(
     if (this.phase === "update" && this.output?.id) {
       const provider = await getSSOProvider(
         api,
-        props.projectRef,
+        projectRef,
         this.output.id,
       );
       return this(provider);
     }
 
     try {
-      const provider = await createSSOProvider(api, props.projectRef, {
+      const provider = await createSSOProvider(api, projectRef, {
         type: props.type,
         metadata: props.metadata,
         domains: props.domains,
@@ -80,7 +160,7 @@ export const SSOProvider = Resource(
       ) {
         const existingProvider = await findSSOProviderByType(
           api,
-          props.projectRef,
+          projectRef,
           props.type,
         );
         if (!existingProvider) {

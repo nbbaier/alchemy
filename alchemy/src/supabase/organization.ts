@@ -15,17 +15,49 @@ import {
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
 
+/**
+ * Properties for creating or updating a Supabase Organization
+ */
 export interface OrganizationProps extends SupabaseApiOptions {
+  /**
+   * Name of the organization (optional, defaults to resource ID)
+   */
   name?: string;
+  
+  /**
+   * Whether to adopt an existing organization instead of failing on conflict
+   */
   adopt?: boolean;
 }
 
+/**
+ * Supabase Organization resource
+ */
 export interface OrganizationResource
   extends Resource<"supabase::Organization"> {
+  /**
+   * Unique identifier of the organization
+   */
   id: string;
+  
+  /**
+   * Display name of the organization
+   */
   name: string;
+  
+  /**
+   * Billing plan for the organization
+   */
   plan?: string;
+  
+  /**
+   * Opt-in tags for the organization
+   */
   optInTags?: string[];
+  
+  /**
+   * Allowed release channels for the organization
+   */
   allowedReleaseChannels?: string[];
 }
 
@@ -35,6 +67,22 @@ export function isOrganization(
   return resource[ResourceKind] === "supabase::Organization";
 }
 
+/**
+ * Create and manage Supabase Organizations
+ *
+ * @example
+ * // Create a basic organization:
+ * const org = Organization("my-org", {
+ *   name: "My Organization"
+ * });
+ *
+ * @example
+ * // Adopt an existing organization:
+ * const existingOrg = Organization("existing-org", {
+ *   name: "Existing Organization",
+ *   adopt: true
+ * });
+ */
 export const Organization = Resource(
   "supabase::Organization",
   async function (

@@ -35,6 +35,12 @@ export {
   isSSOProvider,
 } from "./sso-provider.ts";
 export {
+  Branch,
+  type BranchProps,
+  type BranchResource,
+  isBranch,
+} from "./branch.ts";
+export {
   createSupabaseApi,
   type SupabaseApiOptions,
   SupabaseApi,
