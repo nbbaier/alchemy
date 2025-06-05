@@ -14,7 +14,7 @@ import {
   type SupabaseApi,
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
-import type { ProjectResource } from "./project.ts";
+import type { Project } from "./project.ts";
 
 /**
  * Properties for creating or updating Supabase Secrets
@@ -23,7 +23,7 @@ export interface SecretProps extends SupabaseApiOptions {
   /**
    * Reference to the project (string ID or Project resource)
    */
-  project: string | ProjectResource;
+  project: string | Project;
 
   /**
    * Key-value pairs of secrets to create/update
@@ -39,11 +39,11 @@ export interface SecretProps extends SupabaseApiOptions {
 /**
  * Supabase Secrets resource
  */
-export interface SecretResource extends Resource<"supabase::Secret"> {
+export interface Secret extends Resource<"supabase::Secret"> {
   /**
    * Reference to the project
    */
-  projectRef: string;
+  project: string;
 
   /**
    * Array of secret name-value pairs
@@ -61,7 +61,7 @@ export interface SecretResource extends Resource<"supabase::Secret"> {
   }>;
 }
 
-export function isSecret(resource: Resource): resource is SecretResource {
+export function isSecret(resource: Resource): resource is Secret {
   return resource[ResourceKind] === "supabase::Secret";
 }
 
@@ -91,16 +91,16 @@ export function isSecret(resource: Resource): resource is SecretResource {
 export const Secret = Resource(
   "supabase::Secret",
   async function (
-    this: Context<SecretResource>,
+    this: Context<Secret>,
     _id: string,
     props: SecretProps,
-  ): Promise<SecretResource> {
+  ): Promise<Secret> {
     const api = await createSupabaseApi(props);
     const projectRef =
       typeof props.project === "string" ? props.project : props.project.id;
 
     if (this.phase === "delete") {
-      const secretNames = this.output?.secrets.map((s) => s.name) || [];
+      const secretNames = this.output?.secrets.map((s: any) => s.name) || [];
       if (secretNames.length > 0) {
         await deleteSecrets(api, projectRef, secretNames);
       }
@@ -119,9 +119,9 @@ export const Secret = Resource(
         [ResourceFQN]: `supabase::Secret::${projectRef}-secrets`,
         [ResourceScope]: Scope.current,
         [ResourceSeq]: 0,
-        projectRef: projectRef,
+        project: projectRef,
         secrets: filteredSecrets,
-      } as SecretResource);
+      } as Secret);
     }
 
     try {
@@ -136,9 +136,9 @@ export const Secret = Resource(
         [ResourceFQN]: `supabase::Secret::${projectRef}-secrets`,
         [ResourceScope]: Scope.current,
         [ResourceSeq]: 0,
-        projectRef: projectRef,
+        project: projectRef,
         secrets: filteredSecrets,
-      } as SecretResource);
+      } as Secret);
     } catch (error) {
       if (
         props.adopt &&
@@ -155,9 +155,9 @@ export const Secret = Resource(
           [ResourceFQN]: `supabase::Secret::${projectRef}-secrets`,
           [ResourceScope]: Scope.current,
           [ResourceSeq]: 0,
-          projectRef: projectRef,
+          project: projectRef,
           secrets: matchingSecrets,
-        } as SecretResource);
+        } as Secret);
       }
       throw error;
     }

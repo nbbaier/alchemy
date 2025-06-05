@@ -14,7 +14,8 @@ import {
   type SupabaseApi,
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
-import type { ProjectResource } from "./project.ts";
+
+import type { Project } from "./project.ts";
 
 /**
  * Properties for creating or updating a Supabase SSO Provider
@@ -23,7 +24,7 @@ export interface SSOProviderProps extends SupabaseApiOptions {
   /**
    * Reference to the project (string ID or Project resource)
    */
-  project: string | ProjectResource;
+  project: string | Project;
 
   /**
    * Type of SSO provider (e.g., "saml", "oidc")
@@ -54,7 +55,7 @@ export interface SSOProviderProps extends SupabaseApiOptions {
 /**
  * Supabase SSO Provider resource
  */
-export interface SSOProviderResource extends Resource<"supabase::SSOProvider"> {
+export interface SSOProvider extends Resource<"supabase::SSOProvider"> {
   /**
    * Unique identifier of the SSO provider
    */
@@ -86,9 +87,7 @@ export interface SSOProviderResource extends Resource<"supabase::SSOProvider"> {
   updatedAt: string;
 }
 
-export function isSSOProvider(
-  resource: Resource,
-): resource is SSOProviderResource {
+export function isSSOProvider(resource: Resource): resource is SSOProvider {
   return resource[ResourceKind] === "supabase::SSOProvider";
 }
 
@@ -121,10 +120,10 @@ export function isSSOProvider(
 export const SSOProvider = Resource(
   "supabase::SSOProvider",
   async function (
-    this: Context<SSOProviderResource>,
+    this: Context<SSOProvider>,
     _id: string,
     props: SSOProviderProps,
-  ): Promise<SSOProviderResource> {
+  ): Promise<SSOProvider> {
     const api = await createSupabaseApi(props);
     const projectRef =
       typeof props.project === "string" ? props.project : props.project.id;
@@ -176,7 +175,7 @@ async function createSSOProvider(
   api: SupabaseApi,
   projectRef: string,
   params: any,
-): Promise<SSOProviderResource> {
+): Promise<SSOProvider> {
   const response = await api.post(
     `/projects/${projectRef}/config/auth/sso/providers`,
     params,
@@ -192,7 +191,7 @@ async function getSSOProvider(
   api: SupabaseApi,
   projectRef: string,
   providerId: string,
-): Promise<SSOProviderResource> {
+): Promise<SSOProvider> {
   const response = await api.get(
     `/projects/${projectRef}/config/auth/sso/providers/${providerId}`,
   );
@@ -220,7 +219,7 @@ async function findSSOProviderByType(
   api: SupabaseApi,
   projectRef: string,
   type: string,
-): Promise<SSOProviderResource | null> {
+): Promise<SSOProvider | null> {
   const response = await api.get(
     `/projects/${projectRef}/config/auth/sso/providers`,
   );
@@ -232,7 +231,7 @@ async function findSSOProviderByType(
   return match ? mapSSOProviderResponse(match) : null;
 }
 
-function mapSSOProviderResponse(data: any): SSOProviderResource {
+function mapSSOProviderResponse(data: any): SSOProvider {
   return {
     [ResourceKind]: "supabase::SSOProvider",
     [ResourceID]: data.id,

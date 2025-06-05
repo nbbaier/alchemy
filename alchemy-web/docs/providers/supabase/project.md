@@ -11,14 +11,14 @@ import { Project } from "alchemy/supabase";
 const project = Project("my-app", {
   organizationId: "org-123",
   region: "us-east-1", 
-  dbPass: "secure-database-password",
+  dbPass: secret("secure-database-password"),
 });
 
 // Create project with custom instance size
 const project = Project("large-app", {
   organizationId: "org-123",
   region: "us-west-2",
-  dbPass: "secure-password",
+  dbPass: secret("secure-password"),
   desiredInstanceSize: "large",
 });
 ```
@@ -61,7 +61,7 @@ The project resource exposes the following properties:
 const project = Project("my-app", {
   organizationId: "org-abc123",
   region: "us-east-1",
-  dbPass: "super-secure-password-123",
+  dbPass: secret("super-secure-password-123"),
 });
 ```
 
@@ -71,7 +71,7 @@ const project = Project("my-app", {
 const project = Project("blog-app", {
   organizationId: "org-abc123", 
   region: "eu-west-1",
-  dbPass: "secure-password",
+  dbPass: secret("secure-password"),
   templateUrl: "https://github.com/supabase/supabase/tree/master/examples/nextjs-blog",
   desiredInstanceSize: "small",
 });
@@ -84,7 +84,7 @@ const project = Project("blog-app", {
 const project = Project("existing-app", {
   organizationId: "org-abc123",
   region: "us-west-2", 
-  dbPass: "password",
+  dbPass: secret("password"),
   adopt: true,
 });
 ```
@@ -95,58 +95,7 @@ const project = Project("existing-app", {
 const project = Project("persistent-app", {
   organizationId: "org-abc123",
   region: "us-east-1",
-  dbPass: "password",
+  dbPass: secret("password"),
   delete: false, // Project will not be deleted when resource is destroyed
 });
 ```
-
-## API Operations
-
-### Create Project
-- **Endpoint**: `POST /projects`
-- **Body**: Project configuration including name, organization_id, region, db_pass, etc.
-- **Response**: Project object with ID and initial status
-
-### Get Project
-- **Endpoint**: `GET /projects/{ref}`
-- **Response**: Full project details including database configuration
-
-### Delete Project
-- **Endpoint**: `DELETE /projects/{ref}`
-- **Response**: 200 on successful deletion
-
-### List Projects
-- **Endpoint**: `GET /projects`
-- **Response**: Array of project objects
-
-## Error Handling
-
-The resource handles the following error scenarios:
-
-- **409 Conflict**: When `adopt: true` is set, the resource will attempt to find and adopt an existing project with the same name
-- **Rate Limiting**: Automatic exponential backoff for 429 responses  
-- **Server Errors**: Automatic retry for 5xx responses
-- **404 on Delete**: Ignored (project already deleted)
-
-## Lifecycle Management
-
-- **Creation**: Projects are created with the specified configuration and initial status
-- **Updates**: Projects can be refreshed to get current status and configuration
-- **Deletion**: Projects can be deleted unless `delete: false` is specified
-
-## Dependencies
-
-Projects depend on:
-- **Organization**: Must specify a valid `organizationId`
-
-Projects are dependencies for:
-- **Functions**: Edge Functions are deployed within projects
-- **Buckets**: Storage buckets belong to projects  
-- **Secrets**: Environment variables are scoped to projects
-- **SSO Providers**: Authentication providers are configured per project
-
-## Security Considerations
-
-- **Database Password**: The `dbPass` should be a strong, unique password
-- **Access Tokens**: Use Alchemy secrets for access tokens, never hardcode them
-- **Region Selection**: Choose regions close to your users for better performance

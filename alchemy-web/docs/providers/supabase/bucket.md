@@ -9,7 +9,7 @@ import { Bucket } from "alchemy/supabase";
 
 // Create a new storage bucket
 const bucket = Bucket("user-uploads", {
-  projectRef: "proj-123",
+  project: "proj-123",
   public: false,
   fileSizeLimit: 5242880, // 5MB
   allowedMimeTypes: ["image/jpeg", "image/png", "image/gif"],
@@ -17,7 +17,7 @@ const bucket = Bucket("user-uploads", {
 
 // Create a public bucket
 const publicBucket = Bucket("public-assets", {
-  projectRef: "proj-123", 
+  project: "proj-123", 
   public: true,
 });
 ```
@@ -26,7 +26,7 @@ const publicBucket = Bucket("public-assets", {
 
 ### Required Properties
 
-- **`projectRef`** (`string`): Reference ID of the project where the bucket will be created
+- **`project`** (`string | Project`): Reference to the project where the bucket will be created
 
 ### Optional Properties
 
@@ -56,7 +56,7 @@ The bucket resource exposes the following properties:
 
 ```typescript
 const privateBucket = Bucket("user-documents", {
-  projectRef: "my-project-ref",
+  project: "my-project-ref",
   public: false,
 });
 ```
@@ -65,7 +65,7 @@ const privateBucket = Bucket("user-documents", {
 
 ```typescript
 const imageBucket = Bucket("public-images", {
-  projectRef: "my-project-ref",
+  project: "my-project-ref",
   public: true,
   fileSizeLimit: 10485760, // 10MB
   allowedMimeTypes: [
@@ -82,7 +82,7 @@ const imageBucket = Bucket("public-images", {
 ```typescript
 // This will adopt an existing bucket if one with the same name already exists
 const existingBucket = Bucket("existing-bucket", {
-  projectRef: "my-project-ref",
+  project: "my-project-ref",
   adopt: true,
   public: true,
 });
@@ -92,7 +92,7 @@ const existingBucket = Bucket("existing-bucket", {
 
 ```typescript
 const persistentBucket = Bucket("persistent-storage", {
-  projectRef: "my-project-ref",
+  project: "my-project-ref",
   delete: false, // Bucket will not be deleted when resource is destroyed
   public: false,
 });
@@ -102,7 +102,7 @@ const persistentBucket = Bucket("persistent-storage", {
 
 ```typescript
 const videosBucket = Bucket("video-uploads", {
-  projectRef: "my-project-ref",
+  project: "my-project-ref",
   public: false,
   fileSizeLimit: 104857600, // 100MB
   allowedMimeTypes: [
@@ -113,95 +113,3 @@ const videosBucket = Bucket("video-uploads", {
   ],
 });
 ```
-
-## API Operations
-
-### Create Bucket
-- **Endpoint**: `POST /projects/{projectRef}/storage/buckets`
-- **Body**: Bucket configuration including name, public, file_size_limit, allowed_mime_types
-- **Response**: Bucket object with ID and configuration
-
-### List Buckets
-- **Endpoint**: `GET /projects/{projectRef}/storage/buckets`
-- **Response**: Array of bucket objects
-
-### Delete Bucket
-- **Endpoint**: `DELETE /projects/{projectRef}/storage/buckets/{name}`
-- **Response**: 200 on successful deletion
-
-## Error Handling
-
-The resource handles the following error scenarios:
-
-- **409 Conflict**: When `adopt: true` is set, the resource will attempt to find and adopt an existing bucket with the same name
-- **Rate Limiting**: Automatic exponential backoff for 429 responses
-- **Server Errors**: Automatic retry for 5xx responses
-- **404 on Delete**: Ignored (bucket already deleted)
-
-## Lifecycle Management
-
-- **Creation**: Buckets are created with the specified access controls and file restrictions
-- **Updates**: Bucket configuration can be refreshed to get current state
-- **Deletion**: Buckets can be deleted unless `delete: false` is specified
-
-## Dependencies
-
-Buckets depend on:
-- **Project**: Must specify a valid `projectRef`
-
-## Access Control
-
-### Public Buckets
-- Files in public buckets can be accessed without authentication
-- URLs follow the pattern: `https://{project-ref}.supabase.co/storage/v1/object/public/{bucket-name}/{file-path}`
-
-### Private Buckets
-- Files require authentication or signed URLs
-- Access controlled through Row Level Security (RLS) policies
-- URLs follow the pattern: `https://{project-ref}.supabase.co/storage/v1/object/authenticated/{bucket-name}/{file-path}`
-
-## File Operations
-
-Once a bucket is created, you can perform file operations using the Supabase client:
-
-```typescript
-// Upload file
-const { data, error } = await supabase.storage
-  .from('bucket-name')
-  .upload('file-path', file);
-
-// Download file
-const { data, error } = await supabase.storage
-  .from('bucket-name')
-  .download('file-path');
-
-// Delete file
-const { error } = await supabase.storage
-  .from('bucket-name')
-  .remove(['file-path']);
-
-// Get public URL (for public buckets)
-const { data } = supabase.storage
-  .from('bucket-name')
-  .getPublicUrl('file-path');
-
-// Create signed URL (for private buckets)
-const { data, error } = await supabase.storage
-  .from('bucket-name')
-  .createSignedUrl('file-path', 60); // 60 seconds expiry
-```
-
-## Security Considerations
-
-- **Public Access**: Only make buckets public if files should be accessible without authentication
-- **File Size Limits**: Set appropriate file size limits to prevent abuse
-- **MIME Type Restrictions**: Restrict allowed file types for security
-- **RLS Policies**: Implement Row Level Security policies for fine-grained access control
-
-## Best Practices
-
-- **Naming**: Use descriptive bucket names that indicate their purpose
-- **Organization**: Create separate buckets for different types of content
-- **Monitoring**: Monitor storage usage and costs
-- **Cleanup**: Implement file cleanup strategies for temporary uploads
-- **Backup**: Consider backup strategies for critical files

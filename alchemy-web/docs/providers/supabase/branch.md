@@ -53,8 +53,7 @@ The `Branch` resource provides the following properties:
 
 - **id** (`string`): Unique identifier of the branch
 - **name** (`string`): Name of the branch
-- **projectRef** (`string`): Reference to the parent project
-- **parentProjectRef** (`string`): Reference to the parent project
+
 - **isDefault** (`boolean`): Whether this is the default branch
 - **gitBranch** (`string`): Git branch associated with this database branch
 - **prNumber** (`number`): Pull request number if applicable
@@ -85,7 +84,7 @@ import { Branch, Project } from "alchemy/supabase";
 const project = Project("my-project", {
   organizationId: "org-123",
   region: "us-east-1",
-  dbPass: "secure-password"
+  dbPass: secret("secure-password")
 });
 
 const branch = Branch("feature-branch", {

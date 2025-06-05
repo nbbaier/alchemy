@@ -33,8 +33,7 @@ export interface OrganizationProps extends SupabaseApiOptions {
 /**
  * Supabase Organization resource
  */
-export interface OrganizationResource
-  extends Resource<"supabase::Organization"> {
+export interface Organization extends Resource<"supabase::Organization"> {
   /**
    * Unique identifier of the organization
    */
@@ -61,9 +60,7 @@ export interface OrganizationResource
   allowedReleaseChannels?: string[];
 }
 
-export function isOrganization(
-  resource: Resource,
-): resource is OrganizationResource {
+export function isOrganization(resource: Resource): resource is Organization {
   return resource[ResourceKind] === "supabase::Organization";
 }
 
@@ -83,13 +80,29 @@ export function isOrganization(
  *   adopt: true
  * });
  */
+/**
+ * Create and manage Supabase Organizations
+ *
+ * @example
+ * // Create a basic organization:
+ * const org = Organization("my-org", {
+ *   name: "My Organization"
+ * });
+ *
+ * @example
+ * // Adopt an existing organization:
+ * const org = Organization("existing-org", {
+ *   name: "Existing Organization",
+ *   adopt: true
+ * });
+ */
 export const Organization = Resource(
   "supabase::Organization",
   async function (
-    this: Context<OrganizationResource>,
+    this: Context<Organization>,
     id: string,
     props: OrganizationProps,
-  ): Promise<OrganizationResource> {
+  ): Promise<Organization> {
     const api = await createSupabaseApi(props);
     const name = props.name ?? id;
 
@@ -139,7 +152,7 @@ async function createOrganization(
 async function getOrganization(
   api: SupabaseApi,
   slug: string,
-): Promise<OrganizationResource> {
+): Promise<Organization> {
   const response = await api.get(`/organizations/${slug}`);
   if (!response.ok) {
     await handleApiError(response, "getting", "organization", slug);
@@ -162,7 +175,7 @@ async function getOrganization(
 async function findOrganizationByName(
   api: SupabaseApi,
   name: string,
-): Promise<OrganizationResource | null> {
+): Promise<Organization | null> {
   const response = await api.get("/organizations");
   if (!response.ok) {
     await handleApiError(response, "listing", "organizations");

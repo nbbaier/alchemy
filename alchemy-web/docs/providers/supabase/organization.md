@@ -72,36 +72,3 @@ const org = Organization("secure-org", {
   accessToken: alchemy.secret("my-supabase-token"),
 });
 ```
-
-## API Operations
-
-### Create Organization
-- **Endpoint**: `POST /organizations`
-- **Body**: `{ name: string }`
-- **Response**: Organization object with ID
-
-### Get Organization
-- **Endpoint**: `GET /organizations/{id}`
-- **Response**: Full organization details
-
-### List Organizations
-- **Endpoint**: `GET /organizations`
-- **Response**: Array of organization objects
-
-## Error Handling
-
-The resource handles the following error scenarios:
-
-- **409 Conflict**: When `adopt: true` is set, the resource will attempt to find and adopt an existing organization with the same name
-- **Rate Limiting**: Automatic exponential backoff for 429 responses
-- **Server Errors**: Automatic retry for 5xx responses
-
-## Limitations
-
-- Organizations cannot be deleted via the Management API
-- Organizations cannot be updated via the Management API
-- Organization names must be unique within your account
-
-## Dependencies
-
-Organizations are root-level resources with no dependencies. Projects depend on organizations.

@@ -9,19 +9,19 @@ import { SSOProvider } from "alchemy/supabase";
 
 // Create a SAML SSO provider
 const samlProvider = SSOProvider("company-saml", {
-  projectRef: "proj-123",
+  project: "proj-123",
   type: "saml",
   metadata: {
     entity_id: "https://company.com/saml",
     sso_url: "https://company.com/sso/login",
-    certificate: "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
+    certificate: secret("-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"),
   },
   domains: ["company.com", "subsidiary.company.com"],
 });
 
 // Create an OIDC SSO provider
 const oidcProvider = SSOProvider("company-oidc", {
-  projectRef: "proj-123",
+  project: "proj-123",
   type: "oidc",
   metadata: {
     issuer: "https://company.okta.com",
@@ -36,7 +36,7 @@ const oidcProvider = SSOProvider("company-oidc", {
 
 ### Required Properties
 
-- **`projectRef`** (`string`): Reference ID of the project where the SSO provider will be configured
+- **`project`** (`string | Project`): Reference to the project where the SSO provider will be configured
 - **`type`** (`string`): Type of SSO provider ("saml", "oidc", etc.)
 
 ### Optional Properties
@@ -65,7 +65,7 @@ The SSO provider resource exposes the following properties:
 
 ```typescript
 const samlProvider = SSOProvider("enterprise-saml", {
-  projectRef: "my-project-ref",
+  project: "my-project-ref",
   type: "saml",
   metadata: {
     entity_id: "https://enterprise.com/saml/metadata",
@@ -88,7 +88,7 @@ MIICXjCCAcegAwIBAgIJAKS0yiqVrJejMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
 
 ```typescript
 const oktaProvider = SSOProvider("okta-oidc", {
-  projectRef: "my-project-ref",
+  project: "my-project-ref",
   type: "oidc",
   metadata: {
     issuer: "https://company.okta.com/oauth2/default",
@@ -108,7 +108,7 @@ const oktaProvider = SSOProvider("okta-oidc", {
 
 ```typescript
 const azureProvider = SSOProvider("azure-ad", {
-  projectRef: "my-project-ref",
+  project: "my-project-ref",
   type: "oidc",
   metadata: {
     issuer: "https://login.microsoftonline.com/tenant-id/v2.0",
@@ -128,7 +128,7 @@ const azureProvider = SSOProvider("azure-ad", {
 
 ```typescript
 const googleProvider = SSOProvider("google-workspace", {
-  projectRef: "my-project-ref",
+  project: "my-project-ref",
   type: "oidc",
   metadata: {
     issuer: "https://accounts.google.com",
@@ -150,7 +150,7 @@ const googleProvider = SSOProvider("google-workspace", {
 ```typescript
 // This will adopt an existing provider if one with the same type already exists
 const existingProvider = SSOProvider("existing-saml", {
-  projectRef: "my-project-ref",
+  project: "my-project-ref",
   type: "saml",
   adopt: true,
   metadata: {
@@ -159,102 +159,4 @@ const existingProvider = SSOProvider("existing-saml", {
   },
   domains: ["updated.com"],
 });
-```
-
-## API Operations
-
-### Create SSO Provider
-- **Endpoint**: `POST /projects/{projectRef}/config/auth/sso/providers`
-- **Body**: Provider configuration including type, metadata, and domains
-- **Response**: Provider object with ID and configuration
-
-### Get SSO Provider
-- **Endpoint**: `GET /projects/{projectRef}/config/auth/sso/providers/{id}`
-- **Response**: Full provider details
-
-### List SSO Providers
-- **Endpoint**: `GET /projects/{projectRef}/config/auth/sso/providers`
-- **Response**: Array of provider objects
-
-### Delete SSO Provider
-- **Endpoint**: `DELETE /projects/{projectRef}/config/auth/sso/providers/{id}`
-- **Response**: 200 on successful deletion
-
-## Error Handling
-
-The resource handles the following error scenarios:
-
-- **409 Conflict**: When `adopt: true` is set, the resource will attempt to find and adopt an existing provider with the same type
-- **Rate Limiting**: Automatic exponential backoff for 429 responses
-- **Server Errors**: Automatic retry for 5xx responses
-- **404 on Delete**: Ignored (provider already deleted)
-
-## Lifecycle Management
-
-- **Creation**: Providers are created with the specified type and configuration
-- **Updates**: Provider configuration can be refreshed to get current state
-- **Deletion**: Providers can be deleted unless `delete: false` is specified
-
-## Dependencies
-
-SSO Providers depend on:
-- **Project**: Must specify a valid `projectRef`
-
-## Authentication Flow
-
-Once configured, users from the specified domains will be redirected to the SSO provider for authentication:
-
-1. User enters email address on Supabase login page
-2. If email domain matches a configured provider, user is redirected to SSO
-3. User authenticates with the SSO provider
-4. Provider redirects back to Supabase with authentication assertion
-5. Supabase validates the assertion and creates/updates the user account
-
-## Configuration Requirements
-
-### SAML Providers
-- **entity_id**: Unique identifier for your SAML entity
-- **sso_url**: Single Sign-On URL where users are redirected
-- **certificate**: X.509 certificate for validating SAML assertions
-- **slo_url** (optional): Single Logout URL
-- **attribute_mapping** (optional): Map SAML attributes to user fields
-
-### OIDC Providers
-- **issuer**: OIDC issuer URL
-- **client_id**: OAuth2 client identifier
-- **client_secret**: OAuth2 client secret
-- **authorization_endpoint**: OAuth2 authorization URL
-- **token_endpoint**: OAuth2 token exchange URL
-- **userinfo_endpoint**: OIDC userinfo URL
-- **jwks_uri**: JSON Web Key Set URL for token validation
-
-## Security Considerations
-
-- **Certificate Validation**: Ensure SAML certificates are valid and properly configured
-- **Client Secrets**: Store OIDC client secrets securely
-- **Domain Restrictions**: Only configure domains you control
-- **Token Validation**: Verify that token endpoints use HTTPS
-- **Attribute Mapping**: Validate that user attributes are correctly mapped
-
-## Best Practices
-
-- **Testing**: Test SSO configuration in a development environment first
-- **Monitoring**: Monitor SSO login success/failure rates
-- **Documentation**: Document the SSO setup process for your team
-- **Backup**: Keep backup configurations for critical SSO providers
-- **Updates**: Regularly update certificates and secrets before expiration
-
-## Troubleshooting
-
-### Common Issues
-- **Certificate Errors**: Ensure SAML certificates are properly formatted
-- **Domain Mismatches**: Verify that user email domains match configured domains
-- **Endpoint Errors**: Check that all URLs are accessible and use HTTPS
-- **Attribute Mapping**: Ensure required user attributes are provided by the SSO provider
-
-### Testing SSO
-```typescript
-// Test SSO configuration by attempting login
-// Check Supabase Auth logs for detailed error messages
-// Verify that user attributes are correctly mapped
 ```

@@ -50,7 +50,7 @@ describe("Branch", () => {
 
         expect(branch.id).toBeTruthy();
         expect(branch.name).toEqual(branchName);
-        expect(branch.projectRef).toEqual(project.id);
+
         expect(branch.gitBranch).toEqual("feature/test-branch");
         expect(branch.persistent).toBe(true);
 
