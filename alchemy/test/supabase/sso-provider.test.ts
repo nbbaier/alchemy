@@ -46,14 +46,20 @@ describe("SSOProvider", () => {
 
         expect(ssoProvider.id).toBeTruthy();
         expect(ssoProvider.type).toEqual("saml");
-        expect(ssoProvider.metadata.entity_id).toEqual("https://example.com/saml");
+        expect(ssoProvider.metadata.entity_id).toEqual(
+          "https://example.com/saml",
+        );
         expect(ssoProvider.domains).toContain("example.com");
         expect(ssoProvider.domains).toContain("test.com");
 
-        const response = await api.get(`/projects/${project.id}/config/auth/sso/providers`);
+        const response = await api.get(
+          `/projects/${project.id}/config/auth/sso/providers`,
+        );
         expect(response.ok).toBe(true);
-        const providers = await response.json() as any[];
-        const createdProvider = providers.find((p: any) => p.id === ssoProvider.id);
+        const providers = (await response.json()) as any[];
+        const createdProvider = providers.find(
+          (p: any) => p.id === ssoProvider.id,
+        );
         expect(createdProvider).toBeDefined();
         expect(createdProvider.type).toEqual("saml");
 
@@ -68,7 +74,9 @@ describe("SSOProvider", () => {
         });
 
         expect(updatedProvider.id).toEqual(ssoProvider.id);
-        expect(updatedProvider.metadata.entity_id).toEqual("https://updated.com/saml");
+        expect(updatedProvider.metadata.entity_id).toEqual(
+          "https://updated.com/saml",
+        );
         expect(updatedProvider.domains).toContain("updated.com");
       } catch (error: any) {
         console.error(`Test error: ${error.message}`);
@@ -110,13 +118,19 @@ describe("SSOProvider", () => {
 
         expect(oidcProvider.id).toBeTruthy();
         expect(oidcProvider.type).toEqual("oidc");
-        expect(oidcProvider.metadata.issuer).toEqual("https://accounts.google.com");
+        expect(oidcProvider.metadata.issuer).toEqual(
+          "https://accounts.google.com",
+        );
         expect(oidcProvider.metadata.client_id).toEqual("test-client-id");
 
-        const response = await api.get(`/projects/${project.id}/config/auth/sso/providers`);
+        const response = await api.get(
+          `/projects/${project.id}/config/auth/sso/providers`,
+        );
         expect(response.ok).toBe(true);
-        const providers = await response.json() as any[];
-        const createdProvider = providers.find((p: any) => p.id === oidcProvider.id);
+        const providers = (await response.json()) as any[];
+        const createdProvider = providers.find(
+          (p: any) => p.id === oidcProvider.id,
+        );
         expect(createdProvider).toBeDefined();
         expect(createdProvider.type).toEqual("oidc");
       } catch (error: any) {
@@ -170,9 +184,11 @@ describe("SSOProvider", () => {
         expect(adoptedProvider.id).toEqual(originalProvider.id);
         expect(adoptedProvider.type).toEqual("saml");
 
-        const response = await api.get(`/projects/${project.id}/config/auth/sso/providers`);
+        const response = await api.get(
+          `/projects/${project.id}/config/auth/sso/providers`,
+        );
         expect(response.ok).toBe(true);
-        const providers = await response.json() as any[];
+        const providers = (await response.json()) as any[];
         const samlProviders = providers.filter((p: any) => p.type === "saml");
         expect(samlProviders).toHaveLength(1);
       } catch (error: any) {

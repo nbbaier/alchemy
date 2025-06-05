@@ -47,9 +47,11 @@ describe("Bucket", () => {
         expect(bucket.name).toEqual(bucketName);
         expect(bucket.public).toBe(true);
 
-        const response = await api.get(`/projects/${project.id}/storage/buckets`);
+        const response = await api.get(
+          `/projects/${project.id}/storage/buckets`,
+        );
         expect(response.ok).toBe(true);
-        const buckets = await response.json() as any[];
+        const buckets = (await response.json()) as any[];
         const createdBucket = buckets.find((b: any) => b.name === bucketName);
         expect(createdBucket).toBeDefined();
         expect(createdBucket.id).toEqual(bucket.id);
@@ -111,10 +113,14 @@ describe("Bucket", () => {
         expect(adoptedBucket.id).toEqual(originalBucket.id);
         expect(adoptedBucket.name).toEqual(bucketName);
 
-        const response = await api.get(`/projects/${project.id}/storage/buckets`);
+        const response = await api.get(
+          `/projects/${project.id}/storage/buckets`,
+        );
         expect(response.ok).toBe(true);
-        const buckets = await response.json() as any[];
-        const bucketsWithName = buckets.filter((b: any) => b.name === bucketName);
+        const buckets = (await response.json()) as any[];
+        const bucketsWithName = buckets.filter(
+          (b: any) => b.name === bucketName,
+        );
         expect(bucketsWithName).toHaveLength(1);
       } catch (error: any) {
         console.error(`Test error: ${error.message}`);

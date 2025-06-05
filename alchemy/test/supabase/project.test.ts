@@ -42,8 +42,10 @@ describe("Project", () => {
 
         const response = await api.get("/projects");
         expect(response.ok).toBe(true);
-        const projects = await response.json() as any[];
-        const createdProject = projects.find((p: any) => p.name === projectName);
+        const projects = (await response.json()) as any[];
+        const createdProject = projects.find(
+          (p: any) => p.name === projectName,
+        );
         expect(createdProject).toBeDefined();
         expect(createdProject.id).toEqual(project.id);
 
@@ -101,8 +103,10 @@ describe("Project", () => {
 
         const response = await api.get("/projects");
         expect(response.ok).toBe(true);
-        const projects = await response.json() as any[];
-        const projectsWithName = projects.filter((p: any) => p.name === projectName);
+        const projects = (await response.json()) as any[];
+        const projectsWithName = projects.filter(
+          (p: any) => p.name === projectName,
+        );
         expect(projectsWithName).toHaveLength(1);
       } catch (error: any) {
         console.error(`Test error: ${error.message}`);
@@ -135,15 +139,21 @@ describe("Project", () => {
 
         expect(project.status).toBeDefined();
 
-        const pauseResponse = await api.post(`/projects/${project.id}/pause`, {});
+        const pauseResponse = await api.post(
+          `/projects/${project.id}/pause`,
+          {},
+        );
         expect(pauseResponse.ok).toBe(true);
 
-        const restoreResponse = await api.post(`/projects/${project.id}/restore`, {});
+        const restoreResponse = await api.post(
+          `/projects/${project.id}/restore`,
+          {},
+        );
         expect(restoreResponse.ok).toBe(true);
 
         const finalResponse = await api.get(`/projects/${project.id}`);
         expect(finalResponse.ok).toBe(true);
-        const finalProject = await finalResponse.json() as any;
+        const finalProject = (await finalResponse.json()) as any;
         expect(finalProject.id).toEqual(project.id);
       } catch (error: any) {
         console.error(`Test error: ${error.message}`);

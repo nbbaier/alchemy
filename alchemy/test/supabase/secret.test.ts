@@ -37,25 +37,27 @@ describe("Secret", () => {
         const secrets = await Secret(testId, {
           project: project.id,
           secrets: {
-            "API_KEY": "secret-value-123",
-            "DATABASE_URL": "postgres://localhost:5432/test",
-            "JWT_SECRET": "super-secret-key",
+            API_KEY: "secret-value-123",
+            DATABASE_URL: "postgres://localhost:5432/test",
+            JWT_SECRET: "super-secret-key",
           },
         });
 
         expect(secrets.projectRef).toEqual(project.id);
         expect(secrets.secrets).toHaveLength(3);
-        expect(secrets.secrets.map(s => s.name)).toContain("API_KEY");
-        expect(secrets.secrets.map(s => s.name)).toContain("DATABASE_URL");
-        expect(secrets.secrets.map(s => s.name)).toContain("JWT_SECRET");
+        expect(secrets.secrets.map((s) => s.name)).toContain("API_KEY");
+        expect(secrets.secrets.map((s) => s.name)).toContain("DATABASE_URL");
+        expect(secrets.secrets.map((s) => s.name)).toContain("JWT_SECRET");
 
         const response = await api.get(`/projects/${project.id}/secrets`);
         expect(response.ok).toBe(true);
-        const secretsList = await response.json() as any[];
+        const secretsList = (await response.json()) as any[];
         const apiKeySecret = secretsList.find((s: any) => s.name === "API_KEY");
-        const dbUrlSecret = secretsList.find((s: any) => s.name === "DATABASE_URL");
+        const dbUrlSecret = secretsList.find(
+          (s: any) => s.name === "DATABASE_URL",
+        );
         const jwtSecret = secretsList.find((s: any) => s.name === "JWT_SECRET");
-        
+
         expect(apiKeySecret).toBeDefined();
         expect(dbUrlSecret).toBeDefined();
         expect(jwtSecret).toBeDefined();
@@ -63,15 +65,17 @@ describe("Secret", () => {
         const updatedSecrets = await Secret(testId, {
           project: project.id,
           secrets: {
-            "API_KEY": "updated-secret-value-456",
-            "NEW_SECRET": "brand-new-secret",
+            API_KEY: "updated-secret-value-456",
+            NEW_SECRET: "brand-new-secret",
           },
         });
 
         expect(updatedSecrets.projectRef).toEqual(project.id);
         expect(updatedSecrets.secrets).toHaveLength(2);
-        expect(updatedSecrets.secrets.map(s => s.name)).toContain("API_KEY");
-        expect(updatedSecrets.secrets.map(s => s.name)).toContain("NEW_SECRET");
+        expect(updatedSecrets.secrets.map((s) => s.name)).toContain("API_KEY");
+        expect(updatedSecrets.secrets.map((s) => s.name)).toContain(
+          "NEW_SECRET",
+        );
       } catch (error: any) {
         console.error(`Test error: ${error.message}`);
         throw error;
@@ -104,7 +108,7 @@ describe("Secret", () => {
         const originalSecrets = await Secret("original", {
           project: project.id,
           secrets: {
-            "SHARED_SECRET": "original-value",
+            SHARED_SECRET: "original-value",
           },
         });
 
@@ -113,7 +117,7 @@ describe("Secret", () => {
         const adoptedSecrets = await Secret(testId, {
           project: project.id,
           secrets: {
-            "SHARED_SECRET": "adopted-value",
+            SHARED_SECRET: "adopted-value",
           },
           adopt: true,
         });
@@ -124,8 +128,10 @@ describe("Secret", () => {
 
         const response = await api.get(`/projects/${project.id}/secrets`);
         expect(response.ok).toBe(true);
-        const secretsList = await response.json() as any[];
-        const sharedSecrets = secretsList.filter((s: any) => s.name === "SHARED_SECRET");
+        const secretsList = (await response.json()) as any[];
+        const sharedSecrets = secretsList.filter(
+          (s: any) => s.name === "SHARED_SECRET",
+        );
         expect(sharedSecrets).toHaveLength(1);
       } catch (error: any) {
         console.error(`Test error: ${error.message}`);

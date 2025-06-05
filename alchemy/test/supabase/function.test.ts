@@ -54,8 +54,10 @@ export default async function handler(req: Request): Promise<Response> {
 
         const response = await api.get(`/projects/${project.id}/functions`);
         expect(response.ok).toBe(true);
-        const functions = await response.json() as any[];
-        const createdFunction = functions.find((f: any) => f.name === functionName);
+        const functions = (await response.json()) as any[];
+        const createdFunction = functions.find(
+          (f: any) => f.name === functionName,
+        );
         expect(createdFunction).toBeDefined();
         expect(createdFunction.id).toEqual(edgeFunction.id);
 
@@ -129,8 +131,10 @@ export default async function handler(req: Request): Promise<Response> {
 
         const response = await api.get(`/projects/${project.id}/functions`);
         expect(response.ok).toBe(true);
-        const functions = await response.json() as any[];
-        const functionsWithName = functions.filter((f: any) => f.name === functionName);
+        const functions = (await response.json()) as any[];
+        const functionsWithName = functions.filter(
+          (f: any) => f.name === functionName,
+        );
         expect(functionsWithName).toHaveLength(1);
       } catch (error: any) {
         console.error(`Test error: ${error.message}`);

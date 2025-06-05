@@ -30,8 +30,10 @@ describe("Organization", () => {
 
         const response = await api.get("/organizations");
         expect(response.ok).toBe(true);
-        const organizations = await response.json() as any[];
-        const createdOrg = organizations.find((org: any) => org.name === orgName);
+        const organizations = (await response.json()) as any[];
+        const createdOrg = organizations.find(
+          (org: any) => org.name === orgName,
+        );
         expect(createdOrg).toBeDefined();
         expect(createdOrg.id).toEqual(organization.id);
 
@@ -45,8 +47,10 @@ describe("Organization", () => {
 
         const updatedResponse = await api.get("/organizations");
         expect(updatedResponse.ok).toBe(true);
-        const updatedOrganizations = await updatedResponse.json() as any[];
-        const updatedOrg = updatedOrganizations.find((org: any) => org.id === organization.id);
+        const updatedOrganizations = (await updatedResponse.json()) as any[];
+        const updatedOrg = updatedOrganizations.find(
+          (org: any) => org.id === organization.id,
+        );
         expect(updatedOrg.name).toEqual(updatedOrgName);
       } catch (error: any) {
         console.error(`Test error: ${error.message}`);
@@ -81,8 +85,10 @@ describe("Organization", () => {
 
         const response = await api.get("/organizations");
         expect(response.ok).toBe(true);
-        const organizations = await response.json() as any[];
-        const orgsWithName = organizations.filter((org: any) => org.name === orgName);
+        const organizations = (await response.json()) as any[];
+        const orgsWithName = organizations.filter(
+          (org: any) => org.name === orgName,
+        );
         expect(orgsWithName).toHaveLength(1);
       } catch (error: any) {
         console.error(`Test error: ${error.message}`);
