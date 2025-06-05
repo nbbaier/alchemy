@@ -1,7 +1,7 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { Secret } from "../../src/supabase/secret.ts";
+import { Secret as SupabaseSecret } from "../../src/supabase/secret.ts";
 import { Project } from "../../src/supabase/project.ts";
 import { Organization } from "../../src/supabase/organization.ts";
 import { createSupabaseApi } from "../../src/supabase/api.ts";
@@ -34,7 +34,7 @@ describe("Secret", () => {
           dbPass: "test-password-123",
         });
 
-        const secrets = await Secret(testId, {
+        const secrets = await SupabaseSecret(testId, {
           project: project.id,
           secrets: {
             API_KEY: "secret-value-123",
@@ -45,9 +45,11 @@ describe("Secret", () => {
 
         expect(secrets.projectRef).toEqual(project.id);
         expect(secrets.secrets).toHaveLength(3);
-        expect(secrets.secrets.map((s) => s.name)).toContain("API_KEY");
-        expect(secrets.secrets.map((s) => s.name)).toContain("DATABASE_URL");
-        expect(secrets.secrets.map((s) => s.name)).toContain("JWT_SECRET");
+        expect(secrets.secrets.map((s: any) => s.name)).toContain("API_KEY");
+        expect(secrets.secrets.map((s: any) => s.name)).toContain(
+          "DATABASE_URL",
+        );
+        expect(secrets.secrets.map((s: any) => s.name)).toContain("JWT_SECRET");
 
         const response = await api.get(`/projects/${project.id}/secrets`);
         expect(response.ok).toBe(true);
@@ -62,7 +64,7 @@ describe("Secret", () => {
         expect(dbUrlSecret).toBeDefined();
         expect(jwtSecret).toBeDefined();
 
-        const updatedSecrets = await Secret(testId, {
+        const updatedSecrets = await SupabaseSecret(testId, {
           project: project.id,
           secrets: {
             API_KEY: "updated-secret-value-456",
@@ -72,8 +74,10 @@ describe("Secret", () => {
 
         expect(updatedSecrets.projectRef).toEqual(project.id);
         expect(updatedSecrets.secrets).toHaveLength(2);
-        expect(updatedSecrets.secrets.map((s) => s.name)).toContain("API_KEY");
-        expect(updatedSecrets.secrets.map((s) => s.name)).toContain(
+        expect(updatedSecrets.secrets.map((s: any) => s.name)).toContain(
+          "API_KEY",
+        );
+        expect(updatedSecrets.secrets.map((s: any) => s.name)).toContain(
           "NEW_SECRET",
         );
       } catch (error: any) {
@@ -105,7 +109,7 @@ describe("Secret", () => {
           dbPass: "test-password-123",
         });
 
-        const originalSecrets = await Secret("original", {
+        const originalSecrets = await SupabaseSecret("original", {
           project: project.id,
           secrets: {
             SHARED_SECRET: "original-value",
@@ -114,7 +118,7 @@ describe("Secret", () => {
 
         expect(originalSecrets.secrets).toHaveLength(1);
 
-        const adoptedSecrets = await Secret(testId, {
+        const adoptedSecrets = await SupabaseSecret(testId, {
           project: project.id,
           secrets: {
             SHARED_SECRET: "adopted-value",
