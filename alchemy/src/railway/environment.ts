@@ -2,6 +2,7 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import type { Project } from "./project.ts";
 
 export interface EnvironmentProps {
   /**
@@ -10,9 +11,9 @@ export interface EnvironmentProps {
   name: string;
 
   /**
-   * The ID of the project this environment belongs to
+   * The project this environment belongs to. Can be a Project resource or project ID string
    */
-  projectId: string;
+  project: string | Project;
 
   /**
    * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
@@ -22,11 +23,16 @@ export interface EnvironmentProps {
 
 export interface Environment
   extends Resource<"railway::Environment">,
-    EnvironmentProps {
+    Omit<EnvironmentProps, "project"> {
   /**
    * The unique identifier of the environment
    */
   id: string;
+
+  /**
+   * The ID of the project this environment belongs to
+   */
+  projectId: string;
 
   /**
    * The timestamp when the environment was created
@@ -47,7 +53,7 @@ export interface Environment
  * // Create a staging environment
  * const staging = await Environment("staging-env", {
  *   name: "staging",
- *   projectId: project.id,
+ *   project: project,
  * });
  * ```
  *
@@ -56,7 +62,7 @@ export interface Environment
  * // Create a production environment
  * const production = await Environment("prod-env", {
  *   name: "production",
- *   projectId: project.id,
+ *   project: project,
  * });
  * ```
  *
@@ -65,7 +71,7 @@ export interface Environment
  * // Create a development environment with custom auth
  * const development = await Environment("dev-env", {
  *   name: "development",
- *   projectId: project.id,
+ *   project: "project-id-string",
  *   apiKey: secret("dev-railway-token"),
  * });
  * ```
@@ -116,6 +122,9 @@ export const Environment = Resource(
 );
 
 export async function createEnvironment(api: any, props: EnvironmentProps) {
+  const projectId =
+    typeof props.project === "string" ? props.project : props.project.id;
+
   const response = await api.mutate(
     `
     mutation EnvironmentCreate($input: EnvironmentCreateInput!) {
@@ -131,7 +140,7 @@ export async function createEnvironment(api: any, props: EnvironmentProps) {
     {
       input: {
         name: props.name,
-        projectId: props.projectId,
+        projectId: projectId,
       },
     },
   );

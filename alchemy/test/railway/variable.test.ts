@@ -42,19 +42,19 @@ describe("Variable Resource", () => {
 
       environment = await Environment(testEnvironmentId, {
         name: "test",
-        projectId: project.id,
+        project: project,
       });
 
       service = await Service(testServiceId, {
         name: "test-service",
-        projectId: project.id,
+        project: project,
       });
 
       variable = await Variable(testVariableId, {
         name: "API_KEY",
         value: secret("secret-value-123"),
-        environmentId: environment.id,
-        serviceId: service.id,
+        environment: environment,
+        service: service,
       });
 
       expect(variable.id).toBeTruthy();
@@ -90,8 +90,8 @@ describe("Variable Resource", () => {
       variable = await Variable(testVariableId, {
         name: "API_KEY",
         value: "updated-secret-value-456",
-        environmentId: environment.id,
-        serviceId: service.id,
+        environment: environment,
+        service: service,
       });
 
       expect(variable.value.unencrypted).toBe("updated-secret-value-456");

@@ -3,6 +3,8 @@ import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
 import { Bundle } from "../esbuild/bundle.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import type { Project } from "./project.ts";
+import type { Environment } from "./environment.ts";
 
 export interface FunctionProps {
   /**
@@ -11,14 +13,14 @@ export interface FunctionProps {
   name: string;
 
   /**
-   * The ID of the project this function belongs to
+   * The project this function belongs to. Can be a Project resource or project ID string
    */
-  projectId: string;
+  project: string | Project;
 
   /**
-   * The ID of the environment this function belongs to
+   * The environment this function belongs to. Can be an Environment resource or environment ID string
    */
-  environmentId: string;
+  environment: string | Environment;
 
   /**
    * The runtime environment for the function
@@ -51,11 +53,23 @@ export interface FunctionProps {
   apiKey?: Secret;
 }
 
-export interface Function extends Resource<"railway::Function">, FunctionProps {
+export interface Function
+  extends Resource<"railway::Function">,
+    Omit<FunctionProps, "project" | "environment"> {
   /**
    * The unique identifier of the function
    */
   id: string;
+
+  /**
+   * The ID of the project this function belongs to
+   */
+  projectId: string;
+
+  /**
+   * The ID of the environment this function belongs to
+   */
+  environmentId: string;
 
   /**
    * The public URL where the function can be invoked
@@ -137,6 +151,13 @@ export async function createFunction(
   props: FunctionProps,
   id: string,
 ) {
+  const projectId =
+    typeof props.project === "string" ? props.project : props.project.id;
+  const environmentId =
+    typeof props.environment === "string"
+      ? props.environment
+      : props.environment.id;
+
   let bundledCode: string | undefined;
   if (props.runtime === "nodejs" && !props.sourceRepo) {
     const bundle = await Bundle(`${id}-bundle`, {
@@ -172,8 +193,8 @@ export async function createFunction(
     {
       input: {
         name: props.name,
-        projectId: props.projectId,
-        environmentId: props.environmentId,
+        projectId: projectId,
+        environmentId: environmentId,
         runtime: props.runtime,
         sourceCode: bundledCode,
         sourceRepo: props.sourceRepo,

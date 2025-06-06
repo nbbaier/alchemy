@@ -2,12 +2,38 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import type { Service } from "./service.ts";
+import type { Environment } from "./environment.ts";
 
 export interface ServiceDomainProps {
   /**
    * The subdomain name for the service
    */
   domain: string;
+
+  /**
+   * The service this domain belongs to. Can be a Service resource or service ID string
+   */
+  service: string | Service;
+
+  /**
+   * The environment this domain belongs to. Can be an Environment resource or environment ID string
+   */
+  environment: string | Environment;
+
+  /**
+   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
+   */
+  apiKey?: Secret;
+}
+
+export interface ServiceDomain
+  extends Resource<"railway::ServiceDomain">,
+    Omit<ServiceDomainProps, "service" | "environment"> {
+  /**
+   * The unique identifier of the service domain
+   */
+  id: string;
 
   /**
    * The ID of the service this domain belongs to
@@ -18,20 +44,6 @@ export interface ServiceDomainProps {
    * The ID of the environment this domain belongs to
    */
   environmentId: string;
-
-  /**
-   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
-   */
-  apiKey?: Secret;
-}
-
-export interface ServiceDomain
-  extends Resource<"railway::ServiceDomain">,
-    ServiceDomainProps {
-  /**
-   * The unique identifier of the service domain
-   */
-  id: string;
 
   /**
    * The full URL of the service domain
@@ -57,8 +69,8 @@ export interface ServiceDomain
  * // Create a service domain for your API
  * const apiDomain = await ServiceDomain("api-domain", {
  *   domain: "my-api",
- *   serviceId: service.id,
- *   environmentId: environment.id,
+ *   service: service,
+ *   environment: environment,
  * });
  * ```
  *
@@ -67,8 +79,8 @@ export interface ServiceDomain
  * // Create a service domain for frontend
  * const frontendDomain = await ServiceDomain("frontend-domain", {
  *   domain: "my-app-frontend",
- *   serviceId: webService.id,
- *   environmentId: production.id,
+ *   service: webService,
+ *   environment: production,
  * });
  * ```
  *
@@ -77,8 +89,8 @@ export interface ServiceDomain
  * // Create a service domain with custom authentication
  * const domain = await ServiceDomain("service-domain", {
  *   domain: "my-service",
- *   serviceId: service.id,
- *   environmentId: environment.id,
+ *   service: "service-id-string",
+ *   environment: "environment-id-string",
  *   apiKey: secret("service-railway-token"),
  * });
  * ```
@@ -137,6 +149,13 @@ export const ServiceDomain = Resource(
 );
 
 export async function createServiceDomain(api: any, props: ServiceDomainProps) {
+  const serviceId =
+    typeof props.service === "string" ? props.service : props.service.id;
+  const environmentId =
+    typeof props.environment === "string"
+      ? props.environment
+      : props.environment.id;
+
   const response = await api.mutate(
     `
     mutation ServiceDomainCreate($input: ServiceDomainCreateInput!) {
@@ -154,8 +173,8 @@ export async function createServiceDomain(api: any, props: ServiceDomainProps) {
     {
       input: {
         domain: props.domain,
-        serviceId: props.serviceId,
-        environmentId: props.environmentId,
+        serviceId: serviceId,
+        environmentId: environmentId,
       },
     },
   );

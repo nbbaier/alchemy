@@ -35,7 +35,7 @@ describe("Environment Resource", () => {
 
       environment = await Environment(testEnvironmentId, {
         name: "staging",
-        projectId: project.id,
+        project: project,
       });
 
       expect(environment.id).toBeTruthy();
@@ -66,7 +66,7 @@ describe("Environment Resource", () => {
 
       environment = await Environment(testEnvironmentId, {
         name: "production",
-        projectId: project.id,
+        project: project,
       });
 
       expect(environment).toMatchObject({

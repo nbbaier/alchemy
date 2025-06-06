@@ -2,6 +2,8 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import type { Service } from "./service.ts";
+import type { Environment } from "./environment.ts";
 
 export interface TcpProxyProps {
   /**
@@ -15,6 +17,30 @@ export interface TcpProxyProps {
   proxyPort?: number;
 
   /**
+   * The service this proxy belongs to. Can be a Service resource or service ID string
+   */
+  service: string | Service;
+
+  /**
+   * The environment this proxy belongs to. Can be an Environment resource or environment ID string
+   */
+  environment: string | Environment;
+
+  /**
+   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
+   */
+  apiKey?: Secret;
+}
+
+export interface TcpProxy
+  extends Resource<"railway::TcpProxy">,
+    Omit<TcpProxyProps, "service" | "environment"> {
+  /**
+   * The unique identifier of the TCP proxy
+   */
+  id: string;
+
+  /**
    * The ID of the service this proxy belongs to
    */
   serviceId: string;
@@ -23,18 +49,6 @@ export interface TcpProxyProps {
    * The ID of the environment this proxy belongs to
    */
   environmentId: string;
-
-  /**
-   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
-   */
-  apiKey?: Secret;
-}
-
-export interface TcpProxy extends Resource<"railway::TcpProxy">, TcpProxyProps {
-  /**
-   * The unique identifier of the TCP proxy
-   */
-  id: string;
 
   /**
    * The domain name for accessing the proxy
@@ -60,8 +74,8 @@ export interface TcpProxy extends Resource<"railway::TcpProxy">, TcpProxyProps {
  * // Create a TCP proxy for a database service
  * const dbProxy = await TcpProxy("db-proxy", {
  *   applicationPort: 5432,
- *   serviceId: database.id,
- *   environmentId: environment.id,
+ *   service: database,
+ *   environment: environment,
  * });
  * ```
  *
@@ -71,8 +85,8 @@ export interface TcpProxy extends Resource<"railway::TcpProxy">, TcpProxyProps {
  * const customProxy = await TcpProxy("custom-proxy", {
  *   applicationPort: 3000,
  *   proxyPort: 8080,
- *   serviceId: service.id,
- *   environmentId: environment.id,
+ *   service: service,
+ *   environment: environment,
  * });
  * ```
  *
@@ -81,8 +95,8 @@ export interface TcpProxy extends Resource<"railway::TcpProxy">, TcpProxyProps {
  * // Create a TCP proxy for Redis
  * const redisProxy = await TcpProxy("redis-proxy", {
  *   applicationPort: 6379,
- *   serviceId: redisService.id,
- *   environmentId: production.id,
+ *   service: "service-id-string",
+ *   environment: "environment-id-string",
  *   apiKey: secret("proxy-railway-token"),
  * });
  * ```
@@ -139,6 +153,13 @@ export const TcpProxy = Resource(
 );
 
 export async function createTcpProxy(api: any, props: TcpProxyProps) {
+  const serviceId =
+    typeof props.service === "string" ? props.service : props.service.id;
+  const environmentId =
+    typeof props.environment === "string"
+      ? props.environment
+      : props.environment.id;
+
   const response = await api.mutate(
     `
     mutation TcpProxyCreate($input: TcpProxyCreateInput!) {
@@ -158,8 +179,8 @@ export async function createTcpProxy(api: any, props: TcpProxyProps) {
       input: {
         applicationPort: props.applicationPort,
         proxyPort: props.proxyPort,
-        serviceId: props.serviceId,
-        environmentId: props.environmentId,
+        serviceId: serviceId,
+        environmentId: environmentId,
       },
     },
   );

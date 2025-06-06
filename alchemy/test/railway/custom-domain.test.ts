@@ -41,18 +41,18 @@ describe("CustomDomain Resource", () => {
 
       environment = await Environment(testEnvironmentId, {
         name: "test",
-        projectId: project.id,
+        project: project,
       });
 
       service = await Service(testServiceId, {
         name: "web-service",
-        projectId: project.id,
+        project: project,
       });
 
       customDomain = await CustomDomain(testDomainId, {
         domain: `${BRANCH_PREFIX}-test.example.com`,
-        serviceId: service.id,
-        environmentId: environment.id,
+        service: service,
+        environment: environment,
       });
 
       expect(customDomain.id).toBeTruthy();

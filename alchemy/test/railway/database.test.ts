@@ -38,13 +38,13 @@ describe("Database Resource", () => {
 
       environment = await Environment(testEnvironmentId, {
         name: "test",
-        projectId: project.id,
+        project: project,
       });
 
       database = await Database(testDatabaseId, {
         name: "test-postgres",
-        projectId: project.id,
-        environmentId: environment.id,
+        project: project,
+        environment: environment,
         type: "postgresql",
       });
 

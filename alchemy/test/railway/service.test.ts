@@ -35,7 +35,7 @@ describe("Service Resource", () => {
 
       service = await Service(testServiceId, {
         name: "api-service",
-        projectId: project.id,
+        project: project,
         sourceRepo: "https://github.com/example/api",
         sourceRepoBranch: "main",
         rootDirectory: "/",
@@ -78,7 +78,7 @@ describe("Service Resource", () => {
 
       service = await Service(testServiceId, {
         name: "updated-api-service",
-        projectId: project.id,
+        project: project,
         sourceRepo: "https://github.com/example/updated-api",
         sourceRepoBranch: "develop",
         rootDirectory: "/app",

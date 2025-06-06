@@ -41,18 +41,18 @@ describe("ServiceDomain Resource", () => {
 
       environment = await Environment(testEnvironmentId, {
         name: "test",
-        projectId: project.id,
+        project: project,
       });
 
       service = await Service(testServiceId, {
         name: "api-service",
-        projectId: project.id,
+        project: project,
       });
 
       serviceDomain = await ServiceDomain(testServiceDomainId, {
         domain: `${BRANCH_PREFIX}-api.railway.app`,
-        serviceId: service.id,
-        environmentId: environment.id,
+        service: service,
+        environment: environment,
       });
 
       expect(serviceDomain.id).toBeTruthy();
@@ -88,8 +88,8 @@ describe("ServiceDomain Resource", () => {
 
       serviceDomain = await ServiceDomain(testServiceDomainId, {
         domain: `${BRANCH_PREFIX}-updated-api.railway.app`,
-        serviceId: service.id,
-        environmentId: environment.id,
+        service: service,
+        environment: environment,
       });
 
       expect(serviceDomain).toMatchObject({

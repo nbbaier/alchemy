@@ -38,13 +38,13 @@ describe("Function Resource", () => {
 
       environment = await Environment(testEnvironmentId, {
         name: "test",
-        projectId: project.id,
+        project: project,
       });
 
       func = await Function(testFunctionId, {
         name: "hello-world",
-        projectId: project.id,
-        environmentId: environment.id,
+        project: project,
+        environment: environment,
         runtime: "nodejs",
         main: "./test/fixtures/hello-handler.js",
         entrypoint: "index.handler",
@@ -89,8 +89,8 @@ describe("Function Resource", () => {
 
       func = await Function(testFunctionId, {
         name: "updated-hello-world",
-        projectId: project.id,
-        environmentId: environment.id,
+        project: project,
+        environment: environment,
         runtime: "python",
         main: "./test/fixtures/hello-handler.py",
         entrypoint: "main.handler",

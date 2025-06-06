@@ -2,6 +2,8 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { type Secret, secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import type { Project } from "./project.ts";
+import type { Environment } from "./environment.ts";
 
 export interface DatabaseProps {
   /**
@@ -10,14 +12,14 @@ export interface DatabaseProps {
   name: string;
 
   /**
-   * The ID of the project this database belongs to
+   * The project this database belongs to. Can be a Project resource or project ID string
    */
-  projectId: string;
+  project: string | Project;
 
   /**
-   * The ID of the environment this database belongs to
+   * The environment this database belongs to. Can be an Environment resource or environment ID string
    */
-  environmentId: string;
+  environment: string | Environment;
 
   /**
    * The type of database to create
@@ -30,11 +32,23 @@ export interface DatabaseProps {
   apiKey?: Secret;
 }
 
-export interface Database extends Resource<"railway::Database">, DatabaseProps {
+export interface Database
+  extends Resource<"railway::Database">,
+    Omit<DatabaseProps, "project" | "environment"> {
   /**
    * The unique identifier of the database
    */
   id: string;
+
+  /**
+   * The ID of the project this database belongs to
+   */
+  projectId: string;
+
+  /**
+   * The ID of the environment this database belongs to
+   */
+  environmentId: string;
 
   /**
    * The connection string for the database
@@ -85,8 +99,8 @@ export interface Database extends Resource<"railway::Database">, DatabaseProps {
  * // Create a PostgreSQL database for your application
  * const postgres = await Database("main-db", {
  *   name: "production-database",
- *   projectId: project.id,
- *   environmentId: environment.id,
+ *   project: project,
+ *   environment: environment,
  *   type: "postgresql",
  * });
  * ```
@@ -96,8 +110,8 @@ export interface Database extends Resource<"railway::Database">, DatabaseProps {
  * // Create a Redis cache for session storage
  * const redis = await Database("session-cache", {
  *   name: "user-sessions",
- *   projectId: project.id,
- *   environmentId: environment.id,
+ *   project: "project-id-string",
+ *   environment: "environment-id-string",
  *   type: "redis",
  * });
  * ```
@@ -107,8 +121,8 @@ export interface Database extends Resource<"railway::Database">, DatabaseProps {
  * // Create a MongoDB database for document storage
  * const mongo = await Database("document-store", {
  *   name: "content-database",
- *   projectId: project.id,
- *   environmentId: environment.id,
+ *   project: project,
+ *   environment: environment,
  *   type: "mongodb",
  * });
  * ```
@@ -175,6 +189,13 @@ export const Database = Resource(
 );
 
 export async function createDatabase(api: any, props: DatabaseProps) {
+  const projectId =
+    typeof props.project === "string" ? props.project : props.project.id;
+  const environmentId =
+    typeof props.environment === "string"
+      ? props.environment
+      : props.environment.id;
+
   const response = await api.mutate(
     `
     mutation DatabaseCreate($input: DatabaseCreateInput!) {
@@ -198,8 +219,8 @@ export async function createDatabase(api: any, props: DatabaseProps) {
     {
       input: {
         name: props.name,
-        projectId: props.projectId,
-        environmentId: props.environmentId,
+        projectId: projectId,
+        environmentId: environmentId,
         type: props.type,
       },
     },

@@ -2,6 +2,8 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import type { Project } from "./project.ts";
+import type { Environment } from "./environment.ts";
 
 export interface VolumeProps {
   /**
@@ -10,14 +12,14 @@ export interface VolumeProps {
   name: string;
 
   /**
-   * The ID of the project this volume belongs to
+   * The project this volume belongs to. Can be a Project resource or project ID string
    */
-  projectId: string;
+  project: string | Project;
 
   /**
-   * The ID of the environment this volume belongs to
+   * The environment this volume belongs to. Can be an Environment resource or environment ID string
    */
-  environmentId: string;
+  environment: string | Environment;
 
   /**
    * The path where the volume will be mounted
@@ -35,11 +37,23 @@ export interface VolumeProps {
   apiKey?: Secret;
 }
 
-export interface Volume extends Resource<"railway::Volume">, VolumeProps {
+export interface Volume
+  extends Resource<"railway::Volume">,
+    Omit<VolumeProps, "project" | "environment"> {
   /**
    * The unique identifier of the volume
    */
   id: string;
+
+  /**
+   * The ID of the project this volume belongs to
+   */
+  projectId: string;
+
+  /**
+   * The ID of the environment this volume belongs to
+   */
+  environmentId: string;
 
   /**
    * The timestamp when the volume was created
@@ -104,6 +118,13 @@ export const Volume = Resource(
 );
 
 export async function createVolume(api: any, props: VolumeProps) {
+  const projectId =
+    typeof props.project === "string" ? props.project : props.project.id;
+  const environmentId =
+    typeof props.environment === "string"
+      ? props.environment
+      : props.environment.id;
+
   const response = await api.mutate(
     `
     mutation VolumeCreate($input: VolumeCreateInput!) {
@@ -122,8 +143,8 @@ export async function createVolume(api: any, props: VolumeProps) {
     {
       input: {
         name: props.name,
-        projectId: props.projectId,
-        environmentId: props.environmentId,
+        projectId: projectId,
+        environmentId: environmentId,
         mountPath: props.mountPath,
         size: props.size,
       },

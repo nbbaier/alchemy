@@ -2,6 +2,8 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { type Secret, secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import type { Environment } from "./environment.ts";
+import type { Service } from "./service.ts";
 
 export interface VariableProps {
   /**
@@ -15,14 +17,14 @@ export interface VariableProps {
   value: Secret | string;
 
   /**
-   * The ID of the environment this variable belongs to
+   * The environment this variable belongs to. Can be an Environment resource or environment ID string
    */
-  environmentId: string;
+  environment: string | Environment;
 
   /**
-   * The ID of the service this variable belongs to
+   * The service this variable belongs to. Can be a Service resource or service ID string
    */
-  serviceId: string;
+  service: string | Service;
 
   /**
    * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
@@ -32,7 +34,7 @@ export interface VariableProps {
 
 export interface Variable
   extends Resource<"railway::Variable">,
-    Omit<VariableProps, "value"> {
+    Omit<VariableProps, "value" | "environment" | "service"> {
   /**
    * The unique identifier of the variable
    */
@@ -42,6 +44,16 @@ export interface Variable
    * The value of the environment variable
    */
   value: Secret;
+
+  /**
+   * The ID of the environment this variable belongs to
+   */
+  environmentId: string;
+
+  /**
+   * The ID of the service this variable belongs to
+   */
+  serviceId: string;
 
   /**
    * The timestamp when the variable was created
@@ -63,8 +75,8 @@ export interface Variable
  * const dbUrl = await Variable("db-url", {
  *   name: "DATABASE_URL",
  *   value: "postgresql://user:pass@localhost:5432/db",
- *   environmentId: environment.id,
- *   serviceId: service.id,
+ *   environment: environment,
+ *   service: service,
  * });
  * ```
  *
@@ -74,8 +86,8 @@ export interface Variable
  * const apiKey = await Variable("api-key", {
  *   name: "API_KEY",
  *   value: secret("super-secret-key"),
- *   environmentId: environment.id,
- *   serviceId: service.id,
+ *   environment: "environment-id-string",
+ *   service: "service-id-string",
  * });
  * ```
  *
@@ -85,8 +97,8 @@ export interface Variable
  * const dbConnection = await Variable("db-connection", {
  *   name: "DATABASE_URL",
  *   value: database.connectionString,
- *   environmentId: environment.id,
- *   serviceId: service.id,
+ *   environment: environment,
+ *   service: service,
  * });
  * ```
  */
@@ -140,6 +152,13 @@ export const Variable = Resource(
 );
 
 export async function createVariable(api: any, props: VariableProps) {
+  const environmentId =
+    typeof props.environment === "string"
+      ? props.environment
+      : props.environment.id;
+  const serviceId =
+    typeof props.service === "string" ? props.service : props.service.id;
+
   const response = await api.mutate(
     `
     mutation VariableCreate($input: VariableCreateInput!) {
@@ -161,8 +180,8 @@ export async function createVariable(api: any, props: VariableProps) {
           typeof props.value === "string"
             ? props.value
             : props.value.unencrypted,
-        environmentId: props.environmentId,
-        serviceId: props.serviceId,
+        environmentId: environmentId,
+        serviceId: serviceId,
       },
     },
   );

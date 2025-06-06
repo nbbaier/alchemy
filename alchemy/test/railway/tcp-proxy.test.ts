@@ -41,19 +41,19 @@ describe("TcpProxy Resource", () => {
 
       environment = await Environment(testEnvironmentId, {
         name: "test",
-        projectId: project.id,
+        project: project,
       });
 
       service = await Service(testServiceId, {
         name: "tcp-service",
-        projectId: project.id,
+        project: project,
       });
 
       tcpProxy = await TcpProxy(testTcpProxyId, {
         applicationPort: 3000,
         proxyPort: 8080,
-        serviceId: service.id,
-        environmentId: environment.id,
+        service: service,
+        environment: environment,
       });
 
       expect(tcpProxy.id).toBeTruthy();

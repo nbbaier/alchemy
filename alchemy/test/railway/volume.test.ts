@@ -38,13 +38,13 @@ describe("Volume Resource", () => {
 
       environment = await Environment(testEnvironmentId, {
         name: "test",
-        projectId: project.id,
+        project: project,
       });
 
       volume = await Volume(testVolumeId, {
         name: "data-volume",
-        projectId: project.id,
-        environmentId: environment.id,
+        project: project,
+        environment: environment,
         mountPath: "/data",
         size: 1024,
       });
@@ -86,8 +86,8 @@ describe("Volume Resource", () => {
 
       volume = await Volume(testVolumeId, {
         name: "updated-data-volume",
-        projectId: project.id,
-        environmentId: environment.id,
+        project: project,
+        environment: environment,
         mountPath: "/app/data",
         size: 2048,
       });

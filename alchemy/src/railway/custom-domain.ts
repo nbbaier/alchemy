@@ -2,12 +2,38 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import type { Service } from "./service.ts";
+import type { Environment } from "./environment.ts";
 
 export interface CustomDomainProps {
   /**
    * The custom domain name to configure
    */
   domain: string;
+
+  /**
+   * The service this domain points to. Can be a Service resource or service ID string
+   */
+  service: string | Service;
+
+  /**
+   * The environment this domain belongs to. Can be an Environment resource or environment ID string
+   */
+  environment: string | Environment;
+
+  /**
+   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
+   */
+  apiKey?: Secret;
+}
+
+export interface CustomDomain
+  extends Resource<"railway::CustomDomain">,
+    Omit<CustomDomainProps, "service" | "environment"> {
+  /**
+   * The unique identifier of the custom domain
+   */
+  id: string;
 
   /**
    * The ID of the service this domain points to
@@ -18,20 +44,6 @@ export interface CustomDomainProps {
    * The ID of the environment this domain belongs to
    */
   environmentId: string;
-
-  /**
-   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
-   */
-  apiKey?: Secret;
-}
-
-export interface CustomDomain
-  extends Resource<"railway::CustomDomain">,
-    CustomDomainProps {
-  /**
-   * The unique identifier of the custom domain
-   */
-  id: string;
 
   /**
    * The status of the custom domain configuration
@@ -99,6 +111,13 @@ export const CustomDomain = Resource(
 );
 
 export async function createCustomDomain(api: any, props: CustomDomainProps) {
+  const serviceId =
+    typeof props.service === "string" ? props.service : props.service.id;
+  const environmentId =
+    typeof props.environment === "string"
+      ? props.environment
+      : props.environment.id;
+
   const response = await api.mutate(
     `
     mutation CustomDomainCreate($input: CustomDomainCreateInput!) {
@@ -116,8 +135,8 @@ export async function createCustomDomain(api: any, props: CustomDomainProps) {
     {
       input: {
         domain: props.domain,
-        serviceId: props.serviceId,
-        environmentId: props.environmentId,
+        serviceId: serviceId,
+        environmentId: environmentId,
       },
     },
   );

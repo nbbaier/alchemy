@@ -2,6 +2,7 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import type { Project } from "./project.ts";
 
 export interface ServiceProps {
   /**
@@ -10,9 +11,9 @@ export interface ServiceProps {
   name: string;
 
   /**
-   * The ID of the project this service belongs to
+   * The project this service belongs to. Can be a Project resource or project ID string
    */
-  projectId: string;
+  project: string | Project;
 
   /**
    * The URL of the source repository
@@ -40,11 +41,18 @@ export interface ServiceProps {
   apiKey?: Secret;
 }
 
-export interface Service extends Resource<"railway::Service">, ServiceProps {
+export interface Service
+  extends Resource<"railway::Service">,
+    Omit<ServiceProps, "project"> {
   /**
    * The unique identifier of the service
    */
   id: string;
+
+  /**
+   * The ID of the project this service belongs to
+   */
+  projectId: string;
 
   /**
    * The timestamp when the service was created
@@ -148,6 +156,9 @@ export const Service = Resource(
 );
 
 export async function createService(api: any, props: ServiceProps) {
+  const projectId =
+    typeof props.project === "string" ? props.project : props.project.id;
+
   const response = await api.mutate(
     `
     mutation ServiceCreate($input: ServiceCreateInput!) {
@@ -167,7 +178,7 @@ export async function createService(api: any, props: ServiceProps) {
     {
       input: {
         name: props.name,
-        projectId: props.projectId,
+        projectId: projectId,
         sourceRepo: props.sourceRepo,
         sourceRepoBranch: props.sourceRepoBranch,
         rootDirectory: props.rootDirectory,
