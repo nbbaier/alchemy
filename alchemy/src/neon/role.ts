@@ -39,14 +39,14 @@ export interface NeonRole
   extends Resource<"neon::Role">,
     Omit<NeonRoleProps, "apiKey"> {
   /**
-   * The ID of the project containing this role
+   * The project containing this role
    */
-  projectId: string;
+  project: string | NeonProject;
 
   /**
-   * The ID of the branch containing this role
+   * The branch containing this role
    */
-  branchId: string;
+  branch: string | NeonBranch;
 
   /**
    * Name of the role
@@ -190,8 +190,6 @@ export const NeonRole = Resource(
         protected: role.protected,
         createdAt: role.createdAt,
         updatedAt: role.updatedAt,
-        projectId: projectId,
-        branchId: branchId,
         baseUrl: props.baseUrl,
       });
     } catch (error: unknown) {

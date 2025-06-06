@@ -5,6 +5,11 @@ import { createNeonApi, type NeonApiOptions, type NeonApi } from "./api.ts";
 import type { NeonProject } from "./project.ts";
 import type { NeonBranch } from "./branch.ts";
 
+export type EndpointType = "read_write" | "read_only";
+export type EndpointState = "init" | "active" | "idle";
+export type PoolerMode = "session" | "transaction";
+export type ComputeProvisioner = "k8s-pod" | "k8s-neonvm";
+
 /**
  * Properties for creating or updating a Neon endpoint
  */
@@ -22,12 +27,12 @@ export interface NeonEndpointProps extends NeonApiOptions {
   /**
    * Type of endpoint (read-write or read-only)
    */
-  type: "read_write" | "read_only";
+  type: EndpointType;
 
   /**
    * Compute provisioner to use
    */
-  computeProvisioner?: "k8s-pod" | "k8s-neonvm";
+  computeProvisioner?: ComputeProvisioner;
 
   /**
    * PostgreSQL settings for the endpoint
@@ -44,7 +49,7 @@ export interface NeonEndpointProps extends NeonApiOptions {
   /**
    * Connection pooling mode
    */
-  poolerMode?: "session" | "transaction";
+  poolerMode?: PoolerMode;
 
   /**
    * Whether the endpoint is disabled
@@ -64,7 +69,7 @@ export interface NeonEndpointProps extends NeonApiOptions {
   /**
    * Provisioner type
    */
-  provisioner?: "k8s-pod" | "k8s-neonvm";
+  provisioner?: ComputeProvisioner;
 
   /**
    * Region where the endpoint should be created
@@ -99,14 +104,14 @@ export interface NeonEndpoint
   id: string;
 
   /**
-   * The ID of the project containing this endpoint
+   * The project containing this endpoint
    */
-  projectId: string;
+  project: string | NeonProject;
 
   /**
-   * The ID of the branch containing this endpoint
+   * The branch containing this endpoint
    */
-  branchId: string;
+  branch: string | NeonBranch;
 
   /**
    * Minimum autoscaling compute units
@@ -126,17 +131,17 @@ export interface NeonEndpoint
   /**
    * Type of endpoint (read_write, read_only)
    */
-  type: "read_write" | "read_only";
+  type: EndpointType;
 
   /**
    * Current state of the endpoint
    */
-  currentState: "init" | "active" | "idle";
+  currentState: EndpointState;
 
   /**
    * Pending state of the endpoint
    */
-  pendingState?: "init" | "active" | "idle";
+  pendingState?: EndpointState;
 
   /**
    * Whether connection pooling is enabled
@@ -146,7 +151,7 @@ export interface NeonEndpoint
   /**
    * Connection pooling mode
    */
-  poolerMode?: "session" | "transaction";
+  poolerMode?: PoolerMode;
 
   /**
    * Whether the endpoint is disabled
@@ -186,7 +191,7 @@ export interface NeonEndpoint
   /**
    * Provisioner type
    */
-  provisioner?: "k8s-pod" | "k8s-neonvm";
+  provisioner?: ComputeProvisioner;
 }
 
 /**
@@ -401,8 +406,7 @@ export const NeonEndpoint = Resource(
         provisioner: endpoint.provisioner,
         regionId: endpoint.regionId,
         adopt: props.adopt,
-        projectId: projectId,
-        branchId: branchId,
+
         host: endpoint.host,
         id: endpoint.id,
         autoscalingLimitMinCu: endpoint.autoscalingLimitMinCu,
@@ -558,11 +562,11 @@ interface NeonEndpointType {
   autoscalingLimitMinCu: number;
   autoscalingLimitMaxCu: number;
   regionId: string;
-  type: "read_write" | "read_only";
-  currentState: "init" | "active" | "idle";
-  pendingState?: "init" | "active" | "idle";
+  type: EndpointType;
+  currentState: EndpointState;
+  pendingState?: EndpointState;
   poolerEnabled: boolean;
-  poolerMode?: "session" | "transaction";
+  poolerMode: PoolerMode;
   disabled: boolean;
   passwordlessAccess: boolean;
   lastActive?: string;
@@ -570,7 +574,7 @@ interface NeonEndpointType {
   updatedAt: string;
   proxyHost?: string;
   suspendTimeoutSeconds?: number;
-  provisioner?: "k8s-pod" | "k8s-neonvm";
+  provisioner?: ComputeProvisioner;
 }
 
 interface NeonEndpointApiResponse {
@@ -592,17 +596,17 @@ interface NeonEndpointApiResponse {
 interface CreateEndpointPayload {
   endpoint: {
     branch_id: string;
-    type: "read_write" | "read_only";
-    compute_provisioner?: "k8s-pod" | "k8s-neonvm";
+    type: EndpointType;
+    compute_provisioner?: ComputeProvisioner;
     settings?: {
       pg_settings?: Record<string, string>;
     };
     pooler_enabled?: boolean;
-    pooler_mode?: "session" | "transaction";
+    pooler_mode?: PoolerMode;
     disabled?: boolean;
     passwordless_access?: boolean;
     suspend_timeout_seconds?: number;
-    provisioner?: "k8s-pod" | "k8s-neonvm";
+    provisioner?: ComputeProvisioner;
     region_id?: string;
   };
 }
@@ -614,7 +618,7 @@ interface UpdateEndpointPayload {
       pg_settings?: Record<string, string>;
     };
     pooler_enabled?: boolean;
-    pooler_mode?: "session" | "transaction";
+    pooler_mode?: PoolerMode;
     disabled?: boolean;
     passwordless_access?: boolean;
     suspend_timeout_seconds?: number;

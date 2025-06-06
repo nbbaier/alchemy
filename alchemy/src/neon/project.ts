@@ -159,7 +159,7 @@ export interface NeonBranch {
   /**
    * Pending state of the branch
    */
-  pending_state: string;
+  pendingState: string;
 
   /**
    * Time at which the branch was created

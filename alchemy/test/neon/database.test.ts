@@ -17,8 +17,7 @@ const test = alchemy.test(import.meta, {
 describe("NeonDatabase Resource", () => {
   const testId = `${BRANCH_PREFIX}-test-neon-database`;
 
-  const generateDatabaseName = () =>
-    `test_db_${testId}_${Date.now()}`.replace(/-/g, "_");
+  const generateDatabaseName = () => `test_db_${testId}`.replace(/-/g, "_");
 
   test("create, update, and delete neon database", async (scope) => {
     let project: any;
@@ -27,14 +26,14 @@ describe("NeonDatabase Resource", () => {
 
     try {
       project = await NeonProject(`${testId}-project`, {
-        name: `Test Project ${testId}-${Date.now()}`,
+        name: `Test Project ${testId}`,
         regionId: "aws-us-east-1",
         pg_version: 15,
       });
 
       branch = await NeonBranch(`${testId}-branch`, {
         project: project.id,
-        name: `Test Branch ${testId}-${Date.now()}`,
+        name: `Test Branch ${testId}`,
       });
 
       const databaseName = generateDatabaseName();
@@ -103,14 +102,14 @@ describe("NeonDatabase Resource", () => {
 
     try {
       project = await NeonProject(`${testId}-project-adopt`, {
-        name: `Test Project Adopt ${testId}-${Date.now()}`,
+        name: `Test Project Adopt ${testId}`,
         regionId: "aws-us-east-1",
         pg_version: 15,
       });
 
       branch = await NeonBranch(`${testId}-branch-adopt`, {
         project: project.id,
-        name: `Test Branch Adopt ${testId}-${Date.now()}`,
+        name: `Test Branch Adopt ${testId}`,
       });
 
       const databaseName = generateDatabaseName();

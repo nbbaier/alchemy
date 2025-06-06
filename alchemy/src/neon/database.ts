@@ -48,14 +48,14 @@ export interface NeonDatabase
   id: number;
 
   /**
-   * The ID of the project containing this database
+   * The project containing this database
    */
-  projectId: string;
+  project: string | NeonProject;
 
   /**
-   * The ID of the branch containing this database
+   * The branch containing this database
    */
-  branchId: string;
+  branch: string | NeonBranch;
 
   /**
    * Name of the database
@@ -212,8 +212,6 @@ export const NeonDatabase = Resource(
         name: props.name,
         ownerName: props.ownerName,
         adopt: props.adopt,
-        projectId: projectId,
-        branchId: branchId,
         id: database.id,
         createdAt: database.createdAt,
         updatedAt: database.updatedAt,

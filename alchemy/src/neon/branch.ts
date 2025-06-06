@@ -19,9 +19,9 @@ export interface NeonBranchProps extends NeonApiOptions {
   name: string;
 
   /**
-   * ID of the parent branch to create this branch from
+   * Parent branch to create this branch from
    */
-  parentId?: string;
+  parent?: string | NeonBranch;
 
   /**
    * Log Sequence Number (LSN) of the parent branch to branch from
@@ -40,110 +40,7 @@ export interface NeonBranchProps extends NeonApiOptions {
   adopt?: boolean;
 }
 
-/**
- * Response structure for branch API operations
- */
-interface NeonBranchType {
-  /**
-   * The branch ID
-   */
-  id: string;
-
-  /**
-   * The ID of the project containing this branch
-   */
-  projectId: string;
-
-  /**
-   * ID of the parent branch
-   */
-  parentId?: string;
-
-  /**
-   * Log Sequence Number (LSN) of the parent branch
-   */
-  parentLsn?: string;
-
-  /**
-   * Timestamp of the parent branch
-   */
-  parentTimestamp?: string;
-
-  /**
-   * Name of the branch
-   */
-  name: string;
-
-  /**
-   * Current state of the branch
-   */
-  currentState: "init" | "ready";
-
-  /**
-   * Pending state of the branch during operations
-   */
-  pendingState?: "init" | "ready";
-
-  /**
-   * Logical size of the branch in bytes
-   */
-  logicalSize?: number;
-
-  /**
-   * Physical size of the branch in bytes
-   */
-  physicalSize?: number;
-
-  /**
-   * Time at which the branch was created
-   */
-  createdAt: string;
-
-  /**
-   * Time at which the branch was last updated
-   */
-  updatedAt: string;
-
-  /**
-   * Whether this is the primary branch
-   */
-  primary: boolean;
-
-  /**
-   * Whether this is the default branch
-   */
-  default: boolean;
-
-  /**
-   * Whether this branch is protected from deletion
-   */
-  protected: boolean;
-
-  /**
-   * CPU usage in seconds
-   */
-  cpuUsedSec?: number;
-
-  /**
-   * Compute time in seconds
-   */
-  computeTimeSeconds?: number;
-
-  /**
-   * Active time in seconds
-   */
-  activeTimeSeconds?: number;
-
-  /**
-   * Written data in bytes
-   */
-  writtenDataBytes?: number;
-
-  /**
-   * Data transfer in bytes
-   */
-  dataTransferBytes?: number;
-}
+export type BranchState = "init" | "ready";
 
 /**
  * A Neon branch for copy-on-write database clones
@@ -157,14 +54,14 @@ export interface NeonBranch
   id: string;
 
   /**
-   * The ID of the project containing this branch
+   * The project containing this branch
    */
-  projectId: string;
+  project: string | NeonProject;
 
   /**
-   * ID of the parent branch
+   * Parent branch this branch was created from
    */
-  parentId?: string;
+  parent?: string | NeonBranch;
 
   /**
    * Log Sequence Number (LSN) of the parent branch
@@ -184,12 +81,12 @@ export interface NeonBranch
   /**
    * Current state of the branch
    */
-  currentState: "init" | "ready";
+  currentState: BranchState;
 
   /**
    * Pending state of the branch during operations
    */
-  pendingState?: "init" | "ready";
+  pendingState?: BranchState;
 
   /**
    * Logical size of the branch in bytes
@@ -313,6 +210,11 @@ export const NeonBranch = Resource(
     const branchId = this.output?.id;
     const projectId =
       typeof props.project === "string" ? props.project : props.project.id;
+    const parentId = props.parent
+      ? typeof props.parent === "string"
+        ? props.parent
+        : props.parent.id
+      : undefined;
 
     if (this.phase === "delete") {
       if (!branchId) {
@@ -390,10 +292,10 @@ export const NeonBranch = Resource(
           if (existingBranch) {
             response = { branch: existingBranch };
           } else {
-            response = await createNewBranch(api, projectId, props);
+            response = await createNewBranch(api, projectId, props, parentId);
           }
         } else {
-          response = await createNewBranch(api, projectId, props);
+          response = await createNewBranch(api, projectId, props, parentId);
         }
       }
 
@@ -419,12 +321,11 @@ export const NeonBranch = Resource(
       const branch = response.branch;
       return this({
         project: props.project,
+        parent: props.parent,
         name: props.name,
-        parentId: props.parentId,
         parentLsn: props.parentLsn,
         parentTimestamp: props.parentTimestamp,
         adopt: props.adopt,
-        projectId: projectId,
         id: branch.id,
         currentState: branch.currentState,
         pendingState: branch.pendingState,
@@ -455,6 +356,7 @@ async function createNewBranch(
   api: NeonApi,
   projectId: string,
   props: NeonBranchProps,
+  parentId?: string,
 ): Promise<NeonBranchApiResponse> {
   const createPayload: CreateBranchPayload = {
     branch: {},
@@ -463,8 +365,8 @@ async function createNewBranch(
   if (props.name !== undefined) {
     createPayload.branch.name = props.name;
   }
-  if (props.parentId !== undefined) {
-    createPayload.branch.parent_id = props.parentId;
+  if (parentId !== undefined) {
+    createPayload.branch.parent_id = parentId;
   }
   if (props.parentLsn !== undefined) {
     createPayload.branch.parent_lsn = props.parentLsn;
@@ -483,6 +385,53 @@ async function createNewBranch(
   }
 
   return await createResponse.json();
+}
+
+interface NeonBranchType {
+  projectId: string;
+  id: string;
+  parentId?: string;
+  parentLsn?: string;
+  parentTimestamp?: string;
+  name: string;
+  currentState: BranchState;
+  pendingState?: BranchState;
+  logicalSize?: number;
+  physicalSize?: number;
+  createdAt: string;
+  updatedAt: string;
+  primary: boolean;
+  default: boolean;
+  protected: boolean;
+  cpuUsedSec?: number;
+  computeTimeSeconds?: number;
+  activeTimeSeconds?: number;
+  writtenDataBytes?: number;
+  dataTransferBytes?: number;
+}
+
+interface NeonBranchApiResponse {
+  branch: NeonBranchType;
+  operations?: NeonOperation[];
+}
+
+interface CreateBranchPayload {
+  branch: {
+    name?: string;
+    parent_id?: string;
+    parent_lsn?: string;
+    parent_timestamp?: string;
+  };
+}
+
+interface UpdateBranchPayload {
+  branch: {
+    name?: string;
+  };
+}
+
+interface ListBranchesResponse {
+  branches?: NeonBranchType[];
 }
 
 async function waitForOperations(
@@ -529,145 +478,4 @@ async function waitForOperations(
   }
 
   return;
-}
-
-/**
- * Response structure for branch API operations
- */
-interface NeonBranchType {
-  /**
-   * The ID of the project containing this branch
-   */
-  projectId: string;
-
-  /**
-   * ID of the parent branch
-   */
-  parentId?: string;
-
-  /**
-   * Log Sequence Number (LSN) of the parent branch
-   */
-  parentLsn?: string;
-
-  /**
-   * Timestamp of the parent branch
-   */
-  parentTimestamp?: string;
-
-  /**
-   * The branch ID
-   */
-  id: string;
-
-  /**
-   * Name of the branch
-   */
-  name: string;
-
-  /**
-   * Current state of the branch
-   */
-  currentState: "init" | "ready";
-
-  /**
-   * Pending state of the branch
-   */
-  pendingState?: "init" | "ready";
-
-  /**
-   * Logical size of the branch in bytes
-   */
-  logicalSize?: number;
-
-  /**
-   * Physical size of the branch in bytes
-   */
-  physicalSize?: number;
-
-  /**
-   * Time at which the branch was created
-   */
-  createdAt: string;
-
-  /**
-   * Time at which the branch was last updated
-   */
-  updatedAt: string;
-
-  /**
-   * Whether this is the primary branch
-   */
-  primary: boolean;
-
-  /**
-   * Whether this is the default branch
-   */
-  default: boolean;
-
-  /**
-   * Whether the branch is protected from deletion
-   */
-  protected: boolean;
-
-  /**
-   * CPU seconds used by the branch
-   */
-  cpuUsedSec?: number;
-
-  /**
-   * Compute time in seconds
-   */
-  computeTimeSeconds?: number;
-
-  /**
-   * Active time in seconds
-   */
-  activeTimeSeconds?: number;
-
-  /**
-   * Data written in bytes
-   */
-  writtenDataBytes?: number;
-
-  /**
-   * Data transfer in bytes
-   */
-  dataTransferBytes?: number;
-}
-
-/**
- * API response structure for branch operations
- */
-interface NeonBranchApiResponse {
-  branch: NeonBranchType;
-  operations?: NeonOperation[];
-}
-
-/**
- * Payload structure for creating a branch
- */
-interface CreateBranchPayload {
-  branch: {
-    name?: string;
-    parent_id?: string;
-    parent_lsn?: string;
-    parent_timestamp?: string;
-  };
-}
-
-/**
- * Payload structure for updating a branch
- */
-interface UpdateBranchPayload {
-  branch: {
-    name?: string;
-  };
-}
-
-/**
- * API response structure for listing branches
- */
-interface ListBranchesResponse {
-  branches?: NeonBranchType[];
 }

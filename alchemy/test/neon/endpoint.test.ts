@@ -24,14 +24,14 @@ describe("NeonEndpoint Resource", () => {
 
     try {
       project = await NeonProject(`${testId}-project`, {
-        name: `Test Project ${testId}-${Date.now()}`,
+        name: `Test Project ${testId}`,
         regionId: "aws-us-east-1",
         pg_version: 15,
       });
 
       branch = await NeonBranch(`${testId}-branch`, {
         project: project.id,
-        name: `Test Branch ${testId}-${Date.now()}`,
+        name: `Test Branch ${testId}`,
       });
 
       endpoint = await NeonEndpoint(testId, {
@@ -97,14 +97,14 @@ describe("NeonEndpoint Resource", () => {
 
     try {
       project = await NeonProject(`${testId}-project-adopt`, {
-        name: `Test Project Adopt ${testId}-${Date.now()}`,
+        name: `Test Project Adopt ${testId}`,
         regionId: "aws-us-east-1",
         pg_version: 15,
       });
 
       branch = await NeonBranch(`${testId}-branch-adopt`, {
         project: project.id,
-        name: `Test Branch Adopt ${testId}-${Date.now()}`,
+        name: `Test Branch Adopt ${testId}`,
       });
 
       const createResponse = await api.post(

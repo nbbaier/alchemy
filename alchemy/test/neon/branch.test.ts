@@ -16,7 +16,7 @@ const test = alchemy.test(import.meta, {
 describe("NeonBranch Resource", () => {
   const testId = `${BRANCH_PREFIX}-test-neon-branch`;
 
-  const generateBranchName = () => `Test Branch ${testId}-${Date.now()}`;
+  const generateBranchName = () => `Test Branch ${testId}`;
 
   test("create, update, and delete neon branch", async (scope) => {
     let project: any;
@@ -24,7 +24,7 @@ describe("NeonBranch Resource", () => {
 
     try {
       project = await NeonProject(`${testId}-project`, {
-        name: `Test Project ${testId}-${Date.now()}`,
+        name: `Test Project ${testId}`,
         regionId: "aws-us-east-1",
         pg_version: 15,
       });
@@ -89,7 +89,7 @@ describe("NeonBranch Resource", () => {
 
     try {
       project = await NeonProject(`${testId}-project-adopt`, {
-        name: `Test Project Adopt ${testId}-${Date.now()}`,
+        name: `Test Project Adopt ${testId}`,
         regionId: "aws-us-east-1",
         pg_version: 15,
       });
