@@ -7,19 +7,53 @@ import {
   isPolarConflictError,
 } from "./client.ts";
 
+/**
+ * Properties for creating or updating a Polar Customer.
+ */
 export interface CustomerProps {
+  /** Customer's email address (required) */
   email: string;
+  /** Customer's display name */
   name?: string;
+  /** Key-value pairs for storing additional information */
   metadata?: Record<string, string>;
+  /** Polar API key (overrides environment variable) */
   apiKey?: Secret;
+  /** If true, adopt existing resource if creation fails due to conflict */
   adopt?: boolean;
 }
 
+/**
+ * Manages Polar Customers for your organization.
+ *
+ * Customers represent individuals or entities that can purchase products,
+ * subscribe to services, and receive benefits in your Polar organization.
+ *
+ * @example
+ * // Create a basic customer
+ * const customer = await Customer("john-doe", {
+ *   email: "john@example.com",
+ *   name: "John Doe"
+ * });
+ *
+ * @example
+ * // Create a customer with metadata
+ * const customerWithMetadata = await Customer("premium-customer", {
+ *   email: "premium@example.com",
+ *   name: "Premium User",
+ *   metadata: {
+ *     source: "website",
+ *     plan: "premium"
+ *   }
+ * });
+ *
+ * @see https://docs.polar.sh/api-reference/customers
+ */
 export interface Customer extends Resource<"polar::Customer">, CustomerProps {
   id: string;
   createdAt: string;
   modifiedAt: string;
-  organizationId: string;
+  organization: string;
 }
 
 export const Customer = Resource(
@@ -82,7 +116,7 @@ export const Customer = Resource(
       metadata: customer.metadata || {},
       createdAt: customer.created_at,
       modifiedAt: customer.modified_at,
-      organizationId: customer.organization_id,
+      organization: customer.organization_id,
     });
   },
 );

@@ -6,13 +6,24 @@ import {
   handlePolarDeleteError,
   isPolarConflictError,
 } from "./client.ts";
+import type { Customer } from "./customer.ts";
+import type { Product } from "./product.ts";
 
+/**
+ * Properties for creating or updating a Polar Subscription.
+ */
 export interface SubscriptionProps {
-  customerId?: string;
-  productId?: string;
+  /** Customer ID or Customer resource */
+  customer?: string | Customer;
+  /** Product ID or Product resource */
+  product?: string | Product;
+  /** Subscription amount in cents */
   amount?: number;
+  /** Currency code (e.g., 'usd', 'eur') */
   currency?: string;
+  /** Billing interval for recurring subscriptions */
   recurringInterval?: "month" | "year";
+  /** Current subscription status */
   status?:
     | "incomplete"
     | "incomplete_expired"
@@ -21,24 +32,66 @@ export interface SubscriptionProps {
     | "past_due"
     | "canceled"
     | "unpaid";
+  /** Start of current billing period */
   currentPeriodStart?: string;
+  /** End of current billing period */
   currentPeriodEnd?: string;
+  /** Whether to cancel at the end of the current period */
   cancelAtPeriodEnd?: boolean;
+  /** When the subscription started */
   startedAt?: string;
+  /** When the subscription ended */
   endedAt?: string;
+  /** Key-value pairs for storing additional information */
   metadata?: Record<string, string>;
+  /** Polar API key (overrides environment variable) */
   apiKey?: Secret;
+  /** If true, adopt existing resource if creation fails due to conflict */
   adopt?: boolean;
 }
 
+/**
+ * Manages Polar Subscriptions for recurring billing.
+ *
+ * Subscriptions represent ongoing billing relationships between customers
+ * and recurring products. They handle automatic billing cycles, status
+ * management, and lifecycle events.
+ *
+ * @example
+ * // Create a monthly subscription
+ * const monthlySubscription = await Subscription("monthly-premium", {
+ *   customer: "cust_123",
+ *   product: "prod_premium",
+ *   amount: 2999,
+ *   currency: "usd",
+ *   recurringInterval: "month"
+ * });
+ *
+ * @example
+ * // Create a yearly subscription with trial
+ * const yearlySubscription = await Subscription("yearly-pro", {
+ *   customer: customerResource,
+ *   product: productResource,
+ *   amount: 29999,
+ *   currency: "usd",
+ *   recurringInterval: "year",
+ *   status: "trialing",
+ *   metadata: {
+ *     trial_days: "14",
+ *     source: "website"
+ *   }
+ * });
+ *
+ * @see https://docs.polar.sh/api-reference/subscriptions
+ */
 export interface Subscription
   extends Resource<"polar::Subscription">,
     SubscriptionProps {
   id: string;
   createdAt: string;
   modifiedAt: string;
-  customerId: string;
-  productId: string;
+  customer: string;
+  product: string;
   amount: number;
   currency: string;
   recurringInterval: "month" | "year";
@@ -94,15 +147,20 @@ export const Subscription = Resource(
         updateData,
       );
     } else {
-      if (!props.customerId || !props.productId) {
+      if (!props.customer || !props.product) {
         throw new Error(
-          "customerId and productId are required for creating a subscription",
+          "customer and product are required for creating a subscription",
         );
       }
 
+      const customerId =
+        typeof props.customer === "string" ? props.customer : props.customer.id;
+      const productId =
+        typeof props.product === "string" ? props.product : props.product.id;
+
       const createData: any = {
-        customer_id: props.customerId,
-        product_id: props.productId,
+        customer_id: customerId,
+        product_id: productId,
       };
       if (props.amount !== undefined) createData.amount = props.amount;
       if (props.currency !== undefined) createData.currency = props.currency;
@@ -125,8 +183,8 @@ export const Subscription = Resource(
 
     return this({
       id: subscription.id,
-      customerId: subscription.customer_id,
-      productId: subscription.product_id,
+      customer: subscription.customer_id,
+      product: subscription.product_id,
       amount: subscription.amount,
       currency: subscription.currency,
       recurringInterval: subscription.recurring_interval,

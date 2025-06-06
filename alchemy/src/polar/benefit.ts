@@ -6,8 +6,13 @@ import {
   handlePolarDeleteError,
   isPolarConflictError,
 } from "./client.ts";
+import type { Organization } from "./organization.ts";
 
+/**
+ * Properties for creating or updating a Polar Benefit.
+ */
 export interface BenefitProps {
+  /** Type of benefit to create */
   type:
     | "custom"
     | "articles"
@@ -15,16 +20,69 @@ export interface BenefitProps {
     | "github_repository"
     | "downloadables"
     | "license_keys";
+  /** Description of the benefit */
   description: string;
+  /** Whether customers can select this benefit */
   selectable?: boolean;
+  /** Whether this benefit can be deleted */
   deletable?: boolean;
-  organizationId?: string;
+  /** Organization ID or Organization resource */
+  organization?: string | Organization;
+  /** Type-specific configuration properties */
   properties?: Record<string, any>;
+  /** Key-value pairs for storing additional information */
   metadata?: Record<string, string>;
+  /** Polar API key (overrides environment variable) */
   apiKey?: Secret;
+  /** If true, adopt existing resource if creation fails due to conflict */
   adopt?: boolean;
 }
 
+/**
+ * Manages Polar Benefits that can be granted to customers.
+ *
+ * Benefits represent perks, access rights, or digital goods that customers
+ * receive when they purchase products or subscribe to services. Different
+ * benefit types provide various integrations and capabilities.
+ *
+ * @example
+ * // Create a Discord access benefit
+ * const discordBenefit = await Benefit("discord-access", {
+ *   type: "discord",
+ *   description: "Access to premium Discord server",
+ *   selectable: true,
+ *   properties: {
+ *     guild_id: "123456789",
+ *     role_id: "987654321"
+ *   }
+ * });
+ *
+ * @example
+ * // Create a custom benefit
+ * const customBenefit = await Benefit("custom-benefit", {
+ *   type: "custom",
+ *   description: "Priority customer support",
+ *   selectable: false,
+ *   metadata: {
+ *     category: "support",
+ *     priority: "high"
+ *   }
+ * });
+ *
+ * @example
+ * // Create a GitHub repository access benefit
+ * const githubBenefit = await Benefit("github-access", {
+ *   type: "github_repository",
+ *   description: "Access to private repository",
+ *   properties: {
+ *     repository_owner: "myorg",
+ *     repository_name: "private-repo",
+ *     permission: "pull"
+ *   }
+ * });
+ *
+ * @see https://docs.polar.sh/api-reference/benefits
+ */
 export interface Benefit extends Resource<"polar::Benefit">, BenefitProps {
   id: string;
   createdAt: string;
@@ -39,7 +97,7 @@ export interface Benefit extends Resource<"polar::Benefit">, BenefitProps {
   description: string;
   selectable: boolean;
   deletable: boolean;
-  organizationId: string;
+  organization: string;
   properties?: Record<string, any>;
 }
 
@@ -85,8 +143,12 @@ export const Benefit = Resource(
       if (props.selectable !== undefined)
         createData.selectable = props.selectable;
       if (props.deletable !== undefined) createData.deletable = props.deletable;
-      if (props.organizationId !== undefined)
-        createData.organization_id = props.organizationId;
+      if (props.organization !== undefined) {
+        createData.organization_id =
+          typeof props.organization === "string"
+            ? props.organization
+            : props.organization.id;
+      }
       if (props.properties !== undefined)
         createData.properties = props.properties;
       if (props.metadata !== undefined) createData.metadata = props.metadata;
@@ -110,7 +172,7 @@ export const Benefit = Resource(
       description: benefit.description,
       selectable: benefit.selectable,
       deletable: benefit.deletable,
-      organizationId: benefit.organization_id,
+      organization: benefit.organization_id,
       properties: benefit.properties,
       metadata: benefit.metadata || {},
       createdAt: benefit.created_at,

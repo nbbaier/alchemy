@@ -6,23 +6,66 @@ import {
   handlePolarDeleteError,
   isPolarConflictError,
 } from "./client.ts";
+import type { Customer } from "./customer.ts";
+import type { Product } from "./product.ts";
 
+/**
+ * Properties for creating or updating a Polar Order.
+ */
 export interface OrderProps {
-  customerId?: string;
-  productId?: string;
+  /** Customer ID or Customer resource */
+  customer?: string | Customer;
+  /** Product ID or Product resource */
+  product?: string | Product;
+  /** Order amount in cents */
   amount?: number;
+  /** Currency code (e.g., 'usd', 'eur') */
   currency?: string;
+  /** Key-value pairs for storing additional information */
   metadata?: Record<string, string>;
+  /** Polar API key (overrides environment variable) */
   apiKey?: Secret;
+  /** If true, adopt existing resource if creation fails due to conflict */
   adopt?: boolean;
 }
 
+/**
+ * Manages Polar Orders for one-time purchases.
+ *
+ * Orders represent completed or pending purchases of products by customers.
+ * Unlike subscriptions, orders are typically one-time transactions that
+ * provide immediate access to products or benefits.
+ *
+ * @example
+ * // Create a simple order
+ * const ebookOrder = await Order("ebook-purchase", {
+ *   customer: "cust_123",
+ *   product: "prod_ebook",
+ *   amount: 1999,
+ *   currency: "usd"
+ * });
+ *
+ * @example
+ * // Create an order with metadata
+ * const courseOrder = await Order("course-purchase", {
+ *   customer: customerResource,
+ *   product: productResource,
+ *   amount: 9999,
+ *   currency: "usd",
+ *   metadata: {
+ *     source: "landing_page",
+ *     discount_code: "EARLY_BIRD"
+ *   }
+ * });
+ *
+ * @see https://docs.polar.sh/api-reference/orders
+ */
 export interface Order extends Resource<"polar::Order">, OrderProps {
   id: string;
   createdAt: string;
   modifiedAt: string;
-  customerId: string;
-  productId: string;
+  customer: string;
+  product: string;
   amount: number;
   currency: string;
 }
@@ -57,15 +100,20 @@ export const Order = Resource(
 
       order = await client.patch(`/orders/${this.output.id}`, updateData);
     } else {
-      if (!props.customerId || !props.productId) {
+      if (!props.customer || !props.product) {
         throw new Error(
-          "customerId and productId are required for creating an order",
+          "customer and product are required for creating an order",
         );
       }
 
+      const customerId =
+        typeof props.customer === "string" ? props.customer : props.customer.id;
+      const productId =
+        typeof props.product === "string" ? props.product : props.product.id;
+
       const createData: any = {
-        customer_id: props.customerId,
-        product_id: props.productId,
+        customer_id: customerId,
+        product_id: productId,
       };
       if (props.amount !== undefined) createData.amount = props.amount;
       if (props.currency !== undefined) createData.currency = props.currency;
@@ -86,8 +134,8 @@ export const Order = Resource(
 
     return this({
       id: order.id,
-      customerId: order.customer_id,
-      productId: order.product_id,
+      customer: order.customer_id,
+      product: order.product_id,
       amount: order.amount,
       currency: order.currency,
       metadata: order.metadata || {},

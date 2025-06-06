@@ -6,23 +6,76 @@ import {
   handlePolarDeleteError,
   isPolarConflictError,
 } from "./client.ts";
+import type { Organization } from "./organization.ts";
 
+/**
+ * Properties for creating or updating a Polar Discount.
+ */
 export interface DiscountProps {
+  /** Type of discount (percentage or fixed amount) */
   type: "percentage" | "fixed";
+  /** Discount amount (percentage or cents) */
   amount: number;
+  /** Currency for fixed amount discounts */
   currency?: string;
+  /** Display name for the discount */
   name?: string;
+  /** Discount code customers can use */
   code?: string;
+  /** When the discount becomes active */
   startsAt?: string;
+  /** When the discount expires */
   endsAt?: string;
+  /** Maximum number of times this discount can be used */
   maxRedemptions?: number;
+  /** Current number of redemptions */
   redemptionsCount?: number;
-  organizationId?: string;
+  /** Organization ID or Organization resource */
+  organization?: string | Organization;
+  /** Key-value pairs for storing additional information */
   metadata?: Record<string, string>;
+  /** Polar API key (overrides environment variable) */
   apiKey?: Secret;
+  /** If true, adopt existing resource if creation fails due to conflict */
   adopt?: boolean;
 }
 
+/**
+ * Manages Polar Discounts for promotional pricing.
+ *
+ * Discounts allow you to create promotional codes that customers can use
+ * to receive percentage or fixed-amount reductions on their purchases.
+ * Discounts can be time-limited and have usage restrictions.
+ *
+ * @example
+ * // Create a percentage discount
+ * const percentageDiscount = await Discount("summer-sale", {
+ *   type: "percentage",
+ *   amount: 25,
+ *   name: "Summer Sale",
+ *   code: "SUMMER25",
+ *   maxRedemptions: 100,
+ *   startsAt: "2024-06-01T00:00:00Z",
+ *   endsAt: "2024-08-31T23:59:59Z"
+ * });
+ *
+ * @example
+ * // Create a fixed amount discount
+ * const fixedDiscount = await Discount("new-customer", {
+ *   type: "fixed",
+ *   amount: 500,
+ *   currency: "usd",
+ *   name: "New Customer Discount",
+ *   code: "WELCOME5",
+ *   maxRedemptions: 1000,
+ *   metadata: {
+ *     campaign: "new_customer_acquisition",
+ *     source: "email"
+ *   }
+ * });
+ *
+ * @see https://docs.polar.sh/api-reference/discounts
+ */
 export interface Discount extends Resource<"polar::Discount">, DiscountProps {
   id: string;
   createdAt: string;
@@ -36,7 +89,7 @@ export interface Discount extends Resource<"polar::Discount">, DiscountProps {
   endsAt?: string;
   maxRedemptions?: number;
   redemptionsCount: number;
-  organizationId: string;
+  organization: string;
 }
 
 export const Discount = Resource(
@@ -86,8 +139,12 @@ export const Discount = Resource(
       if (props.endsAt !== undefined) createData.ends_at = props.endsAt;
       if (props.maxRedemptions !== undefined)
         createData.max_redemptions = props.maxRedemptions;
-      if (props.organizationId !== undefined)
-        createData.organization_id = props.organizationId;
+      if (props.organization !== undefined) {
+        createData.organization_id =
+          typeof props.organization === "string"
+            ? props.organization
+            : props.organization.id;
+      }
       if (props.metadata !== undefined) createData.metadata = props.metadata;
 
       try {
@@ -114,7 +171,7 @@ export const Discount = Resource(
       endsAt: discount.ends_at,
       maxRedemptions: discount.max_redemptions,
       redemptionsCount: discount.redemptions_count,
-      organizationId: discount.organization_id,
+      organization: discount.organization_id,
       metadata: discount.metadata || {},
       createdAt: discount.created_at,
       modifiedAt: discount.modified_at,

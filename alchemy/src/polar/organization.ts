@@ -3,26 +3,80 @@ import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
 import { createPolarClient, handlePolarDeleteError } from "./client.ts";
 
+/**
+ * Properties for updating a Polar Organization.
+ */
 export interface OrganizationProps {
+  /** Organization name */
   name?: string;
+  /** Organization slug (URL identifier) */
   slug?: string;
+  /** Avatar image URL */
   avatarUrl?: string;
+  /** Organization bio/description */
   bio?: string;
+  /** Company name */
   company?: string;
+  /** Blog URL */
   blog?: string;
+  /** Location */
   location?: string;
+  /** Contact email */
   email?: string;
+  /** Twitter username */
   twitterUsername?: string;
+  /** Minimum pledge amount in cents */
   pledgeMinimumAmount?: number;
+  /** Whether to show amount on pledge badge */
   pledgeBadgeShowAmount?: boolean;
+  /** Default upfront split percentage to contributors */
   defaultUpfrontSplitToContributors?: number;
+  /** Profile configuration settings */
   profileSettings?: Record<string, any>;
+  /** Feature configuration settings */
   featureSettings?: Record<string, any>;
+  /** Key-value pairs for storing additional information */
   metadata?: Record<string, string>;
+  /** Polar API key (overrides environment variable) */
   apiKey?: Secret;
+  /** If true, adopt existing resource if creation fails due to conflict */
   adopt?: boolean;
 }
 
+/**
+ * Manages Polar Organizations and their settings.
+ *
+ * Organizations represent the top-level entity in Polar that contains
+ * products, customers, and other resources. This resource allows you to
+ * update organization settings and configuration.
+ *
+ * Note: Organizations cannot be created through the API - they are typically
+ * created through the Polar platform. This resource only supports updates.
+ *
+ * @example
+ * // Update organization profile information
+ * const organization = await Organization("my-org", {
+ *   name: "My Company",
+ *   bio: "We build amazing software products",
+ *   company: "My Company Inc.",
+ *   location: "San Francisco, CA",
+ *   email: "contact@mycompany.com"
+ * });
+ *
+ * @example
+ * // Update organization pledge settings
+ * const orgWithPledges = await Organization("my-org", {
+ *   pledgeMinimumAmount: 500,
+ *   pledgeBadgeShowAmount: true,
+ *   defaultUpfrontSplitToContributors: 80,
+ *   metadata: {
+ *     funding_goal: "10000",
+ *     campaign: "product_launch"
+ *   }
+ * });
+ *
+ * @see https://docs.polar.sh/api-reference/organizations
+ */
 export interface Organization
   extends Resource<"polar::Organization">,
     OrganizationProps {
