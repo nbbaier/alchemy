@@ -4,22 +4,63 @@ import type { Secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
 
 export interface TcpProxyProps {
+  /**
+   * The port number that the application is listening on
+   */
   applicationPort: number;
+
+  /**
+   * The external proxy port number (optional)
+   */
   proxyPort?: number;
+
+  /**
+   * The ID of the service this proxy belongs to
+   */
   serviceId: string;
+
+  /**
+   * The ID of the environment this proxy belongs to
+   */
   environmentId: string;
+
+  /**
+   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
+   */
   apiKey?: Secret;
 }
 
+export interface TcpProxy extends Resource<"railway::TcpProxy">, TcpProxyProps {
+  /**
+   * The unique identifier of the TCP proxy
+   */
+  id: string;
+
+  /**
+   * The domain name for accessing the proxy
+   */
+  domain: string;
+
+  /**
+   * The timestamp when the TCP proxy was created
+   */
+  createdAt: string;
+
+  /**
+   * The timestamp when the TCP proxy was last updated
+   */
+  updatedAt: string;
+}
+
 /**
- * A Railway TCP proxy provides external access to TCP services running on specific ports.
+ * Create and manage Railway TCP proxies
  *
  * @example
  * ```typescript
  * // Create a TCP proxy for a database service
  * const dbProxy = await TcpProxy("db-proxy", {
  *   applicationPort: 5432,
- *   serviceId: service.id,
+ *   serviceId: database.id,
  *   environmentId: environment.id,
  * });
  * ```
@@ -37,23 +78,15 @@ export interface TcpProxyProps {
  *
  * @example
  * ```typescript
- * // Create a TCP proxy for Redis with authentication
+ * // Create a TCP proxy for Redis
  * const redisProxy = await TcpProxy("redis-proxy", {
  *   applicationPort: 6379,
- *   serviceId: service.id,
- *   environmentId: environment.id,
- *   apiKey: secret("redis-railway-token"),
+ *   serviceId: redisService.id,
+ *   environmentId: production.id,
+ *   apiKey: secret("proxy-railway-token"),
  * });
  * ```
  */
-
-export interface TcpProxy extends Resource<"railway::TcpProxy">, TcpProxyProps {
-  id: string;
-  domain: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export const TcpProxy = Resource(
   "railway::TcpProxy",
   async function (
@@ -66,14 +99,7 @@ export const TcpProxy = Resource(
     if (this.phase === "delete") {
       try {
         if (this.output?.id) {
-          await api.mutate(
-            `
-            mutation TcpProxyDelete($id: String!) {
-              tcpProxyDelete(id: $id)
-            }
-            `,
-            { id: this.output.id },
-          );
+          await deleteTcpProxy(api, this.output.id);
         }
       } catch (error) {
         handleRailwayDeleteError(error, "TcpProxy", this.output?.id);
@@ -83,28 +109,7 @@ export const TcpProxy = Resource(
     }
 
     if (this.phase === "update" && this.output?.id) {
-      const response = await api.query(
-        `
-        query TcpProxy($id: String!) {
-          tcpProxy(id: $id) {
-            id
-            applicationPort
-            proxyPort
-            serviceId
-            environmentId
-            domain
-            createdAt
-            updatedAt
-          }
-        }
-        `,
-        { id: this.output.id },
-      );
-
-      const tcpProxy = response.data?.tcpProxy;
-      if (!tcpProxy) {
-        throw new Error("Failed to fetch Railway TCP proxy");
-      }
+      const tcpProxy = await getTcpProxy(api, this.output.id);
 
       return this({
         id: tcpProxy.id,
@@ -118,35 +123,7 @@ export const TcpProxy = Resource(
       });
     }
 
-    const response = await api.mutate(
-      `
-      mutation TcpProxyCreate($input: TCPProxyCreateInput!) {
-        tcpProxyCreate(input: $input) {
-          id
-          applicationPort
-          proxyPort
-          serviceId
-          environmentId
-          domain
-          createdAt
-          updatedAt
-        }
-      }
-      `,
-      {
-        input: {
-          applicationPort: props.applicationPort,
-          proxyPort: props.proxyPort,
-          serviceId: props.serviceId,
-          environmentId: props.environmentId,
-        },
-      },
-    );
-
-    const tcpProxy = response.data?.tcpProxyCreate;
-    if (!tcpProxy) {
-      throw new Error("Failed to create Railway TCP proxy");
-    }
+    const tcpProxy = await createTcpProxy(api, props);
 
     return this({
       id: tcpProxy.id,
@@ -160,3 +137,75 @@ export const TcpProxy = Resource(
     });
   },
 );
+
+export async function createTcpProxy(api: any, props: TcpProxyProps) {
+  const response = await api.mutate(
+    `
+    mutation TcpProxyCreate($input: TcpProxyCreateInput!) {
+      tcpProxyCreate(input: $input) {
+        id
+        applicationPort
+        proxyPort
+        serviceId
+        environmentId
+        domain
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    {
+      input: {
+        applicationPort: props.applicationPort,
+        proxyPort: props.proxyPort,
+        serviceId: props.serviceId,
+        environmentId: props.environmentId,
+      },
+    },
+  );
+
+  const tcpProxy = response.data?.tcpProxyCreate;
+  if (!tcpProxy) {
+    throw new Error("Failed to create Railway TCP proxy");
+  }
+
+  return tcpProxy;
+}
+
+export async function getTcpProxy(api: any, id: string) {
+  const response = await api.query(
+    `
+    query TcpProxy($id: String!) {
+      tcpProxy(id: $id) {
+        id
+        applicationPort
+        proxyPort
+        serviceId
+        environmentId
+        domain
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    { id },
+  );
+
+  const tcpProxy = response.data?.tcpProxy;
+  if (!tcpProxy) {
+    throw new Error("Failed to fetch Railway TCP proxy");
+  }
+
+  return tcpProxy;
+}
+
+export async function deleteTcpProxy(api: any, id: string) {
+  await api.mutate(
+    `
+    mutation TcpProxyDelete($id: String!) {
+      tcpProxyDelete(id: $id)
+    }
+    `,
+    { id },
+  );
+}

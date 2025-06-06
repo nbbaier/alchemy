@@ -4,53 +4,48 @@ import type { Secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
 
 export interface CustomDomainProps {
+  /**
+   * The custom domain name to configure
+   */
   domain: string;
+
+  /**
+   * The ID of the service this domain points to
+   */
   serviceId: string;
+
+  /**
+   * The ID of the environment this domain belongs to
+   */
   environmentId: string;
+
+  /**
+   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
+   */
   apiKey?: Secret;
 }
-
-/**
- * A Railway custom domain allows you to use your own domain name for a service deployment.
- *
- * @example
- * ```typescript
- * // Create a custom domain for production
- * const productionDomain = await CustomDomain("prod-domain", {
- *   domain: "api.mycompany.com",
- *   serviceId: service.id,
- *   environmentId: environment.id,
- * });
- * ```
- *
- * @example
- * ```typescript
- * // Create a staging domain
- * const stagingDomain = await CustomDomain("staging-domain", {
- *   domain: "staging-api.mycompany.com",
- *   serviceId: service.id,
- *   environmentId: environment.id,
- * });
- * ```
- *
- * @example
- * ```typescript
- * // Create a custom domain with specific authentication
- * const customDomain = await CustomDomain("custom-domain", {
- *   domain: "app.example.org",
- *   serviceId: service.id,
- *   environmentId: environment.id,
- *   apiKey: secret("domain-management-token"),
- * });
- * ```
- */
 
 export interface CustomDomain
   extends Resource<"railway::CustomDomain">,
     CustomDomainProps {
+  /**
+   * The unique identifier of the custom domain
+   */
   id: string;
+
+  /**
+   * The status of the custom domain configuration
+   */
   status: string;
+
+  /**
+   * The timestamp when the custom domain was created
+   */
   createdAt: string;
+
+  /**
+   * The timestamp when the custom domain was last updated
+   */
   updatedAt: string;
 }
 
@@ -66,14 +61,7 @@ export const CustomDomain = Resource(
     if (this.phase === "delete") {
       try {
         if (this.output?.id) {
-          await api.mutate(
-            `
-            mutation CustomDomainDelete($id: String!) {
-              customDomainDelete(id: $id)
-            }
-            `,
-            { id: this.output.id },
-          );
+          await deleteCustomDomain(api, this.output.id);
         }
       } catch (error) {
         handleRailwayDeleteError(error, "CustomDomain", this.output?.id);
@@ -83,27 +71,7 @@ export const CustomDomain = Resource(
     }
 
     if (this.phase === "update" && this.output?.id) {
-      const response = await api.query(
-        `
-        query CustomDomain($id: String!) {
-          customDomain(id: $id) {
-            id
-            domain
-            serviceId
-            environmentId
-            status
-            createdAt
-            updatedAt
-          }
-        }
-        `,
-        { id: this.output.id },
-      );
-
-      const customDomain = response.data?.customDomain;
-      if (!customDomain) {
-        throw new Error("Failed to fetch Railway custom domain");
-      }
+      const customDomain = await getCustomDomain(api, this.output.id);
 
       return this({
         id: customDomain.id,
@@ -116,33 +84,7 @@ export const CustomDomain = Resource(
       });
     }
 
-    const response = await api.mutate(
-      `
-      mutation CustomDomainCreate($input: CustomDomainCreateInput!) {
-        customDomainCreate(input: $input) {
-          id
-          domain
-          serviceId
-          environmentId
-          status
-          createdAt
-          updatedAt
-        }
-      }
-      `,
-      {
-        input: {
-          domain: props.domain,
-          serviceId: props.serviceId,
-          environmentId: props.environmentId,
-        },
-      },
-    );
-
-    const customDomain = response.data?.customDomainCreate;
-    if (!customDomain) {
-      throw new Error("Failed to create Railway custom domain");
-    }
+    const customDomain = await createCustomDomain(api, props);
 
     return this({
       id: customDomain.id,
@@ -155,3 +97,72 @@ export const CustomDomain = Resource(
     });
   },
 );
+
+export async function createCustomDomain(api: any, props: CustomDomainProps) {
+  const response = await api.mutate(
+    `
+    mutation CustomDomainCreate($input: CustomDomainCreateInput!) {
+      customDomainCreate(input: $input) {
+        id
+        domain
+        serviceId
+        environmentId
+        status
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    {
+      input: {
+        domain: props.domain,
+        serviceId: props.serviceId,
+        environmentId: props.environmentId,
+      },
+    },
+  );
+
+  const customDomain = response.data?.customDomainCreate;
+  if (!customDomain) {
+    throw new Error("Failed to create Railway custom domain");
+  }
+
+  return customDomain;
+}
+
+export async function getCustomDomain(api: any, id: string) {
+  const response = await api.query(
+    `
+    query CustomDomain($id: String!) {
+      customDomain(id: $id) {
+        id
+        domain
+        serviceId
+        environmentId
+        status
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    { id },
+  );
+
+  const customDomain = response.data?.customDomain;
+  if (!customDomain) {
+    throw new Error("Failed to fetch Railway custom domain");
+  }
+
+  return customDomain;
+}
+
+export async function deleteCustomDomain(api: any, id: string) {
+  await api.mutate(
+    `
+    mutation CustomDomainDelete($id: String!) {
+      customDomainDelete(id: $id)
+    }
+    `,
+    { id },
+  );
+}

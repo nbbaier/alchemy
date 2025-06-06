@@ -4,13 +4,43 @@ import type { Secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
 
 export interface EnvironmentProps {
+  /**
+   * The name of the environment
+   */
   name: string;
+
+  /**
+   * The ID of the project this environment belongs to
+   */
   projectId: string;
+
+  /**
+   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
+   */
   apiKey?: Secret;
 }
 
+export interface Environment
+  extends Resource<"railway::Environment">,
+    EnvironmentProps {
+  /**
+   * The unique identifier of the environment
+   */
+  id: string;
+
+  /**
+   * The timestamp when the environment was created
+   */
+  createdAt: string;
+
+  /**
+   * The timestamp when the environment was last updated
+   */
+  updatedAt: string;
+}
+
 /**
- * A Railway environment represents a deployment environment within a project (e.g., production, staging, development).
+ * Create and manage Railway environments
  *
  * @example
  * ```typescript
@@ -40,15 +70,6 @@ export interface EnvironmentProps {
  * });
  * ```
  */
-
-export interface Environment
-  extends Resource<"railway::Environment">,
-    EnvironmentProps {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export const Environment = Resource(
   "railway::Environment",
   async function (
@@ -61,14 +82,7 @@ export const Environment = Resource(
     if (this.phase === "delete") {
       try {
         if (this.output?.id) {
-          await api.mutate(
-            `
-            mutation EnvironmentDelete($id: String!) {
-              environmentDelete(id: $id)
-            }
-            `,
-            { id: this.output.id },
-          );
+          await deleteEnvironment(api, this.output.id);
         }
       } catch (error) {
         handleRailwayDeleteError(error, "Environment", this.output?.id);
@@ -78,30 +92,7 @@ export const Environment = Resource(
     }
 
     if (this.phase === "update" && this.output?.id) {
-      const response = await api.mutate(
-        `
-        mutation EnvironmentUpdate($id: String!, $input: EnvironmentUpdateInput!) {
-          environmentUpdate(id: $id, input: $input) {
-            id
-            name
-            projectId
-            createdAt
-            updatedAt
-          }
-        }
-        `,
-        {
-          id: this.output.id,
-          input: {
-            name: props.name,
-          },
-        },
-      );
-
-      const environment = response.data?.environmentUpdate;
-      if (!environment) {
-        throw new Error("Failed to update Railway environment");
-      }
+      const environment = await updateEnvironment(api, this.output.id, props);
 
       return this({
         id: environment.id,
@@ -112,30 +103,7 @@ export const Environment = Resource(
       });
     }
 
-    const response = await api.mutate(
-      `
-      mutation EnvironmentCreate($input: EnvironmentCreateInput!) {
-        environmentCreate(input: $input) {
-          id
-          name
-          projectId
-          createdAt
-          updatedAt
-        }
-      }
-      `,
-      {
-        input: {
-          name: props.name,
-          projectId: props.projectId,
-        },
-      },
-    );
-
-    const environment = response.data?.environmentCreate;
-    if (!environment) {
-      throw new Error("Failed to create Railway environment");
-    }
+    const environment = await createEnvironment(api, props);
 
     return this({
       id: environment.id,
@@ -146,3 +114,76 @@ export const Environment = Resource(
     });
   },
 );
+
+export async function createEnvironment(api: any, props: EnvironmentProps) {
+  const response = await api.mutate(
+    `
+    mutation EnvironmentCreate($input: EnvironmentCreateInput!) {
+      environmentCreate(input: $input) {
+        id
+        name
+        projectId
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    {
+      input: {
+        name: props.name,
+        projectId: props.projectId,
+      },
+    },
+  );
+
+  const environment = response.data?.environmentCreate;
+  if (!environment) {
+    throw new Error("Failed to create Railway environment");
+  }
+
+  return environment;
+}
+
+export async function updateEnvironment(
+  api: any,
+  id: string,
+  props: EnvironmentProps,
+) {
+  const response = await api.mutate(
+    `
+    mutation EnvironmentUpdate($id: String!, $input: EnvironmentUpdateInput!) {
+      environmentUpdate(id: $id, input: $input) {
+        id
+        name
+        projectId
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    {
+      id,
+      input: {
+        name: props.name,
+      },
+    },
+  );
+
+  const environment = response.data?.environmentUpdate;
+  if (!environment) {
+    throw new Error("Failed to update Railway environment");
+  }
+
+  return environment;
+}
+
+export async function deleteEnvironment(api: any, id: string) {
+  await api.mutate(
+    `
+    mutation EnvironmentDelete($id: String!) {
+      environmentDelete(id: $id)
+    }
+    `,
+    { id },
+  );
+}

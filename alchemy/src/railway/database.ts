@@ -4,15 +4,81 @@ import { type Secret, secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
 
 export interface DatabaseProps {
+  /**
+   * The name of the database
+   */
   name: string;
+
+  /**
+   * The ID of the project this database belongs to
+   */
   projectId: string;
+
+  /**
+   * The ID of the environment this database belongs to
+   */
   environmentId: string;
+
+  /**
+   * The type of database to create
+   */
   type: "postgresql" | "mysql" | "redis" | "mongodb";
+
+  /**
+   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
+   */
   apiKey?: Secret;
 }
 
+export interface Database extends Resource<"railway::Database">, DatabaseProps {
+  /**
+   * The unique identifier of the database
+   */
+  id: string;
+
+  /**
+   * The connection string for the database
+   */
+  connectionString: Secret;
+
+  /**
+   * The hostname of the database
+   */
+  host: string;
+
+  /**
+   * The port number of the database
+   */
+  port: number;
+
+  /**
+   * The username for database authentication
+   */
+  username: string;
+
+  /**
+   * The password for database authentication
+   */
+  password: Secret;
+
+  /**
+   * The name of the database
+   */
+  databaseName: string;
+
+  /**
+   * The timestamp when the database was created
+   */
+  createdAt: string;
+
+  /**
+   * The timestamp when the database was last updated
+   */
+  updatedAt: string;
+}
+
 /**
- * A Railway database represents a managed database instance within a project environment.
+ * Create and manage Railway databases
  *
  * @example
  * ```typescript
@@ -47,19 +113,6 @@ export interface DatabaseProps {
  * });
  * ```
  */
-
-export interface Database extends Resource<"railway::Database">, DatabaseProps {
-  id: string;
-  connectionString: Secret;
-  host: string;
-  port: number;
-  username: string;
-  password: Secret;
-  databaseName: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export const Database = Resource(
   "railway::Database",
   async function (
@@ -72,14 +125,7 @@ export const Database = Resource(
     if (this.phase === "delete") {
       try {
         if (this.output?.id) {
-          await api.mutate(
-            `
-            mutation DatabaseDelete($id: String!) {
-              databaseDelete(id: $id)
-            }
-            `,
-            { id: this.output.id },
-          );
+          await deleteDatabase(api, this.output.id);
         }
       } catch (error) {
         handleRailwayDeleteError(error, "Database", this.output?.id);
@@ -89,33 +135,7 @@ export const Database = Resource(
     }
 
     if (this.phase === "update" && this.output?.id) {
-      const response = await api.query(
-        `
-        query Database($id: String!) {
-          database(id: $id) {
-            id
-            name
-            projectId
-            environmentId
-            type
-            connectionString
-            host
-            port
-            username
-            password
-            databaseName
-            createdAt
-            updatedAt
-          }
-        }
-        `,
-        { id: this.output.id },
-      );
-
-      const database = response.data?.database;
-      if (!database) {
-        throw new Error("Failed to fetch Railway database");
-      }
+      const database = await getDatabase(api, this.output.id);
 
       return this({
         id: database.id,
@@ -134,40 +154,7 @@ export const Database = Resource(
       });
     }
 
-    const response = await api.mutate(
-      `
-      mutation DatabaseCreate($input: DatabaseCreateInput!) {
-        databaseCreate(input: $input) {
-          id
-          name
-          projectId
-          environmentId
-          type
-          connectionString
-          host
-          port
-          username
-          password
-          databaseName
-          createdAt
-          updatedAt
-        }
-      }
-      `,
-      {
-        input: {
-          name: props.name,
-          projectId: props.projectId,
-          environmentId: props.environmentId,
-          type: props.type,
-        },
-      },
-    );
-
-    const database = response.data?.databaseCreate;
-    if (!database) {
-      throw new Error("Failed to create Railway database");
-    }
+    const database = await createDatabase(api, props);
 
     return this({
       id: database.id,
@@ -186,3 +173,85 @@ export const Database = Resource(
     });
   },
 );
+
+export async function createDatabase(api: any, props: DatabaseProps) {
+  const response = await api.mutate(
+    `
+    mutation DatabaseCreate($input: DatabaseCreateInput!) {
+      databaseCreate(input: $input) {
+        id
+        name
+        projectId
+        environmentId
+        type
+        connectionString
+        host
+        port
+        username
+        password
+        databaseName
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    {
+      input: {
+        name: props.name,
+        projectId: props.projectId,
+        environmentId: props.environmentId,
+        type: props.type,
+      },
+    },
+  );
+
+  const database = response.data?.databaseCreate;
+  if (!database) {
+    throw new Error("Failed to create Railway database");
+  }
+
+  return database;
+}
+
+export async function getDatabase(api: any, id: string) {
+  const response = await api.query(
+    `
+    query Database($id: String!) {
+      database(id: $id) {
+        id
+        name
+        projectId
+        environmentId
+        type
+        connectionString
+        host
+        port
+        username
+        password
+        databaseName
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    { id },
+  );
+
+  const database = response.data?.database;
+  if (!database) {
+    throw new Error("Failed to fetch Railway database");
+  }
+
+  return database;
+}
+
+export async function deleteDatabase(api: any, id: string) {
+  await api.mutate(
+    `
+    mutation DatabaseDelete($id: String!) {
+      databaseDelete(id: $id)
+    }
+    `,
+    { id },
+  );
+}

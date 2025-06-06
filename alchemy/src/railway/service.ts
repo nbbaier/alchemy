@@ -4,17 +4,61 @@ import type { Secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
 
 export interface ServiceProps {
+  /**
+   * The name of the service
+   */
   name: string;
+
+  /**
+   * The ID of the project this service belongs to
+   */
   projectId: string;
+
+  /**
+   * The URL of the source repository
+   */
   sourceRepo?: string;
+
+  /**
+   * The branch to deploy from
+   */
   sourceRepoBranch?: string;
+
+  /**
+   * The root directory of the service in the repository
+   */
   rootDirectory?: string;
+
+  /**
+   * The path to the Railway configuration file
+   */
   configPath?: string;
+
+  /**
+   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
+   */
   apiKey?: Secret;
 }
 
+export interface Service extends Resource<"railway::Service">, ServiceProps {
+  /**
+   * The unique identifier of the service
+   */
+  id: string;
+
+  /**
+   * The timestamp when the service was created
+   */
+  createdAt: string;
+
+  /**
+   * The timestamp when the service was last updated
+   */
+  updatedAt: string;
+}
+
 /**
- * A Railway service represents an application or microservice deployed within a project environment.
+ * Create and manage Railway services
  *
  * @example
  * ```typescript
@@ -50,13 +94,6 @@ export interface ServiceProps {
  * });
  * ```
  */
-
-export interface Service extends Resource<"railway::Service">, ServiceProps {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export const Service = Resource(
   "railway::Service",
   async function (
@@ -69,14 +106,7 @@ export const Service = Resource(
     if (this.phase === "delete") {
       try {
         if (this.output?.id) {
-          await api.mutate(
-            `
-            mutation ServiceDelete($id: String!) {
-              serviceDelete(id: $id)
-            }
-            `,
-            { id: this.output.id },
-          );
+          await deleteService(api, this.output.id);
         }
       } catch (error) {
         handleRailwayDeleteError(error, "Service", this.output?.id);
@@ -86,38 +116,7 @@ export const Service = Resource(
     }
 
     if (this.phase === "update" && this.output?.id) {
-      const response = await api.mutate(
-        `
-        mutation ServiceUpdate($id: String!, $input: ServiceUpdateInput!) {
-          serviceUpdate(id: $id, input: $input) {
-            id
-            name
-            projectId
-            sourceRepo
-            sourceRepoBranch
-            rootDirectory
-            configPath
-            createdAt
-            updatedAt
-          }
-        }
-        `,
-        {
-          id: this.output.id,
-          input: {
-            name: props.name,
-            sourceRepo: props.sourceRepo,
-            sourceRepoBranch: props.sourceRepoBranch,
-            rootDirectory: props.rootDirectory,
-            configPath: props.configPath,
-          },
-        },
-      );
-
-      const service = response.data?.serviceUpdate;
-      if (!service) {
-        throw new Error("Failed to update Railway service");
-      }
+      const service = await updateService(api, this.output.id, props);
 
       return this({
         id: service.id,
@@ -132,38 +131,7 @@ export const Service = Resource(
       });
     }
 
-    const response = await api.mutate(
-      `
-      mutation ServiceCreate($input: ServiceCreateInput!) {
-        serviceCreate(input: $input) {
-          id
-          name
-          projectId
-          sourceRepo
-          sourceRepoBranch
-          rootDirectory
-          configPath
-          createdAt
-          updatedAt
-        }
-      }
-      `,
-      {
-        input: {
-          name: props.name,
-          projectId: props.projectId,
-          sourceRepo: props.sourceRepo,
-          sourceRepoBranch: props.sourceRepoBranch,
-          rootDirectory: props.rootDirectory,
-          configPath: props.configPath,
-        },
-      },
-    );
-
-    const service = response.data?.serviceCreate;
-    if (!service) {
-      throw new Error("Failed to create Railway service");
-    }
+    const service = await createService(api, props);
 
     return this({
       id: service.id,
@@ -178,3 +146,88 @@ export const Service = Resource(
     });
   },
 );
+
+export async function createService(api: any, props: ServiceProps) {
+  const response = await api.mutate(
+    `
+    mutation ServiceCreate($input: ServiceCreateInput!) {
+      serviceCreate(input: $input) {
+        id
+        name
+        projectId
+        sourceRepo
+        sourceRepoBranch
+        rootDirectory
+        configPath
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    {
+      input: {
+        name: props.name,
+        projectId: props.projectId,
+        sourceRepo: props.sourceRepo,
+        sourceRepoBranch: props.sourceRepoBranch,
+        rootDirectory: props.rootDirectory,
+        configPath: props.configPath,
+      },
+    },
+  );
+
+  const service = response.data?.serviceCreate;
+  if (!service) {
+    throw new Error("Failed to create Railway service");
+  }
+
+  return service;
+}
+
+export async function updateService(api: any, id: string, props: ServiceProps) {
+  const response = await api.mutate(
+    `
+    mutation ServiceUpdate($id: String!, $input: ServiceUpdateInput!) {
+      serviceUpdate(id: $id, input: $input) {
+        id
+        name
+        projectId
+        sourceRepo
+        sourceRepoBranch
+        rootDirectory
+        configPath
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    {
+      id,
+      input: {
+        name: props.name,
+        sourceRepo: props.sourceRepo,
+        sourceRepoBranch: props.sourceRepoBranch,
+        rootDirectory: props.rootDirectory,
+        configPath: props.configPath,
+      },
+    },
+  );
+
+  const service = response.data?.serviceUpdate;
+  if (!service) {
+    throw new Error("Failed to update Railway service");
+  }
+
+  return service;
+}
+
+export async function deleteService(api: any, id: string) {
+  await api.mutate(
+    `
+    mutation ServiceDelete($id: String!) {
+      serviceDelete(id: $id)
+    }
+    `,
+    { id },
+  );
+}

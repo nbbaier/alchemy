@@ -4,59 +4,92 @@ import { type Secret, secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
 
 export interface VariableProps {
+  /**
+   * The name of the environment variable
+   */
   name: string;
+
+  /**
+   * The value of the environment variable
+   */
   value: Secret | string;
+
+  /**
+   * The ID of the environment this variable belongs to
+   */
   environmentId: string;
+
+  /**
+   * The ID of the service this variable belongs to
+   */
   serviceId: string;
+
+  /**
+   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
+   */
   apiKey?: Secret;
 }
 
+export interface Variable
+  extends Resource<"railway::Variable">,
+    Omit<VariableProps, "value"> {
+  /**
+   * The unique identifier of the variable
+   */
+  id: string;
+
+  /**
+   * The value of the environment variable
+   */
+  value: Secret;
+
+  /**
+   * The timestamp when the variable was created
+   */
+  createdAt: string;
+
+  /**
+   * The timestamp when the variable was last updated
+   */
+  updatedAt: string;
+}
+
 /**
- * A Railway variable represents an environment variable for a service within a specific environment.
+ * Create and manage Railway environment variables
  *
  * @example
  * ```typescript
- * // Create a public configuration variable
- * const port = await Variable("port-var", {
- *   name: "PORT",
- *   value: "3000",
- *   environmentId: environment.id,
- *   serviceId: service.id,
- * });
- * ```
- *
- * @example
- * ```typescript
- * // Create a secret API key variable
- * const apiKey = await Variable("api-key-var", {
- *   name: "API_KEY",
- *   value: secret("super-secret-key-123"),
- *   environmentId: environment.id,
- *   serviceId: service.id,
- * });
- * ```
- *
- * @example
- * ```typescript
- * // Create a database connection string
- * const dbUrl = await Variable("db-url-var", {
+ * // Create a basic environment variable
+ * const dbUrl = await Variable("db-url", {
  *   name: "DATABASE_URL",
- *   value: secret("postgresql://user:pass@host:5432/myapp"),
+ *   value: "postgresql://user:pass@localhost:5432/db",
+ *   environmentId: environment.id,
+ *   serviceId: service.id,
+ * });
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Create a secret environment variable
+ * const apiKey = await Variable("api-key", {
+ *   name: "API_KEY",
+ *   value: secret("super-secret-key"),
+ *   environmentId: environment.id,
+ *   serviceId: service.id,
+ * });
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Create a variable with database connection string
+ * const dbConnection = await Variable("db-connection", {
+ *   name: "DATABASE_URL",
+ *   value: database.connectionString,
  *   environmentId: environment.id,
  *   serviceId: service.id,
  * });
  * ```
  */
-
-export interface Variable
-  extends Resource<"railway::Variable">,
-    Omit<VariableProps, "value"> {
-  id: string;
-  value: Secret;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export const Variable = Resource(
   "railway::Variable",
   async function (
@@ -65,20 +98,11 @@ export const Variable = Resource(
     props: VariableProps,
   ): Promise<Variable> {
     const api = createRailwayApi({ apiKey: props.apiKey });
-    const valueSecret =
-      typeof props.value === "string" ? secret(props.value) : props.value;
 
     if (this.phase === "delete") {
       try {
         if (this.output?.id) {
-          await api.mutate(
-            `
-            mutation VariableDelete($id: String!) {
-              variableDelete(id: $id)
-            }
-            `,
-            { id: this.output.id },
-          );
+          await deleteVariable(api, this.output.id);
         }
       } catch (error) {
         handleRailwayDeleteError(error, "Variable", this.output?.id);
@@ -88,33 +112,7 @@ export const Variable = Resource(
     }
 
     if (this.phase === "update" && this.output?.id) {
-      const response = await api.mutate(
-        `
-        mutation VariableUpdate($id: String!, $input: VariableUpdateInput!) {
-          variableUpdate(id: $id, input: $input) {
-            id
-            name
-            value
-            environmentId
-            serviceId
-            createdAt
-            updatedAt
-          }
-        }
-        `,
-        {
-          id: this.output.id,
-          input: {
-            name: props.name,
-            value: valueSecret.unencrypted,
-          },
-        },
-      );
-
-      const variable = response.data?.variableUpdate;
-      if (!variable) {
-        throw new Error("Failed to update Railway variable");
-      }
+      const variable = await updateVariable(api, this.output.id, props);
 
       return this({
         id: variable.id,
@@ -127,34 +125,7 @@ export const Variable = Resource(
       });
     }
 
-    const response = await api.mutate(
-      `
-      mutation VariableCreate($input: VariableCreateInput!) {
-        variableCreate(input: $input) {
-          id
-          name
-          value
-          environmentId
-          serviceId
-          createdAt
-          updatedAt
-        }
-      }
-      `,
-      {
-        input: {
-          name: props.name,
-          value: valueSecret.unencrypted,
-          environmentId: props.environmentId,
-          serviceId: props.serviceId,
-        },
-      },
-    );
-
-    const variable = response.data?.variableCreate;
-    if (!variable) {
-      throw new Error("Failed to create Railway variable");
-    }
+    const variable = await createVariable(api, props);
 
     return this({
       id: variable.id,
@@ -167,3 +138,89 @@ export const Variable = Resource(
     });
   },
 );
+
+export async function createVariable(api: any, props: VariableProps) {
+  const response = await api.mutate(
+    `
+    mutation VariableCreate($input: VariableCreateInput!) {
+      variableCreate(input: $input) {
+        id
+        name
+        value
+        environmentId
+        serviceId
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    {
+      input: {
+        name: props.name,
+        value:
+          typeof props.value === "string"
+            ? props.value
+            : props.value.unencrypted,
+        environmentId: props.environmentId,
+        serviceId: props.serviceId,
+      },
+    },
+  );
+
+  const variable = response.data?.variableCreate;
+  if (!variable) {
+    throw new Error("Failed to create Railway variable");
+  }
+
+  return variable;
+}
+
+export async function updateVariable(
+  api: any,
+  id: string,
+  props: VariableProps,
+) {
+  const response = await api.mutate(
+    `
+    mutation VariableUpdate($id: String!, $input: VariableUpdateInput!) {
+      variableUpdate(id: $id, input: $input) {
+        id
+        name
+        value
+        environmentId
+        serviceId
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    {
+      id,
+      input: {
+        name: props.name,
+        value:
+          typeof props.value === "string"
+            ? props.value
+            : props.value.unencrypted,
+      },
+    },
+  );
+
+  const variable = response.data?.variableUpdate;
+  if (!variable) {
+    throw new Error("Failed to update Railway variable");
+  }
+
+  return variable;
+}
+
+export async function deleteVariable(api: any, id: string) {
+  await api.mutate(
+    `
+    mutation VariableDelete($id: String!) {
+      variableDelete(id: $id)
+    }
+    `,
+    { id },
+  );
+}

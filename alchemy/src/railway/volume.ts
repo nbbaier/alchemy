@@ -4,57 +4,51 @@ import type { Secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
 
 export interface VolumeProps {
+  /**
+   * The name of the volume
+   */
   name: string;
+
+  /**
+   * The ID of the project this volume belongs to
+   */
   projectId: string;
+
+  /**
+   * The ID of the environment this volume belongs to
+   */
   environmentId: string;
+
+  /**
+   * The path where the volume will be mounted
+   */
   mountPath: string;
+
+  /**
+   * The size of the volume in GB
+   */
   size?: number;
+
+  /**
+   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
+   */
   apiKey?: Secret;
 }
 
-/**
- * A Railway volume provides persistent storage that can be mounted to services within an environment.
- *
- * @example
- * ```typescript
- * // Create a basic volume for file storage
- * const dataVolume = await Volume("app-data", {
- *   name: "application-data",
- *   projectId: project.id,
- *   environmentId: environment.id,
- *   mountPath: "/app/data",
- * });
- * ```
- *
- * @example
- * ```typescript
- * // Create a large volume for media storage
- * const mediaVolume = await Volume("media-storage", {
- *   name: "user-uploads",
- *   projectId: project.id,
- *   environmentId: environment.id,
- *   mountPath: "/app/uploads",
- *   size: 50, // 50GB
- * });
- * ```
- *
- * @example
- * ```typescript
- * // Create a database volume with custom authentication
- * const dbVolume = await Volume("database-volume", {
- *   name: "postgres-data",
- *   projectId: project.id,
- *   environmentId: environment.id,
- *   mountPath: "/var/lib/postgresql/data",
- *   size: 100, // 100GB
- *   apiKey: secret("production-railway-token"),
- * });
- * ```
- */
-
 export interface Volume extends Resource<"railway::Volume">, VolumeProps {
+  /**
+   * The unique identifier of the volume
+   */
   id: string;
+
+  /**
+   * The timestamp when the volume was created
+   */
   createdAt: string;
+
+  /**
+   * The timestamp when the volume was last updated
+   */
   updatedAt: string;
 }
 
@@ -70,14 +64,7 @@ export const Volume = Resource(
     if (this.phase === "delete") {
       try {
         if (this.output?.id) {
-          await api.mutate(
-            `
-            mutation VolumeDelete($id: String!) {
-              volumeDelete(id: $id)
-            }
-            `,
-            { id: this.output.id },
-          );
+          await deleteVolume(api, this.output.id);
         }
       } catch (error) {
         handleRailwayDeleteError(error, "Volume", this.output?.id);
@@ -87,35 +74,7 @@ export const Volume = Resource(
     }
 
     if (this.phase === "update" && this.output?.id) {
-      const response = await api.mutate(
-        `
-        mutation VolumeUpdate($id: String!, $input: VolumeUpdateInput!) {
-          volumeUpdate(id: $id, input: $input) {
-            id
-            name
-            projectId
-            environmentId
-            mountPath
-            size
-            createdAt
-            updatedAt
-          }
-        }
-        `,
-        {
-          id: this.output.id,
-          input: {
-            name: props.name,
-            mountPath: props.mountPath,
-            size: props.size,
-          },
-        },
-      );
-
-      const volume = response.data?.volumeUpdate;
-      if (!volume) {
-        throw new Error("Failed to update Railway volume");
-      }
+      const volume = await updateVolume(api, this.output.id, props);
 
       return this({
         id: volume.id,
@@ -129,36 +88,7 @@ export const Volume = Resource(
       });
     }
 
-    const response = await api.mutate(
-      `
-      mutation VolumeCreate($input: VolumeCreateInput!) {
-        volumeCreate(input: $input) {
-          id
-          name
-          projectId
-          environmentId
-          mountPath
-          size
-          createdAt
-          updatedAt
-        }
-      }
-      `,
-      {
-        input: {
-          name: props.name,
-          projectId: props.projectId,
-          environmentId: props.environmentId,
-          mountPath: props.mountPath,
-          size: props.size,
-        },
-      },
-    );
-
-    const volume = response.data?.volumeCreate;
-    if (!volume) {
-      throw new Error("Failed to create Railway volume");
-    }
+    const volume = await createVolume(api, props);
 
     return this({
       id: volume.id,
@@ -172,3 +102,83 @@ export const Volume = Resource(
     });
   },
 );
+
+export async function createVolume(api: any, props: VolumeProps) {
+  const response = await api.mutate(
+    `
+    mutation VolumeCreate($input: VolumeCreateInput!) {
+      volumeCreate(input: $input) {
+        id
+        name
+        projectId
+        environmentId
+        mountPath
+        size
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    {
+      input: {
+        name: props.name,
+        projectId: props.projectId,
+        environmentId: props.environmentId,
+        mountPath: props.mountPath,
+        size: props.size,
+      },
+    },
+  );
+
+  const volume = response.data?.volumeCreate;
+  if (!volume) {
+    throw new Error("Failed to create Railway volume");
+  }
+
+  return volume;
+}
+
+export async function updateVolume(api: any, id: string, props: VolumeProps) {
+  const response = await api.mutate(
+    `
+    mutation VolumeUpdate($id: String!, $input: VolumeUpdateInput!) {
+      volumeUpdate(id: $id, input: $input) {
+        id
+        name
+        projectId
+        environmentId
+        mountPath
+        size
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    {
+      id,
+      input: {
+        name: props.name,
+        mountPath: props.mountPath,
+        size: props.size,
+      },
+    },
+  );
+
+  const volume = response.data?.volumeUpdate;
+  if (!volume) {
+    throw new Error("Failed to update Railway volume");
+  }
+
+  return volume;
+}
+
+export async function deleteVolume(api: any, id: string) {
+  await api.mutate(
+    `
+    mutation VolumeDelete($id: String!) {
+      volumeDelete(id: $id)
+    }
+    `,
+    { id },
+  );
+}

@@ -4,15 +4,56 @@ import type { Secret } from "../secret.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
 
 export interface ProjectProps {
+  /**
+   * The name of the project
+   */
   name: string;
+
+  /**
+   * A description of the project
+   */
   description?: string;
+
+  /**
+   * Whether the project is public
+   */
   isPublic?: boolean;
+
+  /**
+   * The ID of the team this project belongs to
+   */
   teamId?: string;
+
+  /**
+   * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
+   */
   apiKey?: Secret;
 }
 
+export interface Project extends Resource<"railway::Project">, ProjectProps {
+  /**
+   * The unique identifier of the project
+   */
+  id: string;
+
+  /**
+   * The ID of the default environment for this project
+   */
+  defaultEnvironment: string;
+
+  /**
+   * The timestamp when the project was created
+   */
+  createdAt: string;
+
+  /**
+   * The timestamp when the project was last updated
+   */
+  updatedAt: string;
+}
+
 /**
- * A Railway project is a container for your applications, databases, and other resources.
+ * Create and manage Railway projects
  *
  * @example
  * ```typescript
@@ -44,14 +85,6 @@ export interface ProjectProps {
  * });
  * ```
  */
-
-export interface Project extends Resource<"railway::Project">, ProjectProps {
-  id: string;
-  defaultEnvironment: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export const Project = Resource(
   "railway::Project",
   async function (
@@ -64,14 +97,7 @@ export const Project = Resource(
     if (this.phase === "delete") {
       try {
         if (this.output?.id) {
-          await api.mutate(
-            `
-            mutation ProjectDelete($id: String!) {
-              projectDelete(id: $id)
-            }
-            `,
-            { id: this.output.id },
-          );
+          await deleteProject(api, this.output.id);
         }
       } catch (error) {
         handleRailwayDeleteError(error, "Project", this.output?.id);
@@ -81,37 +107,7 @@ export const Project = Resource(
     }
 
     if (this.phase === "update" && this.output?.id) {
-      const response = await api.mutate(
-        `
-        mutation ProjectUpdate($id: String!, $input: ProjectUpdateInput!) {
-          projectUpdate(id: $id, input: $input) {
-            id
-            name
-            description
-            isPublic
-            teamId
-            defaultEnvironment {
-              id
-            }
-            createdAt
-            updatedAt
-          }
-        }
-        `,
-        {
-          id: this.output.id,
-          input: {
-            name: props.name,
-            description: props.description,
-            isPublic: props.isPublic,
-          },
-        },
-      );
-
-      const project = response.data?.projectUpdate;
-      if (!project) {
-        throw new Error("Failed to update Railway project");
-      }
+      const project = await updateProject(api, this.output.id, props);
 
       return this({
         id: project.id,
@@ -125,37 +121,7 @@ export const Project = Resource(
       });
     }
 
-    const response = await api.mutate(
-      `
-      mutation ProjectCreate($input: ProjectCreateInput!) {
-        projectCreate(input: $input) {
-          id
-          name
-          description
-          isPublic
-          teamId
-          defaultEnvironment {
-            id
-          }
-          createdAt
-          updatedAt
-        }
-      }
-      `,
-      {
-        input: {
-          name: props.name,
-          description: props.description,
-          isPublic: props.isPublic,
-          teamId: props.teamId,
-        },
-      },
-    );
-
-    const project = response.data?.projectCreate;
-    if (!project) {
-      throw new Error("Failed to create Railway project");
-    }
+    const project = await createProject(api, props);
 
     return this({
       id: project.id,
@@ -169,3 +135,86 @@ export const Project = Resource(
     });
   },
 );
+
+export async function createProject(api: any, props: ProjectProps) {
+  const response = await api.mutate(
+    `
+    mutation ProjectCreate($input: ProjectCreateInput!) {
+      projectCreate(input: $input) {
+        id
+        name
+        description
+        isPublic
+        teamId
+        defaultEnvironment {
+          id
+        }
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    {
+      input: {
+        name: props.name,
+        description: props.description,
+        isPublic: props.isPublic,
+        teamId: props.teamId,
+      },
+    },
+  );
+
+  const project = response.data?.projectCreate;
+  if (!project) {
+    throw new Error("Failed to create Railway project");
+  }
+
+  return project;
+}
+
+export async function updateProject(api: any, id: string, props: ProjectProps) {
+  const response = await api.mutate(
+    `
+    mutation ProjectUpdate($id: String!, $input: ProjectUpdateInput!) {
+      projectUpdate(id: $id, input: $input) {
+        id
+        name
+        description
+        isPublic
+        teamId
+        defaultEnvironment {
+          id
+        }
+        createdAt
+        updatedAt
+      }
+    }
+    `,
+    {
+      id,
+      input: {
+        name: props.name,
+        description: props.description,
+        isPublic: props.isPublic,
+      },
+    },
+  );
+
+  const project = response.data?.projectUpdate;
+  if (!project) {
+    throw new Error("Failed to update Railway project");
+  }
+
+  return project;
+}
+
+export async function deleteProject(api: any, id: string) {
+  await api.mutate(
+    `
+    mutation ProjectDelete($id: String!) {
+      projectDelete(id: $id)
+    }
+    `,
+    { id },
+  );
+}
