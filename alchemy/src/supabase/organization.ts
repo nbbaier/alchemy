@@ -33,7 +33,8 @@ export interface OrganizationProps extends SupabaseApiOptions {
 /**
  * Supabase Organization resource
  */
-export interface Organization extends Resource<"supabase::Organization"> {
+export interface OrganizationResource
+  extends Resource<"supabase::Organization"> {
   /**
    * Unique identifier of the organization
    */
@@ -60,7 +61,9 @@ export interface Organization extends Resource<"supabase::Organization"> {
   allowedReleaseChannels?: string[];
 }
 
-export function isOrganization(resource: Resource): resource is Organization {
+export function isOrganization(
+  resource: Resource,
+): resource is OrganizationResource {
   return resource[ResourceKind] === "supabase::Organization";
 }
 
@@ -99,10 +102,10 @@ export function isOrganization(resource: Resource): resource is Organization {
 export const Organization = Resource(
   "supabase::Organization",
   async function (
-    this: Context<Organization>,
+    this: Context<OrganizationResource>,
     id: string,
     props: OrganizationProps,
-  ): Promise<Organization> {
+  ): Promise<OrganizationResource> {
     const api = await createSupabaseApi(props);
     const name = props.name ?? id;
 
@@ -152,7 +155,7 @@ async function createOrganization(
 async function getOrganization(
   api: SupabaseApi,
   slug: string,
-): Promise<Organization> {
+): Promise<OrganizationResource> {
   const response = await api.get(`/organizations/${slug}`);
   if (!response.ok) {
     await handleApiError(response, "getting", "organization", slug);
@@ -175,7 +178,7 @@ async function getOrganization(
 async function findOrganizationByName(
   api: SupabaseApi,
   name: string,
-): Promise<Organization | null> {
+): Promise<OrganizationResource | null> {
   const response = await api.get("/organizations");
   if (!response.ok) {
     await handleApiError(response, "listing", "organizations");

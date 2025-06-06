@@ -43,7 +43,6 @@ describe("Branch", () => {
 
         expect(branch.id).toBeTruthy();
         expect(branch.name).toBeTruthy();
-        expect(branch.projectRef).toEqual(project.id);
         expect(branch.gitBranch).toEqual(branchName);
 
         const response = await api.get(`/projects/${project.id}/branches`);

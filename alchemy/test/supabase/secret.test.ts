@@ -43,7 +43,7 @@ describe("Secret", () => {
           },
         });
 
-        expect(secrets.projectRef).toEqual(project.id);
+        expect(secrets.project).toEqual(project.id);
         expect(secrets.secrets).toHaveLength(3);
         expect(secrets.secrets.map((s: any) => s.name)).toContain("API_KEY");
         expect(secrets.secrets.map((s: any) => s.name)).toContain(
@@ -72,7 +72,7 @@ describe("Secret", () => {
           },
         });
 
-        expect(updatedSecrets.projectRef).toEqual(project.id);
+        expect(updatedSecrets.project).toEqual(project.id);
         expect(updatedSecrets.secrets).toHaveLength(2);
         expect(updatedSecrets.secrets.map((s: any) => s.name)).toContain(
           "API_KEY",
@@ -126,7 +126,7 @@ describe("Secret", () => {
           adopt: true,
         });
 
-        expect(adoptedSecrets.projectRef).toEqual(project.id);
+        expect(adoptedSecrets.project).toEqual(project.id);
         expect(adoptedSecrets.secrets).toHaveLength(1);
         expect(adoptedSecrets.secrets[0].name).toEqual("SHARED_SECRET");
 

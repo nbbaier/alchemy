@@ -14,7 +14,7 @@ import {
   type SupabaseApi,
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
-import type { Project } from "./project.ts";
+import type { ProjectResource } from "./project.ts";
 
 /**
  * Properties for creating or updating a Supabase Branch (preview environment)
@@ -23,7 +23,7 @@ export interface BranchProps extends SupabaseApiOptions {
   /**
    * Reference to the project (string ID or Project resource)
    */
-  project: string | Project;
+  project: string | ProjectResource;
 
   /**
    * Name of the branch
@@ -69,7 +69,7 @@ export interface BranchProps extends SupabaseApiOptions {
 /**
  * Supabase Branch resource representing a preview environment
  */
-export interface Branch extends Resource<"supabase::Branch"> {
+export interface BranchResource extends Resource<"supabase::Branch"> {
   /**
    * Unique identifier of the branch
    */
@@ -124,7 +124,7 @@ export interface Branch extends Resource<"supabase::Branch"> {
 /**
  * Type guard to check if a resource is a Branch
  */
-export function isBranch(resource: Resource): resource is Branch {
+export function isBranch(resource: Resource): resource is BranchResource {
   return resource[ResourceKind] === "supabase::Branch";
 }
 
@@ -159,10 +159,10 @@ export function isBranch(resource: Resource): resource is Branch {
 export const Branch = Resource(
   "supabase::Branch",
   async function (
-    this: Context<Branch>,
+    this: Context<BranchResource>,
     _id: string,
     props: BranchProps,
-  ): Promise<Branch> {
+  ): Promise<BranchResource> {
     const api = await createSupabaseApi(props);
     const projectRef =
       typeof props.project === "string" ? props.project : props.project.id;
@@ -217,7 +217,7 @@ async function createBranch(
   api: SupabaseApi,
   projectRef: string,
   params: any,
-): Promise<Branch> {
+): Promise<BranchResource> {
   const response = await api.post(`/projects/${projectRef}/branches`, params);
   if (!response.ok) {
     await handleApiError(response, "creating", "branch", params.branch_name);
@@ -230,7 +230,7 @@ async function getBranch(
   api: SupabaseApi,
   projectRef: string,
   branchId: string,
-): Promise<Branch> {
+): Promise<BranchResource> {
   const response = await api.get(
     `/projects/${projectRef}/branches/${branchId}`,
   );
@@ -258,7 +258,7 @@ async function findBranchByName(
   api: SupabaseApi,
   projectRef: string,
   branchName: string,
-): Promise<Branch | null> {
+): Promise<BranchResource | null> {
   const response = await api.get(`/projects/${projectRef}/branches`);
   if (!response.ok) {
     await handleApiError(response, "listing", "branches");
@@ -268,7 +268,7 @@ async function findBranchByName(
   return match ? mapBranchResponse(match) : null;
 }
 
-function mapBranchResponse(data: any): Branch {
+function mapBranchResponse(data: any): BranchResource {
   return {
     [ResourceKind]: "supabase::Branch",
     [ResourceID]: data.id,

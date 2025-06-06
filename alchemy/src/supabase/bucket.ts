@@ -14,7 +14,7 @@ import {
   type SupabaseApi,
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
-import type { Project } from "./project.ts";
+import type { ProjectResource } from "./project.ts";
 
 /**
  * Properties for creating or updating a Supabase Storage Bucket
@@ -23,7 +23,7 @@ export interface BucketProps extends SupabaseApiOptions {
   /**
    * Reference to the project (string ID or Project resource)
    */
-  project: string | Project;
+  project: string | ProjectResource;
 
   /**
    * Name of the bucket (optional, defaults to resource ID)
@@ -59,7 +59,7 @@ export interface BucketProps extends SupabaseApiOptions {
 /**
  * Supabase Storage Bucket resource
  */
-export interface Bucket extends Resource<"supabase::Bucket"> {
+export interface BucketResource extends Resource<"supabase::Bucket"> {
   /**
    * Unique identifier of the bucket
    */
@@ -91,7 +91,7 @@ export interface Bucket extends Resource<"supabase::Bucket"> {
   updatedAt: string;
 }
 
-export function isBucket(resource: Resource): resource is Bucket {
+export function isBucket(resource: Resource): resource is BucketResource {
   return resource[ResourceKind] === "supabase::Bucket";
 }
 
@@ -124,10 +124,10 @@ export function isBucket(resource: Resource): resource is Bucket {
 export const Bucket = Resource(
   "supabase::Bucket",
   async function (
-    this: Context<Bucket>,
+    this: Context<BucketResource>,
     id: string,
     props: BucketProps,
-  ): Promise<Bucket> {
+  ): Promise<BucketResource> {
     const api = await createSupabaseApi(props);
     const name = props.name ?? id;
     const projectRef =
@@ -177,7 +177,7 @@ async function createBucket(
   api: SupabaseApi,
   projectRef: string,
   params: any,
-): Promise<Bucket> {
+): Promise<BucketResource> {
   const response = await api.post(
     `/projects/${projectRef}/storage/buckets`,
     params,
@@ -193,7 +193,7 @@ async function getBucket(
   api: SupabaseApi,
   projectRef: string,
   name: string,
-): Promise<Bucket> {
+): Promise<BucketResource> {
   const response = await api.get(`/projects/${projectRef}/storage/buckets`);
   if (!response.ok) {
     await handleApiError(response, "listing", "buckets");
@@ -223,7 +223,7 @@ async function findBucketByName(
   api: SupabaseApi,
   projectRef: string,
   name: string,
-): Promise<Bucket | null> {
+): Promise<BucketResource | null> {
   try {
     return await getBucket(api, projectRef, name);
   } catch {
@@ -231,7 +231,7 @@ async function findBucketByName(
   }
 }
 
-function mapBucketResponse(data: any): Bucket {
+function mapBucketResponse(data: any): BucketResource {
   return {
     [ResourceKind]: "supabase::Bucket",
     [ResourceID]: data.id,

@@ -14,7 +14,7 @@ import {
   type SupabaseApi,
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
-import type { Project } from "./project.ts";
+import type { ProjectResource } from "./project.ts";
 
 /**
  * Properties for creating or updating Supabase Secrets
@@ -23,7 +23,7 @@ export interface SecretProps extends SupabaseApiOptions {
   /**
    * Reference to the project (string ID or Project resource)
    */
-  project: string | Project;
+  project: string | ProjectResource;
 
   /**
    * Key-value pairs of secrets to create/update
@@ -39,7 +39,7 @@ export interface SecretProps extends SupabaseApiOptions {
 /**
  * Supabase Secrets resource
  */
-export interface Secret extends Resource<"supabase::Secret"> {
+export interface SecretResource extends Resource<"supabase::Secret"> {
   /**
    * Reference to the project
    */
@@ -61,7 +61,7 @@ export interface Secret extends Resource<"supabase::Secret"> {
   }>;
 }
 
-export function isSecret(resource: Resource): resource is Secret {
+export function isSecret(resource: Resource): resource is SecretResource {
   return resource[ResourceKind] === "supabase::Secret";
 }
 
@@ -91,10 +91,10 @@ export function isSecret(resource: Resource): resource is Secret {
 export const Secret = Resource(
   "supabase::Secret",
   async function (
-    this: Context<Secret>,
+    this: Context<SecretResource>,
     _id: string,
     props: SecretProps,
-  ): Promise<Secret> {
+  ): Promise<SecretResource> {
     const api = await createSupabaseApi(props);
     const projectRef =
       typeof props.project === "string" ? props.project : props.project.id;
@@ -121,7 +121,7 @@ export const Secret = Resource(
         [ResourceSeq]: 0,
         project: projectRef,
         secrets: filteredSecrets,
-      } as Secret);
+      } as SecretResource);
     }
 
     try {
@@ -138,7 +138,7 @@ export const Secret = Resource(
         [ResourceSeq]: 0,
         project: projectRef,
         secrets: filteredSecrets,
-      } as Secret);
+      } as SecretResource);
     } catch (error) {
       if (
         props.adopt &&
@@ -157,7 +157,7 @@ export const Secret = Resource(
           [ResourceSeq]: 0,
           project: projectRef,
           secrets: matchingSecrets,
-        } as Secret);
+        } as SecretResource);
       }
       throw error;
     }

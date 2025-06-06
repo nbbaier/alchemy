@@ -14,8 +14,8 @@ import {
   type SupabaseApi,
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
-import type { Project } from "./project.ts";
-import { Bundle } from "../esbuild/bundle.ts";
+import type { ProjectResource } from "./project.ts";
+import { Bundle, type BundleProps } from "../esbuild/bundle.ts";
 import fs from "node:fs/promises";
 
 /**
@@ -25,7 +25,7 @@ export interface FunctionProps extends SupabaseApiOptions {
   /**
    * Reference to the project (string ID or Project resource)
    */
-  project: string | Project;
+  project: string | ProjectResource;
 
   /**
    * Name of the function (optional, defaults to resource ID)
@@ -34,13 +34,41 @@ export interface FunctionProps extends SupabaseApiOptions {
 
   /**
    * Function body as a string (for inline functions)
+   * @deprecated Use `script` instead for consistency with other providers
    */
   body?: string;
+
+  /**
+   * Inline script content (for inline functions)
+   */
+  script?: string;
 
   /**
    * Path to the main entry file (for file-based functions with bundling)
    */
   main?: string;
+
+  /**
+   * Bundle options when using main
+   */
+  bundle?: Omit<BundleProps, "entryPoint">;
+
+  /**
+   * Module format for the function script
+   * @default 'esm'
+   */
+  format?: "esm" | "cjs";
+
+  /**
+   * The root directory of the project
+   */
+  projectRoot?: string;
+
+  /**
+   * Whether to disable bundling of the function script
+   * @default false
+   */
+  noBundle?: boolean;
 
   /**
    * Import map for Deno imports
@@ -71,7 +99,7 @@ export interface FunctionProps extends SupabaseApiOptions {
 /**
  * Supabase Edge Function resource
  */
-export interface Function extends Resource<"supabase::Function"> {
+export interface FunctionResource extends Resource<"supabase::Function"> {
   /**
    * Unique identifier of the function
    */
@@ -111,7 +139,7 @@ export interface Function extends Resource<"supabase::Function"> {
 /**
  * Type guard to check if a resource is a Function
  */
-export function isFunction(resource: Resource): resource is Function {
+export function isFunction(resource: Resource): resource is FunctionResource {
   return resource[ResourceKind] === "supabase::Function";
 }
 
@@ -119,45 +147,47 @@ export function isFunction(resource: Resource): resource is Function {
  * Create and manage Supabase Edge Functions
  *
  * @example
- * // Create a function with file-based entrypoint:
+ * // Create a function with file-based entrypoint (recommended):
  * const func = Function("api-handler", {
  *   project: myProject,
  *   main: "./functions/api-handler.ts"
  * });
  *
  * @example
- * // Create a function with external TypeScript file:
- * const func = Function("hello-world", {
+ * // Create a function with bundle configuration:
+ * const func = Function("optimized-api", {
  *   project: "proj-123",
- *   main: "./src/hello-world.ts"
+ *   main: "./src/api.ts",
+ *   bundle: {
+ *     minify: true,
+ *     target: "es2020"
+ *   }
  * });
  *
  * @example
- * // Create a function with import map and JWT verification:
- * const func = Function("secure-api", {
+ * // Create a function with inline script:
+ * const func = Function("simple-function", {
  *   project: "proj-123",
- *   main: "./src/secure-api.ts",
- *   importMap: {
- *     "std/": "https://deno.land/std@0.168.0/"
- *   },
- *   verifyJwt: true
+ *   script: `export default async function handler(req) {
+ *     return new Response("Hello World");
+ *   }`
  * });
  */
 export const Function = Resource(
   "supabase::Function",
   async function (
-    this: Context<Function>,
+    this: Context<FunctionResource>,
     id: string,
     props: FunctionProps,
-  ): Promise<Function> {
+  ): Promise<FunctionResource> {
     const api = await createSupabaseApi(props);
     const name = props.name ?? id;
     const projectRef =
       typeof props.project === "string" ? props.project : props.project.id;
 
-    let functionBody = props.body;
-    if (props.main && !props.body) {
-      functionBody = await bundleFunctionCode(props.main);
+    let functionBody = props.script ?? props.body;
+    if (props.main && !functionBody) {
+      functionBody = await bundleSupabaseFunction(props.main, props);
     }
 
     if (this.phase === "delete") {
@@ -214,7 +244,7 @@ async function createFunction(
   api: SupabaseApi,
   projectRef: string,
   params: any,
-): Promise<Function> {
+): Promise<FunctionResource> {
   const response = await api.post(`/projects/${projectRef}/functions`, params);
   if (!response.ok) {
     await handleApiError(response, "creating", "function", params.name);
@@ -227,7 +257,7 @@ async function getFunction(
   api: SupabaseApi,
   projectRef: string,
   slug: string,
-): Promise<Function> {
+): Promise<FunctionResource> {
   const response = await api.get(`/projects/${projectRef}/functions/${slug}`);
   if (!response.ok) {
     await handleApiError(response, "getting", "function", slug);
@@ -268,7 +298,7 @@ async function findFunctionByName(
   api: SupabaseApi,
   projectRef: string,
   name: string,
-): Promise<Function | null> {
+): Promise<FunctionResource | null> {
   const response = await api.get(`/projects/${projectRef}/functions`);
   if (!response.ok) {
     await handleApiError(response, "listing", "functions");
@@ -278,14 +308,24 @@ async function findFunctionByName(
   return match ? mapFunctionResponse(match) : null;
 }
 
-async function bundleFunctionCode(entrypoint: string): Promise<string> {
+async function bundleSupabaseFunction(
+  entrypoint: string,
+  props: FunctionProps,
+): Promise<string> {
+  const projectRoot = props.projectRoot ?? process.cwd();
+
+  if (props.noBundle) {
+    return await fs.readFile(entrypoint, "utf-8");
+  }
+
   try {
     const bundle = await Bundle("supabase-function", {
       entryPoint: entrypoint,
-      format: "esm",
+      format: props.format === "cjs" ? "cjs" : "esm",
       target: "esnext",
       platform: "browser",
       minify: false,
+      absWorkingDir: projectRoot,
       conditions: ["deno", "worker", "browser"],
       keepNames: true,
       loader: {
@@ -293,6 +333,7 @@ async function bundleFunctionCode(entrypoint: string): Promise<string> {
         ".js": "js",
         ".json": "json",
       },
+      ...(props.bundle || {}),
     });
 
     if (bundle.content) {
@@ -307,7 +348,7 @@ async function bundleFunctionCode(entrypoint: string): Promise<string> {
   }
 }
 
-function mapFunctionResponse(data: any): Function {
+function mapFunctionResponse(data: any): FunctionResource {
   return {
     [ResourceKind]: "supabase::Function",
     [ResourceID]: data.id,

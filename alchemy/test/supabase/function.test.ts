@@ -45,7 +45,7 @@ export default async function handler(req: Request): Promise<Response> {
         const edgeFunction = await Function(testId, {
           project: project.id,
           name: functionName,
-          body: functionCode,
+          script: functionCode,
         });
 
         expect(edgeFunction.id).toBeTruthy();
@@ -71,7 +71,7 @@ export default async function handler(req: Request): Promise<Response> {
         const updatedFunction = await Function(testId, {
           project: project.id,
           name: functionName,
-          body: updatedCode,
+          script: updatedCode,
         });
 
         expect(updatedFunction.id).toEqual(edgeFunction.id);
@@ -114,7 +114,7 @@ export default async function handler(req: Request): Promise<Response> {
         const originalFunction = await Function("original", {
           project: project.id,
           name: functionName,
-          body: functionCode,
+          script: functionCode,
         });
 
         expect(originalFunction.name).toEqual(functionName);
@@ -122,7 +122,7 @@ export default async function handler(req: Request): Promise<Response> {
         const adoptedFunction = await Function(testId, {
           project: project.id,
           name: functionName,
-          body: functionCode,
+          script: functionCode,
           adopt: true,
         });
 
@@ -136,6 +136,93 @@ export default async function handler(req: Request): Promise<Response> {
           (f: any) => f.name === functionName,
         );
         expect(functionsWithName).toHaveLength(1);
+      } catch (error: any) {
+        console.error(`Test error: ${error.message}`);
+        throw error;
+      } finally {
+        await destroy(scope);
+      }
+    },
+  );
+
+  test.skipIf(!process.env.SUPABASE_ACCESS_TOKEN)(
+    "create function with main property and bundling",
+    async (scope) => {
+      const testId = `${BRANCH_PREFIX}-bundle-test`;
+      const orgName = `${BRANCH_PREFIX}-bundle-org`;
+      const projectName = `${BRANCH_PREFIX}-bundle-project`;
+      const functionName = `${BRANCH_PREFIX}-bundle-function`;
+
+      try {
+        const organization = await Organization("bundle-org", {
+          name: orgName,
+        });
+
+        const project = await Project("bundle-project", {
+          organizationId: organization.id,
+          name: projectName,
+          region: "us-east-1",
+          dbPass: "test-password-123",
+        });
+
+        const edgeFunction = await Function(testId, {
+          project: project.id,
+          name: functionName,
+          main: "./examples/supabase/src/api.ts",
+          bundle: {
+            format: "esm",
+            target: "esnext",
+          },
+        });
+
+        expect(edgeFunction.id).toBeTruthy();
+        expect(edgeFunction.name).toEqual(functionName);
+        expect(edgeFunction.slug).toBeTruthy();
+      } catch (error: any) {
+        console.error(`Test error: ${error.message}`);
+        throw error;
+      } finally {
+        await destroy(scope);
+      }
+    },
+  );
+
+  test.skipIf(!process.env.SUPABASE_ACCESS_TOKEN)(
+    "create function with script property",
+    async (scope) => {
+      const testId = `${BRANCH_PREFIX}-script-test`;
+      const orgName = `${BRANCH_PREFIX}-script-org`;
+      const projectName = `${BRANCH_PREFIX}-script-project`;
+      const functionName = `${BRANCH_PREFIX}-script-function`;
+
+      try {
+        const organization = await Organization("script-org", {
+          name: orgName,
+        });
+
+        const project = await Project("script-project", {
+          organizationId: organization.id,
+          name: projectName,
+          region: "us-east-1",
+          dbPass: "test-password-123",
+        });
+
+        const functionCode = `
+export default async function handler(req: Request): Promise<Response> {
+  return new Response(JSON.stringify({ message: "Hello from script function!" }), {
+    headers: { "Content-Type": "application/json" },
+  });
+}`;
+
+        const edgeFunction = await Function(testId, {
+          project: project.id,
+          name: functionName,
+          script: functionCode,
+        });
+
+        expect(edgeFunction.id).toBeTruthy();
+        expect(edgeFunction.name).toEqual(functionName);
+        expect(edgeFunction.slug).toBeTruthy();
       } catch (error: any) {
         console.error(`Test error: ${error.message}`);
         throw error;

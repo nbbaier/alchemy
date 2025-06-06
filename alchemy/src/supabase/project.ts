@@ -8,7 +8,6 @@ import {
   ResourceSeq,
 } from "../resource.ts";
 import { Scope } from "../scope.ts";
-import type { Secret } from "../secret.ts";
 
 import {
   createSupabaseApi,
@@ -39,7 +38,7 @@ export interface ProjectProps extends SupabaseApiOptions {
   /**
    * Database password for the project
    */
-  dbPass: Secret<string>;
+  dbPass: string;
 
   /**
    * Desired instance size for the project
@@ -65,7 +64,7 @@ export interface ProjectProps extends SupabaseApiOptions {
 /**
  * Supabase Project resource
  */
-export interface Project extends Resource<"supabase::Project"> {
+export interface ProjectResource extends Resource<"supabase::Project"> {
   /**
    * Unique identifier of the project
    */
@@ -122,7 +121,7 @@ export interface Project extends Resource<"supabase::Project"> {
   };
 }
 
-export function isProject(resource: Resource): resource is Project {
+export function isProject(resource: Resource): resource is ProjectResource {
   return resource[ResourceKind] === "supabase::Project";
 }
 
@@ -150,10 +149,10 @@ export function isProject(resource: Resource): resource is Project {
 export const Project = Resource(
   "supabase::Project",
   async function (
-    this: Context<Project>,
+    this: Context<ProjectResource>,
     id: string,
     props: ProjectProps,
-  ): Promise<Project> {
+  ): Promise<ProjectResource> {
     const api = await createSupabaseApi(props);
     const name = props.name ?? id;
 
@@ -199,7 +198,10 @@ export const Project = Resource(
   },
 );
 
-async function createProject(api: SupabaseApi, params: any): Promise<Project> {
+async function createProject(
+  api: SupabaseApi,
+  params: any,
+): Promise<ProjectResource> {
   const response = await api.post("/projects", params);
   if (!response.ok) {
     await handleApiError(response, "creating", "project", params.name);
@@ -220,7 +222,10 @@ async function createProject(api: SupabaseApi, params: any): Promise<Project> {
   };
 }
 
-async function getProject(api: SupabaseApi, ref: string): Promise<Project> {
+async function getProject(
+  api: SupabaseApi,
+  ref: string,
+): Promise<ProjectResource> {
   const response = await api.get(`/projects/${ref}`);
   if (!response.ok) {
     await handleApiError(response, "getting", "project", ref);
@@ -252,7 +257,7 @@ async function deleteProject(api: SupabaseApi, ref: string): Promise<void> {
 async function findProjectByName(
   api: SupabaseApi,
   name: string,
-): Promise<Project | null> {
+): Promise<ProjectResource | null> {
   const response = await api.get("/projects");
   if (!response.ok) {
     await handleApiError(response, "listing", "projects");
