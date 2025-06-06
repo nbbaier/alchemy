@@ -231,11 +231,11 @@ interface NeonOperation {
   id: string;
   projectId: string;
   branchId?: string;
-  endpoint_id?: string;
+  endpointId?: string;
   action: string;
   status: "running" | "finished" | "failed" | "scheduling";
   error?: string;
-  failures_count: number;
+  failuresCount: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -57,17 +57,17 @@ interface NeonBranchType {
   /**
    * ID of the parent branch
    */
-  parent_id?: string;
+  parentId?: string;
 
   /**
    * Log Sequence Number (LSN) of the parent branch
    */
-  parent_lsn?: string;
+  parentLsn?: string;
 
   /**
    * Timestamp of the parent branch
    */
-  parent_timestamp?: string;
+  parentTimestamp?: string;
 
   /**
    * Name of the branch
@@ -77,22 +77,22 @@ interface NeonBranchType {
   /**
    * Current state of the branch
    */
-  current_state: "init" | "ready";
+  currentState: "init" | "ready";
 
   /**
    * Pending state of the branch during operations
    */
-  pending_state?: "init" | "ready";
+  pendingState?: "init" | "ready";
 
   /**
    * Logical size of the branch in bytes
    */
-  logical_size?: number;
+  logicalSize?: number;
 
   /**
    * Physical size of the branch in bytes
    */
-  physical_size?: number;
+  physicalSize?: number;
 
   /**
    * Time at which the branch was created
@@ -122,27 +122,27 @@ interface NeonBranchType {
   /**
    * CPU usage in seconds
    */
-  cpu_used_sec?: number;
+  cpuUsedSec?: number;
 
   /**
    * Compute time in seconds
    */
-  compute_time_seconds?: number;
+  computeTimeSeconds?: number;
 
   /**
    * Active time in seconds
    */
-  active_time_seconds?: number;
+  activeTimeSeconds?: number;
 
   /**
    * Written data in bytes
    */
-  written_data_bytes?: number;
+  writtenDataBytes?: number;
 
   /**
    * Data transfer in bytes
    */
-  data_transfer_bytes?: number;
+  dataTransferBytes?: number;
 }
 
 /**
@@ -426,20 +426,20 @@ export const NeonBranch = Resource(
         adopt: props.adopt,
         projectId: projectId,
         id: branch.id,
-        currentState: branch.current_state,
-        pendingState: branch.pending_state,
-        logicalSize: branch.logical_size,
-        physicalSize: branch.physical_size,
+        currentState: branch.currentState,
+        pendingState: branch.pendingState,
+        logicalSize: branch.logicalSize,
+        physicalSize: branch.physicalSize,
         createdAt: branch.createdAt,
         updatedAt: branch.updatedAt,
         primary: branch.primary,
         default: branch.default,
         protected: branch.protected,
-        cpuUsedSec: branch.cpu_used_sec,
-        computeTimeSeconds: branch.compute_time_seconds,
-        activeTimeSeconds: branch.active_time_seconds,
-        writtenDataBytes: branch.written_data_bytes,
-        dataTransferBytes: branch.data_transfer_bytes,
+        cpuUsedSec: branch.cpuUsedSec,
+        computeTimeSeconds: branch.computeTimeSeconds,
+        activeTimeSeconds: branch.activeTimeSeconds,
+        writtenDataBytes: branch.writtenDataBytes,
+        dataTransferBytes: branch.dataTransferBytes,
         baseUrl: props.baseUrl,
       });
     } catch (error: unknown) {
@@ -543,17 +543,17 @@ interface NeonBranchType {
   /**
    * ID of the parent branch
    */
-  parent_id?: string;
+  parentId?: string;
 
   /**
    * Log Sequence Number (LSN) of the parent branch
    */
-  parent_lsn?: string;
+  parentLsn?: string;
 
   /**
    * Timestamp of the parent branch
    */
-  parent_timestamp?: string;
+  parentTimestamp?: string;
 
   /**
    * The branch ID
@@ -568,22 +568,22 @@ interface NeonBranchType {
   /**
    * Current state of the branch
    */
-  current_state: "init" | "ready";
+  currentState: "init" | "ready";
 
   /**
    * Pending state of the branch
    */
-  pending_state?: "init" | "ready";
+  pendingState?: "init" | "ready";
 
   /**
    * Logical size of the branch in bytes
    */
-  logical_size?: number;
+  logicalSize?: number;
 
   /**
    * Physical size of the branch in bytes
    */
-  physical_size?: number;
+  physicalSize?: number;
 
   /**
    * Time at which the branch was created
@@ -613,27 +613,27 @@ interface NeonBranchType {
   /**
    * CPU seconds used by the branch
    */
-  cpu_used_sec?: number;
+  cpuUsedSec?: number;
 
   /**
    * Compute time in seconds
    */
-  compute_time_seconds?: number;
+  computeTimeSeconds?: number;
 
   /**
    * Active time in seconds
    */
-  active_time_seconds?: number;
+  activeTimeSeconds?: number;
 
   /**
    * Data written in bytes
    */
-  written_data_bytes?: number;
+  writtenDataBytes?: number;
 
   /**
    * Data transfer in bytes
    */
-  data_transfer_bytes?: number;
+  dataTransferBytes?: number;
 }
 
 /**

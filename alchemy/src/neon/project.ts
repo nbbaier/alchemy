@@ -34,7 +34,7 @@ export interface NeonProjectProps extends NeonApiOptions {
    * Region where the project will be provisioned
    * @default "aws-us-east-1"
    */
-  region_id?: NeonRegion;
+  regionId?: NeonRegion;
 
   /**
    * PostgreSQL version to use
@@ -154,7 +154,7 @@ export interface NeonBranch {
   /**
    * Current state of the branch
    */
-  current_state: string;
+  currentState: string;
 
   /**
    * Pending state of the branch
@@ -204,7 +204,7 @@ export interface NeonEndpoint {
   /**
    * Current state of the endpoint
    */
-  current_state: string;
+  currentState: string;
 
   /**
    * Pending state of the endpoint
@@ -214,27 +214,27 @@ export interface NeonEndpoint {
   /**
    * Region ID where this endpoint is provisioned
    */
-  region_id: string;
+  regionId: string;
 
   /**
    * Minimum compute units for autoscaling
    */
-  autoscaling_limit_min_cu: number;
+  autoscalingLimitMinCu: number;
 
   /**
    * Maximum compute units for autoscaling
    */
-  autoscaling_limit_max_cu: number;
+  autoscalingLimitMaxCu: number;
 
   /**
    * Whether connection pooler is enabled
    */
-  pooler_enabled: boolean;
+  poolerEnabled: boolean;
 
   /**
    * Connection pooler mode
    */
-  pooler_mode: string;
+  poolerMode: string;
 
   /**
    * Whether this endpoint is disabled
@@ -244,7 +244,7 @@ export interface NeonEndpoint {
   /**
    * Whether passwordless access is enabled
    */
-  passwordless_access: boolean;
+  passwordlessAccess: boolean;
 
   /**
    * Time at which the endpoint was created
@@ -259,7 +259,7 @@ export interface NeonEndpoint {
   /**
    * Proxy host for this endpoint
    */
-  proxy_host: string;
+  proxyHost: string;
 
   /**
    * Endpoint settings
@@ -268,7 +268,7 @@ export interface NeonEndpoint {
     /**
      * PostgreSQL settings
      */
-    pg_settings: Record<string, string>;
+    pgSettings: Record<string, string>;
   };
 }
 
@@ -315,7 +315,7 @@ export interface NeonOperation {
   /**
    * ID of the endpoint this operation affects, if applicable
    */
-  endpoint_id?: string;
+  endpointId?: string;
 
   /**
    * Action being performed
@@ -330,7 +330,7 @@ export interface NeonOperation {
   /**
    * Number of failures encountered
    */
-  failures_count: number;
+  failuresCount: number;
 
   /**
    * Time at which the operation was created
@@ -355,11 +355,11 @@ interface NeonApiResponse {
     createdAt: string;
     updatedAt: string;
     proxy_host?: string;
-    compute_time_seconds?: number;
-    active_time_seconds?: number;
-    cpu_used_sec?: number;
-    written_data_bytes?: number;
-    data_transfer_bytes?: number;
+    computeTimeSeconds?: number;
+    activeTimeSeconds?: number;
+    cpuUsedSec?: number;
+    writtenDataBytes?: number;
+    dataTransferBytes?: number;
   };
   connection_uris?: Array<{
     connection_uri: string;
@@ -402,8 +402,8 @@ interface NeonApiResponse {
     id: string;
     projectId: string;
     name: string;
-    current_state: string;
-    pending_state: string;
+    currentState: string;
+    pendingState: string;
     createdAt: string;
     updatedAt: string;
   };
@@ -415,16 +415,16 @@ interface NeonApiResponse {
     type: string;
     currentState: string;
     pendingState: string;
-    region_id: string;
-    autoscaling_limit_min_cu: number;
-    autoscaling_limit_max_cu: number;
-    pooler_enabled: boolean;
-    pooler_mode: string;
+    regionId: string;
+    autoscalingLimitMinCu: number;
+    autoscalingLimitMaxCu: number;
+    poolerEnabled: boolean;
+    poolerMode: string;
     disabled: boolean;
-    passwordless_access: boolean;
+    passwordlessAccess: boolean;
     createdAt: string;
     updatedAt: string;
-    proxy_host: string;
+    proxyHost: string;
     settings: {
       pg_settings: Record<string, string>;
     };
@@ -456,7 +456,7 @@ export interface NeonProject
   /**
    * Hostname for proxy access
    */
-  proxy_host?: string;
+  proxyHost?: string;
 
   /**
    * Connection URIs for the databases
@@ -497,8 +497,8 @@ export interface NeonProject
  * // Create a Neon project in a specific region with a specific PostgreSQL version:
  * const euProject = await NeonProject("my-eu-project", {
  *   name: "My EU Project",
- *   region_id: "aws-eu-west-1",
- *   pg_version: 16,
+ *   regionId: "aws-eu-west-1",
+ *   pgVersion: 16,
  *   apiKey: alchemy.secret(process.env.NEON_API_KEY)
  * });
  *
@@ -610,11 +610,11 @@ export const NeonProject = Resource(
       return this({
         id: response.project.id,
         name: response.project.name,
-        region_id: response.project.region_id as NeonRegion,
-        pg_version: response.project.pg_version as 14 | 15 | 16 | 17,
+        regionId: response.project.region_id as NeonRegion,
+        pgVersion: response.project.pg_version as 14 | 15 | 16 | 17,
         createdAt: response.project.createdAt,
         updatedAt: response.project.updatedAt,
-        proxy_host: response.project.proxy_host,
+        proxyHost: response.project.proxy_host,
         // Pass through the provided props except apiKey (which is sensitive)
         default_endpoint: props.default_endpoint,
         default_branch_name: props.default_branch_name,
@@ -649,7 +649,7 @@ async function createNewProject(
   const projectResponse = await api.post("/projects", {
     project: {
       name: props.name,
-      region_id: props.region_id || "aws-us-east-1",
+      region_id: props.regionId || "aws-us-east-1",
       pg_version: props.pg_version || 16,
       default_endpoint: defaultEndpoint,
       branch: defaultEndpoint
@@ -692,7 +692,10 @@ async function getProject(
     const branchData = await getBranchDetails(api, projectId, branchId);
 
     // Update with the latest branch data
-    responseData.branch = branchData.branch;
+    responseData.branch = {
+      ...branchData.branch,
+      pendingState: (branchData.branch as any).pending_state || "ready",
+    };
 
     // Also fetch the latest endpoint details for this branch
     const endpointData = await getEndpointDetails(api, projectId, branchId);
@@ -705,20 +708,21 @@ async function getProject(
         projectId: ep.projectId,
         branchId: ep.branchId,
         type: ep.type,
-        currentState: ep.current_state,
-        pendingState: ep.pending_state,
-        region_id: ep.region_id,
-        autoscaling_limit_min_cu: ep.autoscaling_limit_min_cu,
-        autoscaling_limit_max_cu: ep.autoscaling_limit_max_cu,
-        pooler_enabled: ep.pooler_enabled,
-        pooler_mode: ep.pooler_mode,
+        currentState: ep.currentState,
+        pendingState: (ep as any).pending_state || "active",
+        regionId: ep.regionId,
+        autoscalingLimitMinCu: ep.autoscalingLimitMinCu,
+        autoscalingLimitMaxCu: ep.autoscalingLimitMaxCu,
+        poolerEnabled: ep.poolerEnabled,
+        poolerMode: ep.poolerMode,
         disabled: ep.disabled,
-        passwordless_access: ep.passwordless_access,
+        passwordlessAccess: ep.passwordlessAccess,
         createdAt: ep.createdAt,
         updatedAt: ep.updatedAt,
-        proxy_host: ep.proxy_host,
+        proxyHost: ep.proxyHost,
         settings: {
-          pg_settings: ep.settings?.pg_settings || {},
+          pgSettings: ep.settings?.pgSettings || {},
+          pg_settings: ep.settings?.pgSettings || {},
         },
       }));
     }

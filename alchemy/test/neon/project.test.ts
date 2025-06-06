@@ -34,13 +34,13 @@ describe("NeonProject Resource", () => {
       const projectName = generateProjectName();
       project = await NeonProject(testId, {
         name: projectName,
-        region_id: "aws-us-east-1",
+        regionId: "aws-us-east-1",
         pg_version: 15,
       });
 
       expect(project.id).toBeTruthy();
       expect(project.name).toEqual(projectName);
-      expect(project.region_id).toEqual("aws-us-east-1");
+      expect(project.regionId).toEqual("aws-us-east-1");
       expect(project.pg_version).toEqual(15);
       expect(project.createdAt).toBeTruthy();
       expect(project.updatedAt).toBeTruthy();
@@ -51,7 +51,7 @@ describe("NeonProject Resource", () => {
       expect(branch.name).toBeTruthy();
       expect(branch.id).toBeTruthy();
       expect(branch.projectId).toEqual(project.id);
-      expect(branch.current_state).toBeTruthy();
+      expect(branch.currentState).toBeTruthy();
 
       expect(project.endpoints).toBeTruthy();
       const endpoint: NeonEndpoint = project.endpoints![0];
@@ -91,16 +91,16 @@ describe("NeonProject Resource", () => {
       expect(responseData.project.name).toEqual(projectName);
 
       // Check if the branch is in ready state, confirming operations were waited for
-      expect(project.branch!.current_state).toEqual("ready");
+      expect(project.branch!.currentState).toEqual("ready");
 
       // Check if endpoints are active, confirming operations were waited for
-      expect(project.endpoints![0].current_state).toEqual("active");
+      expect(project.endpoints![0].currentState).toEqual("active");
 
       // Update the project name
       const updatedName = `${generateProjectName()}-updated`;
       project = await NeonProject(testId, {
         name: updatedName,
-        region_id: "aws-us-east-1",
+        regionId: "aws-us-east-1",
         pg_version: 15,
         existingProjectId: project.id,
       });

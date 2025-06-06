@@ -353,7 +353,7 @@ export const NeonEndpoint = Resource(
           const listData: ListEndpointsResponse = await listResponse.json();
           const existingEndpoint = listData.endpoints?.find(
             (ep: NeonEndpointType) =>
-              ep.branch_id === branchId && ep.type === props.type,
+              ep.branchId === branchId && ep.type === props.type,
           );
 
           if (existingEndpoint) {
@@ -393,26 +393,26 @@ export const NeonEndpoint = Resource(
         type: props.type,
         computeProvisioner: props.computeProvisioner,
         settings: props.settings,
-        poolerEnabled: endpoint.pooler_enabled,
-        poolerMode: endpoint.pooler_mode,
+        poolerEnabled: endpoint.poolerEnabled,
+        poolerMode: endpoint.poolerMode,
         disabled: endpoint.disabled,
-        passwordlessAccess: endpoint.passwordless_access,
-        suspendTimeoutSeconds: endpoint.suspend_timeout_seconds,
+        passwordlessAccess: endpoint.passwordlessAccess,
+        suspendTimeoutSeconds: endpoint.suspendTimeoutSeconds,
         provisioner: endpoint.provisioner,
-        regionId: endpoint.region_id,
+        regionId: endpoint.regionId,
         adopt: props.adopt,
         projectId: projectId,
         branchId: branchId,
         host: endpoint.host,
         id: endpoint.id,
-        autoscalingLimitMinCu: endpoint.autoscaling_limit_min_cu,
-        autoscalingLimitMaxCu: endpoint.autoscaling_limit_max_cu,
-        currentState: endpoint.current_state,
-        pendingState: endpoint.pending_state,
-        lastActive: endpoint.last_active,
+        autoscalingLimitMinCu: endpoint.autoscalingLimitMinCu,
+        autoscalingLimitMaxCu: endpoint.autoscalingLimitMaxCu,
+        currentState: endpoint.currentState,
+        pendingState: endpoint.pendingState,
+        lastActive: endpoint.lastActive,
         createdAt: endpoint.createdAt,
         updatedAt: endpoint.updatedAt,
-        proxyHost: endpoint.proxy_host,
+        proxyHost: endpoint.proxyHost,
         baseUrl: props.baseUrl,
       });
     } catch (error: unknown) {
@@ -553,23 +553,23 @@ async function waitForOperations(
 interface NeonEndpointType {
   host: string;
   id: string;
-  project_id: string;
-  branch_id: string;
-  autoscaling_limit_min_cu: number;
-  autoscaling_limit_max_cu: number;
-  region_id: string;
+  projectId: string;
+  branchId: string;
+  autoscalingLimitMinCu: number;
+  autoscalingLimitMaxCu: number;
+  regionId: string;
   type: "read_write" | "read_only";
-  current_state: "init" | "active" | "idle";
-  pending_state?: "init" | "active" | "idle";
-  pooler_enabled: boolean;
-  pooler_mode?: "session" | "transaction";
+  currentState: "init" | "active" | "idle";
+  pendingState?: "init" | "active" | "idle";
+  poolerEnabled: boolean;
+  poolerMode?: "session" | "transaction";
   disabled: boolean;
-  passwordless_access: boolean;
-  last_active?: string;
+  passwordlessAccess: boolean;
+  lastActive?: string;
   createdAt: string;
   updatedAt: string;
-  proxy_host?: string;
-  suspend_timeout_seconds?: number;
+  proxyHost?: string;
+  suspendTimeoutSeconds?: number;
   provisioner?: "k8s-pod" | "k8s-neonvm";
 }
 

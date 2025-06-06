@@ -28,7 +28,7 @@ describe("NeonRole Resource", () => {
     try {
       project = await NeonProject(`${testId}-project`, {
         name: `Test Project ${testId}-${Date.now()}`,
-        region_id: "aws-us-east-1",
+        regionId: "aws-us-east-1",
         pg_version: 15,
       });
 
@@ -79,7 +79,7 @@ describe("NeonRole Resource", () => {
     try {
       project = await NeonProject(`${testId}-project-adopt`, {
         name: `Test Project Adopt ${testId}-${Date.now()}`,
-        region_id: "aws-us-east-1",
+        regionId: "aws-us-east-1",
         pg_version: 15,
       });
 
