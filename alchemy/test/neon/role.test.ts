@@ -33,22 +33,22 @@ describe("NeonRole Resource", () => {
       });
 
       branch = await NeonBranch(`${testId}-branch`, {
-        project_id: project.id,
+        project: project.id,
         name: `Test Branch ${testId}-${Date.now()}`,
       });
 
       const roleName = generateRoleName();
       role = await NeonRole(testId, {
-        project_id: project.id,
-        branch_id: branch.id,
+        project: project.id,
+        branch: branch.id,
         name: roleName,
       });
 
       expect(role.name).toEqual(roleName);
-      expect(role.branch_id).toEqual(branch.id);
+      expect(role.branchId).toEqual(branch.id);
       expect(role.protected).toBeDefined();
-      expect(role.created_at).toBeTruthy();
-      expect(role.updated_at).toBeTruthy();
+      expect(role.createdAt).toBeTruthy();
+      expect(role.updatedAt).toBeTruthy();
 
       const getResponse = await api.get(
         `/projects/${project.id}/branches/${branch.id}/roles/${roleName}`,
@@ -82,7 +82,7 @@ describe("NeonRole Resource", () => {
       });
 
       branch = await NeonBranch(`${testId}-branch-adopt`, {
-        project_id: project.id,
+        project: project.id,
         name: `Test Branch Adopt ${testId}-${Date.now()}`,
       });
 
@@ -97,14 +97,14 @@ describe("NeonRole Resource", () => {
       const createdRole: any = await createResponse.json();
 
       role = await NeonRole(`${testId}-adopt`, {
-        project_id: project.id,
-        branch_id: branch.id,
+        project: project.id,
+        branch: branch.id,
         name: roleName,
         adopt: true,
       });
 
       expect(role.name).toEqual(createdRole.role.name);
-      expect(role.branch_id).toEqual(branch.id);
+      expect(role.branchId).toEqual(branch.id);
     } finally {
       await destroy(scope);
     }

@@ -30,24 +30,24 @@ describe("NeonEndpoint Resource", () => {
       });
 
       branch = await NeonBranch(`${testId}-branch`, {
-        project_id: project.id,
+        project: project.id,
         name: `Test Branch ${testId}-${Date.now()}`,
       });
 
       endpoint = await NeonEndpoint(testId, {
-        project_id: project.id,
-        branch_id: branch.id,
+        project: project.id,
+        branch: branch.id,
         type: "read_only",
       });
 
       expect(endpoint.id).toBeTruthy();
       expect(endpoint.type).toEqual("read_only");
-      expect(endpoint.project_id).toEqual(project.id);
-      expect(endpoint.branch_id).toEqual(branch.id);
+      expect(endpoint.projectId).toEqual(project.id);
+      expect(endpoint.branchId).toEqual(branch.id);
       expect(endpoint.host).toBeTruthy();
-      expect(endpoint.current_state).toBeTruthy();
-      expect(endpoint.created_at).toBeTruthy();
-      expect(endpoint.updated_at).toBeTruthy();
+      expect(endpoint.currentState).toBeTruthy();
+      expect(endpoint.createdAt).toBeTruthy();
+      expect(endpoint.updatedAt).toBeTruthy();
 
       const getResponse = await api.get(
         `/projects/${project.id}/endpoints/${endpoint.id}`,
@@ -57,11 +57,11 @@ describe("NeonEndpoint Resource", () => {
       const responseData: any = await getResponse.json();
       expect(responseData.endpoint.type).toEqual("read_only");
 
-      expect(endpoint.current_state).toEqual("active");
+      expect(endpoint.currentState).toEqual("active");
 
       endpoint = await NeonEndpoint(testId, {
-        project_id: project.id,
-        branch_id: branch.id,
+        project: project.id,
+        branch: branch.id,
         type: "read_only",
         disabled: true,
       });
@@ -99,7 +99,7 @@ describe("NeonEndpoint Resource", () => {
       });
 
       branch = await NeonBranch(`${testId}-branch-adopt`, {
-        project_id: project.id,
+        project: project.id,
         name: `Test Branch Adopt ${testId}-${Date.now()}`,
       });
 
@@ -107,7 +107,7 @@ describe("NeonEndpoint Resource", () => {
         `/projects/${project.id}/endpoints`,
         {
           endpoint: {
-            branch_id: branch.id,
+            branch: branch.id,
             type: "read_only",
           },
         },
@@ -116,16 +116,16 @@ describe("NeonEndpoint Resource", () => {
       const createdEndpoint: any = await createResponse.json();
 
       endpoint = await NeonEndpoint(`${testId}-adopt`, {
-        project_id: project.id,
-        branch_id: branch.id,
+        project: project.id,
+        branch: branch.id,
         type: "read_only",
         adopt: true,
       });
 
       expect(endpoint.id).toEqual(createdEndpoint.endpoint.id);
       expect(endpoint.type).toEqual("read_only");
-      expect(endpoint.project_id).toEqual(project.id);
-      expect(endpoint.branch_id).toEqual(branch.id);
+      expect(endpoint.projectId).toEqual(project.id);
+      expect(endpoint.branchId).toEqual(branch.id);
     } finally {
       await destroy(scope);
     }

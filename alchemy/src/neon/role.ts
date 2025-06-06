@@ -3,20 +3,22 @@ import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
 import { handleApiError } from "./api-error.ts";
 import { createNeonApi, type NeonApiOptions, type NeonApi } from "./api.ts";
+import type { NeonProject } from "./project.ts";
+import type { NeonBranch } from "./branch.ts";
 
 /**
  * Properties for creating or updating a Neon role
  */
 export interface NeonRoleProps extends NeonApiOptions {
   /**
-   * The ID of the project containing the branch
+   * The project containing the branch
    */
-  project_id: string;
+  project: string | NeonProject;
 
   /**
-   * The ID of the branch where the role will be created
+   * The branch where the role will be created
    */
-  branch_id: string;
+  branch: string | NeonBranch;
 
   /**
    * Name of the role
@@ -31,50 +33,20 @@ export interface NeonRoleProps extends NeonApiOptions {
 }
 
 /**
- * Response structure for role API operations
- */
-export interface NeonRoleType {
-  /**
-   * The ID of the branch containing this role
-   */
-  branch_id: string;
-
-  /**
-   * Name of the role
-   */
-  name: string;
-
-  /**
-   * Password for the role (if available)
-   */
-  password?: Secret;
-
-  /**
-   * Whether this role is protected from deletion
-   */
-  protected: boolean;
-
-  /**
-   * Time at which the role was created
-   */
-  created_at: string;
-
-  /**
-   * Time at which the role was last updated
-   */
-  updated_at: string;
-}
-
-/**
  * A Neon database role with permissions
  */
 export interface NeonRole
   extends Resource<"neon::Role">,
     Omit<NeonRoleProps, "apiKey"> {
   /**
+   * The ID of the project containing this role
+   */
+  projectId: string;
+
+  /**
    * The ID of the branch containing this role
    */
-  branch_id: string;
+  branchId: string;
 
   /**
    * Name of the role
@@ -94,45 +66,12 @@ export interface NeonRole
   /**
    * Time at which the role was created
    */
-  created_at: string;
+  createdAt: string;
 
   /**
    * Time at which the role was last updated
    */
-  updated_at: string;
-}
-
-/**
- * Operation details for async role operations
- */
-interface NeonOperation {
-  id: string;
-  project_id: string;
-  branch_id?: string;
-  endpoint_id?: string;
-  action: string;
-  status: "running" | "finished" | "failed" | "scheduling";
-  error?: string;
-  failures_count: number;
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * API response structure for role operations
- */
-interface NeonRoleApiResponse {
-  role: NeonRoleType;
-  operations?: NeonOperation[];
-}
-
-/**
- * Payload structure for creating a role
- */
-interface CreateRolePayload {
-  role: {
-    name: string;
-  };
+  updatedAt: string;
 }
 
 /**
@@ -141,24 +80,24 @@ interface CreateRolePayload {
  * @example
  * // Create a basic role for application access:
  * const role = await NeonRole("app-user", {
- *   project_id: "proj_123",
- *   branch_id: "br_456",
+ *   project: project,
+ *   branch: branch,
  *   name: "app_user"
  * });
  *
  * @example
  * // Create a role for read-only access:
  * const role = await NeonRole("readonly-user", {
- *   project_id: "proj_123",
- *   branch_id: "br_456",
+ *   project: project,
+ *   branch: branch,
  *   name: "readonly_user"
  * });
  *
  * @example
  * // Adopt an existing role if it already exists:
  * const role = await NeonRole("existing-role", {
- *   project_id: "proj_123",
- *   branch_id: "br_456",
+ *   project: project,
+ *   branch: branch,
  *   name: "legacy_user",
  *   adopt: true
  * });
@@ -172,6 +111,10 @@ export const NeonRole = Resource(
   ): Promise<NeonRole> {
     const api = createNeonApi(props);
     const roleName = this.output?.name;
+    const projectId =
+      typeof props.project === "string" ? props.project : props.project.id;
+    const branchId =
+      typeof props.branch === "string" ? props.branch : props.branch.id;
 
     if (this.phase === "delete") {
       if (!roleName) {
@@ -180,7 +123,7 @@ export const NeonRole = Resource(
 
       try {
         const deleteResponse = await api.delete(
-          `/projects/${props.project_id}/branches/${props.branch_id}/roles/${props.name}`,
+          `/projects/${projectId}/branches/${branchId}/roles/${props.name}`,
         );
 
         if (deleteResponse.status === 404) {
@@ -210,7 +153,7 @@ export const NeonRole = Resource(
     try {
       if (this.phase === "update" && roleName) {
         const getResponse = await api.get(
-          `/projects/${props.project_id}/branches/${props.branch_id}/roles/${props.name}`,
+          `/projects/${projectId}/branches/${branchId}/roles/${props.name}`,
         );
         if (!getResponse.ok) {
           await handleApiError(getResponse, "get", "role", props.name);
@@ -219,18 +162,18 @@ export const NeonRole = Resource(
       } else {
         if (props.adopt) {
           const getResponse = await api.get(
-            `/projects/${props.project_id}/branches/${props.branch_id}/roles/${props.name}`,
+            `/projects/${projectId}/branches/${branchId}/roles/${props.name}`,
           );
           if (getResponse.ok) {
             response = await getResponse.json();
           } else if (getResponse.status === 404) {
-            response = await createNewRole(api, props);
+            response = await createNewRole(api, projectId, branchId, props);
           } else {
             await handleApiError(getResponse, "get", "role", props.name);
             throw new Error("Unreachable");
           }
         } else {
-          response = await createNewRole(api, props);
+          response = await createNewRole(api, projectId, branchId, props);
         }
       }
 
@@ -238,16 +181,22 @@ export const NeonRole = Resource(
         await waitForOperations(api, response.operations);
       }
 
+      const role = response.role;
       return this({
-        ...response.role,
-        project_id: props.project_id,
+        project: props.project,
+        branch: props.branch,
+        name: role.name,
+        password: role.password,
+        protected: role.protected,
+        createdAt: role.createdAt,
+        updatedAt: role.updatedAt,
+        projectId: projectId,
+        branchId: branchId,
         baseUrl: props.baseUrl,
       });
     } catch (error: unknown) {
       if ((error as { status?: number }).status === 404) {
-        throw new Error(
-          `Branch ${props.branch_id} not found in project ${props.project_id}`,
-        );
+        throw new Error(`Branch ${branchId} not found in project ${projectId}`);
       }
       throw error;
     }
@@ -256,6 +205,8 @@ export const NeonRole = Resource(
 
 async function createNewRole(
   api: NeonApi,
+  projectId: string,
+  branchId: string,
   props: NeonRoleProps,
 ): Promise<NeonRoleApiResponse> {
   const createPayload: CreateRolePayload = {
@@ -265,7 +216,7 @@ async function createNewRole(
   };
 
   const createResponse = await api.post(
-    `/projects/${props.project_id}/branches/${props.branch_id}/roles`,
+    `/projects/${projectId}/branches/${branchId}/roles`,
     createPayload,
   );
 
@@ -274,6 +225,39 @@ async function createNewRole(
   }
 
   return await createResponse.json();
+}
+
+interface NeonOperation {
+  id: string;
+  projectId: string;
+  branchId?: string;
+  endpoint_id?: string;
+  action: string;
+  status: "running" | "finished" | "failed" | "scheduling";
+  error?: string;
+  failures_count: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface NeonRoleType {
+  branchId: string;
+  name: string;
+  password?: Secret;
+  protected: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface NeonRoleApiResponse {
+  role: NeonRoleType;
+  operations?: NeonOperation[];
+}
+
+interface CreateRolePayload {
+  role: {
+    name: string;
+  };
 }
 
 async function waitForOperations(
@@ -288,7 +272,7 @@ async function waitForOperations(
 
     while (totalWaitTime < maxWaitTime) {
       const opResponse = await api.get(
-        `/projects/${operation.project_id}/operations/${operation.id}`,
+        `/projects/${operation.projectId}/operations/${operation.id}`,
       );
 
       if (!opResponse.ok) {

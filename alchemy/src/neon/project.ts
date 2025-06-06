@@ -59,7 +59,7 @@ export interface NeonProjectProps extends NeonApiOptions {
    * Used internally during update operations
    * @internal
    */
-  existing_project_id?: string;
+  existingProjectId?: string;
 }
 
 /**
@@ -74,7 +74,7 @@ export interface NeonDatabase {
   /**
    * ID of the branch this database belongs to
    */
-  branch_id: string;
+  branchId: string;
 
   /**
    * Database name
@@ -84,17 +84,17 @@ export interface NeonDatabase {
   /**
    * Name of the database owner role
    */
-  owner_name: string;
+  ownerName: string;
 
   /**
    * Time at which the database was created
    */
-  created_at: string;
+  createdAt: string;
 
   /**
    * Time at which the database was last updated
    */
-  updated_at: string;
+  updatedAt: string;
 }
 
 /**
@@ -104,7 +104,7 @@ export interface NeonRole {
   /**
    * ID of the branch this role belongs to
    */
-  branch_id: string;
+  branchId: string;
 
   /**
    * Role name
@@ -124,12 +124,12 @@ export interface NeonRole {
   /**
    * Time at which the role was created
    */
-  created_at: string;
+  createdAt: string;
 
   /**
    * Time at which the role was last updated
    */
-  updated_at: string;
+  updatedAt: string;
 }
 
 /**
@@ -144,7 +144,7 @@ export interface NeonBranch {
   /**
    * ID of the project this branch belongs to
    */
-  project_id: string;
+  projectId: string;
 
   /**
    * Branch name
@@ -164,12 +164,12 @@ export interface NeonBranch {
   /**
    * Time at which the branch was created
    */
-  created_at: string;
+  createdAt: string;
 
   /**
    * Time at which the branch was last updated
    */
-  updated_at: string;
+  updatedAt: string;
 }
 
 /**
@@ -189,12 +189,12 @@ export interface NeonEndpoint {
   /**
    * ID of the project this endpoint belongs to
    */
-  project_id: string;
+  projectId: string;
 
   /**
    * ID of the branch this endpoint belongs to
    */
-  branch_id: string;
+  branchId: string;
 
   /**
    * Endpoint type (read_write, read_only)
@@ -249,12 +249,12 @@ export interface NeonEndpoint {
   /**
    * Time at which the endpoint was created
    */
-  created_at: string;
+  createdAt: string;
 
   /**
    * Time at which the endpoint was last updated
    */
-  updated_at: string;
+  updatedAt: string;
 
   /**
    * Proxy host for this endpoint
@@ -305,12 +305,12 @@ export interface NeonOperation {
   /**
    * ID of the project this operation belongs to
    */
-  project_id: string;
+  projectId: string;
 
   /**
    * ID of the branch this operation affects, if applicable
    */
-  branch_id?: string;
+  branchId?: string;
 
   /**
    * ID of the endpoint this operation affects, if applicable
@@ -335,12 +335,12 @@ export interface NeonOperation {
   /**
    * Time at which the operation was created
    */
-  created_at: string;
+  createdAt: string;
 
   /**
    * Time at which the operation was last updated
    */
-  updated_at: string;
+  updatedAt: string;
 }
 
 /**
@@ -352,8 +352,8 @@ interface NeonApiResponse {
     name: string;
     region_id: string;
     pg_version: number;
-    created_at: string;
-    updated_at: string;
+    createdAt: string;
+    updatedAt: string;
     proxy_host?: string;
     compute_time_seconds?: number;
     active_time_seconds?: number;
@@ -372,49 +372,49 @@ interface NeonApiResponse {
     };
   }>;
   roles?: Array<{
-    branch_id: string;
+    branchId: string;
     name: string;
     password?: string;
     protected: boolean;
-    created_at: string;
-    updated_at: string;
+    createdAt: string;
+    updatedAt: string;
   }>;
   databases?: Array<{
     id: number;
-    branch_id: string;
+    branchId: string;
     name: string;
-    owner_name: string;
-    created_at: string;
-    updated_at: string;
+    ownerName: string;
+    createdAt: string;
+    updatedAt: string;
   }>;
   operations?: Array<{
     id: string;
-    project_id: string;
-    branch_id?: string;
-    endpoint_id?: string;
+    projectId: string;
+    branchId?: string;
+    endpointId?: string;
     action: string;
     status: string;
-    failures_count: number;
-    created_at: string;
-    updated_at: string;
+    failuresCount: number;
+    createdAt: string;
+    updatedAt: string;
   }>;
   branch?: {
     id: string;
-    project_id: string;
+    projectId: string;
     name: string;
     current_state: string;
     pending_state: string;
-    created_at: string;
-    updated_at: string;
+    createdAt: string;
+    updatedAt: string;
   };
   endpoints?: Array<{
     id: string;
     host: string;
-    project_id: string;
-    branch_id: string;
+    projectId: string;
+    branchId: string;
     type: string;
-    current_state: string;
-    pending_state: string;
+    currentState: string;
+    pendingState: string;
     region_id: string;
     autoscaling_limit_min_cu: number;
     autoscaling_limit_max_cu: number;
@@ -422,8 +422,8 @@ interface NeonApiResponse {
     pooler_mode: string;
     disabled: boolean;
     passwordless_access: boolean;
-    created_at: string;
-    updated_at: string;
+    createdAt: string;
+    updatedAt: string;
     proxy_host: string;
     settings: {
       pg_settings: Record<string, string>;
@@ -437,7 +437,7 @@ interface NeonApiResponse {
  */
 export interface NeonProject
   extends Resource<"neon::Project">,
-    Omit<NeonProjectProps, "apiKey" | "existing_project_id"> {
+    Omit<NeonProjectProps, "apiKey" | "existingProjectId"> {
   /**
    * The ID of the project
    */
@@ -446,12 +446,12 @@ export interface NeonProject
   /**
    * Time at which the project was created
    */
-  created_at: string;
+  createdAt: string;
 
   /**
    * Time at which the project was last updated
    */
-  updated_at: string;
+  updatedAt: string;
 
   /**
    * Hostname for proxy access
@@ -517,7 +517,7 @@ export const NeonProject = Resource(
     props: NeonProjectProps,
   ): Promise<NeonProject> {
     const api = createNeonApi(props);
-    const projectId = props.existing_project_id || this.output?.id;
+    const projectId = props.existingProjectId || this.output?.id;
 
     if (this.phase === "delete") {
       try {
@@ -612,8 +612,8 @@ export const NeonProject = Resource(
         name: response.project.name,
         region_id: response.project.region_id as NeonRegion,
         pg_version: response.project.pg_version as 14 | 15 | 16 | 17,
-        created_at: response.project.created_at,
-        updated_at: response.project.updated_at,
+        createdAt: response.project.createdAt,
+        updatedAt: response.project.updatedAt,
         proxy_host: response.project.proxy_host,
         // Pass through the provided props except apiKey (which is sensitive)
         default_endpoint: props.default_endpoint,
@@ -699,7 +699,28 @@ async function getProject(
 
     // Update with the latest endpoint data if available
     if (endpointData.endpoints && endpointData.endpoints.length > 0) {
-      responseData.endpoints = endpointData.endpoints;
+      responseData.endpoints = endpointData.endpoints.map((ep) => ({
+        id: ep.id,
+        host: ep.host,
+        projectId: ep.projectId,
+        branchId: ep.branchId,
+        type: ep.type,
+        currentState: ep.current_state,
+        pendingState: ep.pending_state,
+        region_id: ep.region_id,
+        autoscaling_limit_min_cu: ep.autoscaling_limit_min_cu,
+        autoscaling_limit_max_cu: ep.autoscaling_limit_max_cu,
+        pooler_enabled: ep.pooler_enabled,
+        pooler_mode: ep.pooler_mode,
+        disabled: ep.disabled,
+        passwordless_access: ep.passwordless_access,
+        createdAt: ep.createdAt,
+        updatedAt: ep.updatedAt,
+        proxy_host: ep.proxy_host,
+        settings: {
+          pg_settings: ep.settings?.pg_settings || {},
+        },
+      }));
     }
   }
 
@@ -737,7 +758,7 @@ async function waitForOperations(
   api: NeonApi,
   operations: Array<{
     id: string;
-    project_id: string;
+    projectId: string;
     status: string;
     action: string;
   }>,
@@ -778,7 +799,7 @@ async function waitForOperations(
 
       // Check operation status
       const operationResponse = await api.get(
-        `/projects/${operation.project_id}/operations/${operation.id}`,
+        `/projects/${operation.projectId}/operations/${operation.id}`,
       );
 
       if (operationResponse.ok) {

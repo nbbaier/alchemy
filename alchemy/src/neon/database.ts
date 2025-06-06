@@ -2,20 +2,22 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { handleApiError } from "./api-error.ts";
 import { createNeonApi, type NeonApiOptions, type NeonApi } from "./api.ts";
+import type { NeonProject } from "./project.ts";
+import type { NeonBranch } from "./branch.ts";
 
 /**
  * Properties for creating or updating a Neon database
  */
 export interface NeonDatabaseProps extends NeonApiOptions {
   /**
-   * The ID of the project containing the branch
+   * The project containing the branch
    */
-  project_id: string;
+  project: string | NeonProject;
 
   /**
-   * The ID of the branch where the database will be created
+   * The branch where the database will be created
    */
-  branch_id: string;
+  branch: string | NeonBranch;
 
   /**
    * Name of the database
@@ -25,48 +27,13 @@ export interface NeonDatabaseProps extends NeonApiOptions {
   /**
    * Name of the role that will own the database
    */
-  owner_name: string;
+  ownerName: string;
 
   /**
    * Whether to adopt an existing database if it already exists
    * @default false
    */
   adopt?: boolean;
-}
-
-/**
- * Response structure for database API operations
- */
-export interface NeonDatabaseType {
-  /**
-   * The database ID
-   */
-  id: number;
-
-  /**
-   * The ID of the branch containing this database
-   */
-  branch_id: string;
-
-  /**
-   * Name of the database
-   */
-  name: string;
-
-  /**
-   * Name of the role that owns the database
-   */
-  owner_name: string;
-
-  /**
-   * Time at which the database was created
-   */
-  created_at: string;
-
-  /**
-   * Time at which the database was last updated
-   */
-  updated_at: string;
 }
 
 /**
@@ -81,9 +48,14 @@ export interface NeonDatabase
   id: number;
 
   /**
+   * The ID of the project containing this database
+   */
+  projectId: string;
+
+  /**
    * The ID of the branch containing this database
    */
-  branch_id: string;
+  branchId: string;
 
   /**
    * Name of the database
@@ -93,51 +65,17 @@ export interface NeonDatabase
   /**
    * Name of the role that owns the database
    */
-  owner_name: string;
+  ownerName: string;
 
   /**
    * Time at which the database was created
    */
-  created_at: string;
+  createdAt: string;
 
   /**
    * Time at which the database was last updated
    */
-  updated_at: string;
-}
-
-/**
- * API response structure for database operations
- */
-interface NeonDatabaseApiResponse {
-  database: NeonDatabaseType;
-}
-
-/**
- * Payload structure for creating a database
- */
-interface CreateDatabasePayload {
-  database: {
-    name: string;
-    owner_name: string;
-  };
-}
-
-/**
- * Payload structure for updating a database
- */
-interface UpdateDatabasePayload {
-  database: {
-    name: string;
-    owner_name: string;
-  };
-}
-
-/**
- * API response structure for listing databases
- */
-interface ListDatabasesResponse {
-  databases?: NeonDatabaseType[];
+  updatedAt: string;
 }
 
 /**
@@ -146,28 +84,28 @@ interface ListDatabasesResponse {
  * @example
  * // Create a basic database with default owner:
  * const database = await NeonDatabase("my-database", {
- *   project_id: "proj_123",
- *   branch_id: "br_456",
+ *   project: project,
+ *   branch: branch,
  *   name: "myapp_db",
- *   owner_name: "neondb_owner"
+ *   ownerName: "neondb_owner"
  * });
  *
  * @example
  * // Create a database with a custom owner role:
  * const database = await NeonDatabase("custom-db", {
- *   project_id: "proj_123",
- *   branch_id: "br_456",
+ *   project: project,
+ *   branch: branch,
  *   name: "analytics_db",
- *   owner_name: "analytics_user"
+ *   ownerName: "analytics_user"
  * });
  *
  * @example
  * // Adopt an existing database if it already exists:
  * const database = await NeonDatabase("existing-db", {
- *   project_id: "proj_123",
- *   branch_id: "br_456",
+ *   project: project,
+ *   branch: branch,
  *   name: "legacy_db",
- *   owner_name: "neondb_owner",
+ *   ownerName: "neondb_owner",
  *   adopt: true
  * });
  */
@@ -180,6 +118,10 @@ export const NeonDatabase = Resource(
   ): Promise<NeonDatabase> {
     const api = createNeonApi(props);
     const databaseId = this.output?.id;
+    const projectId =
+      typeof props.project === "string" ? props.project : props.project.id;
+    const branchId =
+      typeof props.branch === "string" ? props.branch : props.branch.id;
 
     if (this.phase === "delete") {
       if (!databaseId) {
@@ -188,7 +130,7 @@ export const NeonDatabase = Resource(
 
       try {
         const deleteResponse = await api.delete(
-          `/projects/${props.project_id}/branches/${props.branch_id}/databases/${props.name}`,
+          `/projects/${projectId}/branches/${branchId}/databases/${props.name}`,
         );
 
         if (deleteResponse.status === 404) {
@@ -220,12 +162,12 @@ export const NeonDatabase = Resource(
         const updatePayload: UpdateDatabasePayload = {
           database: {
             name: props.name,
-            owner_name: props.owner_name,
+            owner_name: props.ownerName,
           },
         };
 
         const updateResponse = await api.patch(
-          `/projects/${props.project_id}/branches/${props.branch_id}/databases/${props.name}`,
+          `/projects/${projectId}/branches/${branchId}/databases/${props.name}`,
           updatePayload,
         );
 
@@ -242,7 +184,7 @@ export const NeonDatabase = Resource(
       } else {
         if (props.adopt) {
           const listResponse = await api.get(
-            `/projects/${props.project_id}/branches/${props.branch_id}/databases`,
+            `/projects/${projectId}/branches/${branchId}/databases`,
           );
           if (!listResponse.ok) {
             await handleApiError(listResponse, "list", "database");
@@ -256,23 +198,30 @@ export const NeonDatabase = Resource(
           if (existingDatabase) {
             response = { database: existingDatabase };
           } else {
-            response = await createNewDatabase(api, props);
+            response = await createNewDatabase(api, projectId, branchId, props);
           }
         } else {
-          response = await createNewDatabase(api, props);
+          response = await createNewDatabase(api, projectId, branchId, props);
         }
       }
 
+      const database = response.database;
       return this({
-        ...response.database,
-        project_id: props.project_id,
+        project: props.project,
+        branch: props.branch,
+        name: props.name,
+        ownerName: props.ownerName,
+        adopt: props.adopt,
+        projectId: projectId,
+        branchId: branchId,
+        id: database.id,
+        createdAt: database.createdAt,
+        updatedAt: database.updatedAt,
         baseUrl: props.baseUrl,
       });
     } catch (error: unknown) {
       if ((error as { status?: number }).status === 404) {
-        throw new Error(
-          `Branch ${props.branch_id} not found in project ${props.project_id}`,
-        );
+        throw new Error(`Branch ${branchId} not found in project ${projectId}`);
       }
       throw error;
     }
@@ -281,17 +230,19 @@ export const NeonDatabase = Resource(
 
 async function createNewDatabase(
   api: NeonApi,
+  projectId: string,
+  branchId: string,
   props: NeonDatabaseProps,
 ): Promise<NeonDatabaseApiResponse> {
   const createPayload: CreateDatabasePayload = {
     database: {
       name: props.name,
-      owner_name: props.owner_name,
+      owner_name: props.ownerName,
     },
   };
 
   const createResponse = await api.post(
-    `/projects/${props.project_id}/branches/${props.branch_id}/databases`,
+    `/projects/${projectId}/branches/${branchId}/databases`,
     createPayload,
   );
 
@@ -300,4 +251,35 @@ async function createNewDatabase(
   }
 
   return await createResponse.json();
+}
+
+interface NeonDatabaseType {
+  id: number;
+  branchId: string;
+  name: string;
+  ownerName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface NeonDatabaseApiResponse {
+  database: NeonDatabaseType;
+}
+
+interface CreateDatabasePayload {
+  database: {
+    name: string;
+    owner_name: string;
+  };
+}
+
+interface UpdateDatabasePayload {
+  database: {
+    name: string;
+    owner_name: string;
+  };
+}
+
+interface ListDatabasesResponse {
+  databases?: NeonDatabaseType[];
 }

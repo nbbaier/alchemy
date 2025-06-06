@@ -31,16 +31,18 @@ describe("NeonBranch Resource", () => {
 
       const branchName = generateBranchName();
       branch = await NeonBranch(testId, {
-        project_id: project.id,
+        project: project.id,
         name: branchName,
       });
 
-      expect(branch.id).toBeTruthy();
-      expect(branch.name).toEqual(branchName);
-      expect(branch.project_id).toEqual(project.id);
-      expect(branch.current_state).toBeTruthy();
-      expect(branch.created_at).toBeTruthy();
-      expect(branch.updated_at).toBeTruthy();
+      expect(branch).toMatchObject({
+        id: expect.any(String),
+        name: branchName,
+        projectId: project.id,
+        currentState: expect.any(String),
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      });
 
       const getResponse = await api.get(
         `/projects/${project.id}/branches/${branch.id}`,
@@ -54,12 +56,15 @@ describe("NeonBranch Resource", () => {
 
       const updatedName = `${generateBranchName()}-updated`;
       branch = await NeonBranch(testId, {
-        project_id: project.id,
+        project: project.id,
         name: updatedName,
       });
 
-      expect(branch.id).toBeTruthy();
-      expect(branch.name).toEqual(updatedName);
+      expect(branch).toMatchObject({
+        id: expect.any(String),
+        name: updatedName,
+        projectId: project.id,
+      });
 
       const getUpdatedResponse = await api.get(
         `/projects/${project.id}/branches/${branch.id}`,
@@ -100,14 +105,16 @@ describe("NeonBranch Resource", () => {
       const createdBranch: any = await createResponse.json();
 
       branch = await NeonBranch(`${testId}-adopt`, {
-        project_id: project.id,
+        project: project.id,
         name: branchName,
         adopt: true,
       });
 
-      expect(branch.id).toEqual(createdBranch.branch.id);
-      expect(branch.name).toEqual(branchName);
-      expect(branch.project_id).toEqual(project.id);
+      expect(branch).toMatchObject({
+        id: createdBranch.branch.id,
+        name: branchName,
+        projectId: project.id,
+      });
     } finally {
       await destroy(scope);
     }

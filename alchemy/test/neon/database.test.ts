@@ -33,24 +33,24 @@ describe("NeonDatabase Resource", () => {
       });
 
       branch = await NeonBranch(`${testId}-branch`, {
-        project_id: project.id,
+        project: project.id,
         name: `Test Branch ${testId}-${Date.now()}`,
       });
 
       const databaseName = generateDatabaseName();
       database = await NeonDatabase(testId, {
-        project_id: project.id,
-        branch_id: branch.id,
+        project: project.id,
+        branch: branch.id,
         name: databaseName,
-        owner_name: project.roles[0].name,
+        ownerName: project.roles[0].name,
       });
 
       expect(database.id).toBeTruthy();
       expect(database.name).toEqual(databaseName);
-      expect(database.branch_id).toEqual(branch.id);
-      expect(database.owner_name).toBeTruthy();
-      expect(database.created_at).toBeTruthy();
-      expect(database.updated_at).toBeTruthy();
+      expect(database.branchId).toEqual(branch.id);
+      expect(database.ownerName).toBeTruthy();
+      expect(database.createdAt).toBeTruthy();
+      expect(database.updatedAt).toBeTruthy();
 
       const listResponse = await api.get(
         `/projects/${project.id}/branches/${branch.id}/databases`,
@@ -66,14 +66,14 @@ describe("NeonDatabase Resource", () => {
 
       const updatedOwner = project.roles[0].name;
       database = await NeonDatabase(testId, {
-        project_id: project.id,
-        branch_id: branch.id,
+        project: project.id,
+        branch: branch.id,
         name: databaseName,
-        owner_name: updatedOwner,
+        ownerName: updatedOwner,
       });
 
       expect(database.id).toBeTruthy();
-      expect(database.owner_name).toEqual(updatedOwner);
+      expect(database.ownerName).toEqual(updatedOwner);
     } finally {
       await destroy(scope);
 
@@ -105,7 +105,7 @@ describe("NeonDatabase Resource", () => {
       });
 
       branch = await NeonBranch(`${testId}-branch-adopt`, {
-        project_id: project.id,
+        project: project.id,
         name: `Test Branch Adopt ${testId}-${Date.now()}`,
       });
 
@@ -115,7 +115,7 @@ describe("NeonDatabase Resource", () => {
         {
           database: {
             name: databaseName,
-            owner_name: project.roles[0].name,
+            ownerName: project.roles[0].name,
           },
         },
       );
@@ -123,16 +123,16 @@ describe("NeonDatabase Resource", () => {
       const createdDatabase: any = await createResponse.json();
 
       database = await NeonDatabase(`${testId}-adopt`, {
-        project_id: project.id,
-        branch_id: branch.id,
+        project: project.id,
+        branch: branch.id,
         name: databaseName,
-        owner_name: project.roles[0].name,
+        ownerName: project.roles[0].name,
         adopt: true,
       });
 
       expect(database.id).toEqual(createdDatabase.database.id);
       expect(database.name).toEqual(databaseName);
-      expect(database.branch_id).toEqual(branch.id);
+      expect(database.branchId).toEqual(branch.id);
     } finally {
       await destroy(scope);
     }

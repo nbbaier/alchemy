@@ -42,23 +42,23 @@ describe("NeonProject Resource", () => {
       expect(project.name).toEqual(projectName);
       expect(project.region_id).toEqual("aws-us-east-1");
       expect(project.pg_version).toEqual(15);
-      expect(project.created_at).toBeTruthy();
-      expect(project.updated_at).toBeTruthy();
+      expect(project.createdAt).toBeTruthy();
+      expect(project.updatedAt).toBeTruthy();
 
       // Verify the additional properties are included
       expect(project.branch).toBeTruthy();
       const branch: NeonBranch = project.branch!;
       expect(branch.name).toBeTruthy();
       expect(branch.id).toBeTruthy();
-      expect(branch.project_id).toEqual(project.id);
+      expect(branch.projectId).toEqual(project.id);
       expect(branch.current_state).toBeTruthy();
 
       expect(project.endpoints).toBeTruthy();
       const endpoint: NeonEndpoint = project.endpoints![0];
       expect(endpoint.type).toEqual("read_write");
       expect(endpoint.host).toBeTruthy();
-      expect(endpoint.branch_id).toBeTruthy();
-      expect(endpoint.project_id).toEqual(project.id);
+      expect(endpoint.branchId).toBeTruthy();
+      expect(endpoint.projectId).toEqual(project.id);
 
       expect(project.connection_uris).toBeTruthy();
       expect(
@@ -72,13 +72,13 @@ describe("NeonProject Resource", () => {
       const database: NeonDatabase = project.databases![0];
       expect(database.name).toBeTruthy();
       expect(database.id).toBeTruthy();
-      expect(database.branch_id).toBeTruthy();
-      expect(database.owner_name).toBeTruthy();
+      expect(database.branchId).toBeTruthy();
+      expect(database.ownerName).toBeTruthy();
 
       expect(project.roles).toBeTruthy();
       const role: NeonRole = project.roles![0];
       expect(role.name).toBeTruthy();
-      expect(role.branch_id).toBeTruthy();
+      expect(role.branchId).toBeTruthy();
 
       // Verify operations are not exposed in the project output
       expect((project as any).operations).toBeUndefined();
@@ -102,7 +102,7 @@ describe("NeonProject Resource", () => {
         name: updatedName,
         region_id: "aws-us-east-1",
         pg_version: 15,
-        existing_project_id: project.id,
+        existingProjectId: project.id,
       });
 
       expect(project.id).toBeTruthy();

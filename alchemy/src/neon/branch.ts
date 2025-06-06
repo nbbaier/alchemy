@@ -2,35 +2,36 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { handleApiError } from "./api-error.ts";
 import { createNeonApi, type NeonApiOptions, type NeonApi } from "./api.ts";
+import type { NeonProject } from "./project.ts";
 
 /**
  * Properties for creating or updating a Neon branch
  */
 export interface NeonBranchProps extends NeonApiOptions {
   /**
-   * The ID of the project where the branch will be created
+   * The project containing the branch
    */
-  project_id: string;
+  project: string | NeonProject;
 
   /**
    * Name of the branch
    */
-  name?: string;
+  name: string;
 
   /**
    * ID of the parent branch to create this branch from
    */
-  parent_id?: string;
+  parentId?: string;
 
   /**
    * Log Sequence Number (LSN) of the parent branch to branch from
    */
-  parent_lsn?: string;
+  parentLsn?: string;
 
   /**
    * Timestamp of the parent branch to branch from
    */
-  parent_timestamp?: string;
+  parentTimestamp?: string;
 
   /**
    * Whether to adopt an existing branch if it already exists
@@ -42,7 +43,7 @@ export interface NeonBranchProps extends NeonApiOptions {
 /**
  * Response structure for branch API operations
  */
-export interface NeonBranchType {
+interface NeonBranchType {
   /**
    * The branch ID
    */
@@ -51,7 +52,7 @@ export interface NeonBranchType {
   /**
    * The ID of the project containing this branch
    */
-  project_id: string;
+  projectId: string;
 
   /**
    * ID of the parent branch
@@ -96,12 +97,12 @@ export interface NeonBranchType {
   /**
    * Time at which the branch was created
    */
-  created_at: string;
+  createdAt: string;
 
   /**
    * Time at which the branch was last updated
    */
-  updated_at: string;
+  updatedAt: string;
 
   /**
    * Whether this is the primary branch
@@ -158,22 +159,22 @@ export interface NeonBranch
   /**
    * The ID of the project containing this branch
    */
-  project_id: string;
+  projectId: string;
 
   /**
    * ID of the parent branch
    */
-  parent_id?: string;
+  parentId?: string;
 
   /**
    * Log Sequence Number (LSN) of the parent branch
    */
-  parent_lsn?: string;
+  parentLsn?: string;
 
   /**
    * Timestamp of the parent branch
    */
-  parent_timestamp?: string;
+  parentTimestamp?: string;
 
   /**
    * Name of the branch
@@ -183,32 +184,32 @@ export interface NeonBranch
   /**
    * Current state of the branch
    */
-  current_state: "init" | "ready";
+  currentState: "init" | "ready";
 
   /**
    * Pending state of the branch during operations
    */
-  pending_state?: "init" | "ready";
+  pendingState?: "init" | "ready";
 
   /**
    * Logical size of the branch in bytes
    */
-  logical_size?: number;
+  logicalSize?: number;
 
   /**
    * Physical size of the branch in bytes
    */
-  physical_size?: number;
+  physicalSize?: number;
 
   /**
    * Time at which the branch was created
    */
-  created_at: string;
+  createdAt: string;
 
   /**
    * Time at which the branch was last updated
    */
-  updated_at: string;
+  updatedAt: string;
 
   /**
    * Whether this is the primary branch
@@ -228,6 +229,390 @@ export interface NeonBranch
   /**
    * CPU usage in seconds
    */
+  cpuUsedSec?: number;
+
+  /**
+   * Compute time in seconds
+   */
+  computeTimeSeconds?: number;
+
+  /**
+   * Active time in seconds
+   */
+  activeTimeSeconds?: number;
+
+  /**
+   * Written data in bytes
+   */
+  writtenDataBytes?: number;
+
+  /**
+   * Data transfer in bytes
+   */
+  dataTransferBytes?: number;
+}
+
+/**
+ * Operation details for async branch operations
+ */
+interface NeonOperation {
+  id: string;
+  projectId: string;
+  branchId?: string;
+  endpointId?: string;
+  action: string;
+  status: "running" | "finished" | "failed" | "scheduling";
+  error?: string;
+  failuresCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Creates a Neon branch for copy-on-write database clones.
+ *
+ * @example
+ * // Create a basic branch from the main branch:
+ * const branch = await NeonBranch("feature-branch", {
+ *   project: "proj_123",
+ *   name: "feature/new-feature"
+ * });
+ *
+ * @example
+ * // Create a branch from a specific parent branch:
+ * const branch = await NeonBranch("dev-branch", {
+ *   project: project,
+ *   name: "development",
+ *   parentId: "br_main_456"
+ * });
+ *
+ * @example
+ * // Create a branch from a specific point in time:
+ * const branch = await NeonBranch("restore-branch", {
+ *   project: project,
+ *   name: "restore-point",
+ *   parentTimestamp: "2023-12-01T10:00:00Z"
+ * });
+ *
+ * @example
+ * // Adopt an existing branch if it already exists:
+ * const branch = await NeonBranch("existing-branch", {
+ *   project: project,
+ *   name: "staging",
+ *   adopt: true
+ * });
+ */
+export const NeonBranch = Resource(
+  "neon::Branch",
+  async function (
+    this: Context<NeonBranch>,
+    _id: string,
+    props: NeonBranchProps,
+  ): Promise<NeonBranch> {
+    const api = createNeonApi(props);
+    const branchId = this.output?.id;
+    const projectId =
+      typeof props.project === "string" ? props.project : props.project.id;
+
+    if (this.phase === "delete") {
+      if (!branchId) {
+        return this.destroy();
+      }
+
+      try {
+        const deleteResponse = await api.delete(
+          `/projects/${projectId}/branches/${branchId}`,
+        );
+
+        if (deleteResponse.status === 404) {
+          return this.destroy();
+        }
+
+        if (!deleteResponse.ok) {
+          await handleApiError(deleteResponse, "delete", "branch", branchId);
+        }
+
+        const deleteData: NeonBranchApiResponse = await deleteResponse.json();
+        if (deleteData.operations && deleteData.operations.length > 0) {
+          await waitForOperations(api, deleteData.operations);
+        }
+      } catch (error: unknown) {
+        if ((error as { status?: number }).status === 404) {
+          return this.destroy();
+        }
+        throw error;
+      }
+
+      return this.destroy();
+    }
+
+    let response: NeonBranchApiResponse;
+
+    try {
+      if (this.phase === "update" && branchId) {
+        const updatePayload: UpdateBranchPayload = { branch: {} };
+        if (props.name !== undefined) {
+          updatePayload.branch.name = props.name;
+        }
+
+        if (Object.keys(updatePayload.branch).length > 0) {
+          const updateResponse = await api.patch(
+            `/projects/${projectId}/branches/${branchId}`,
+            updatePayload,
+          );
+
+          if (!updateResponse.ok) {
+            await handleApiError(updateResponse, "update", "branch", branchId);
+          }
+
+          response = await updateResponse.json();
+        } else {
+          const getResponse = await api.get(
+            `/projects/${projectId}/branches/${branchId}`,
+          );
+          if (!getResponse.ok) {
+            await handleApiError(getResponse, "get", "branch", branchId);
+          }
+          response = await getResponse.json();
+        }
+      } else {
+        if (props.adopt) {
+          const listResponse = await api.get(`/projects/${projectId}/branches`);
+          if (!listResponse.ok) {
+            await handleApiError(listResponse, "list", "branch");
+          }
+
+          const listData: ListBranchesResponse = await listResponse.json();
+          const existingBranch = listData.branches?.find(
+            (br: NeonBranchType) => br.name === props.name,
+          );
+
+          if (existingBranch) {
+            response = { branch: existingBranch };
+          } else {
+            response = await createNewBranch(api, projectId, props);
+          }
+        } else {
+          response = await createNewBranch(api, projectId, props);
+        }
+      }
+
+      if (response.operations && response.operations.length > 0) {
+        await waitForOperations(api, response.operations);
+      }
+
+      if (response.branch?.id) {
+        const getResponse = await api.get(
+          `/projects/${projectId}/branches/${response.branch.id}`,
+        );
+        if (!getResponse.ok) {
+          await handleApiError(
+            getResponse,
+            "get",
+            "branch",
+            response.branch.id,
+          );
+        }
+        response = await getResponse.json();
+      }
+
+      const branch = response.branch;
+      return this({
+        project: props.project,
+        name: props.name,
+        parentId: props.parentId,
+        parentLsn: props.parentLsn,
+        parentTimestamp: props.parentTimestamp,
+        adopt: props.adopt,
+        projectId: projectId,
+        id: branch.id,
+        currentState: branch.current_state,
+        pendingState: branch.pending_state,
+        logicalSize: branch.logical_size,
+        physicalSize: branch.physical_size,
+        createdAt: branch.createdAt,
+        updatedAt: branch.updatedAt,
+        primary: branch.primary,
+        default: branch.default,
+        protected: branch.protected,
+        cpuUsedSec: branch.cpu_used_sec,
+        computeTimeSeconds: branch.compute_time_seconds,
+        activeTimeSeconds: branch.active_time_seconds,
+        writtenDataBytes: branch.written_data_bytes,
+        dataTransferBytes: branch.data_transfer_bytes,
+        baseUrl: props.baseUrl,
+      });
+    } catch (error: unknown) {
+      if ((error as { status?: number }).status === 404) {
+        throw new Error(`Project ${projectId} not found`);
+      }
+      throw error;
+    }
+  },
+);
+
+async function createNewBranch(
+  api: NeonApi,
+  projectId: string,
+  props: NeonBranchProps,
+): Promise<NeonBranchApiResponse> {
+  const createPayload: CreateBranchPayload = {
+    branch: {},
+  };
+
+  if (props.name !== undefined) {
+    createPayload.branch.name = props.name;
+  }
+  if (props.parentId !== undefined) {
+    createPayload.branch.parent_id = props.parentId;
+  }
+  if (props.parentLsn !== undefined) {
+    createPayload.branch.parent_lsn = props.parentLsn;
+  }
+  if (props.parentTimestamp !== undefined) {
+    createPayload.branch.parent_timestamp = props.parentTimestamp;
+  }
+
+  const createResponse = await api.post(
+    `/projects/${projectId}/branches`,
+    createPayload,
+  );
+
+  if (!createResponse.ok) {
+    await handleApiError(createResponse, "create", "branch");
+  }
+
+  return await createResponse.json();
+}
+
+async function waitForOperations(
+  api: NeonApi,
+  operations: NeonOperation[],
+): Promise<void> {
+  const maxWaitTime = 300000;
+  const pollInterval = 2000;
+
+  for (const operation of operations) {
+    let totalWaitTime = 0;
+
+    while (totalWaitTime < maxWaitTime) {
+      const opResponse = await api.get(
+        `/projects/${operation.projectId}/operations/${operation.id}`,
+      );
+
+      if (!opResponse.ok) {
+        await handleApiError(opResponse, "get", "operation", operation.id);
+      }
+
+      const opData: { operation: NeonOperation } = await opResponse.json();
+      const currentOp = opData.operation;
+
+      if (currentOp.status === "finished") {
+        break;
+      }
+
+      if (currentOp.status === "failed") {
+        throw new Error(
+          `Operation ${operation.id} (${operation.action}) failed: ${currentOp.error || "Unknown error"}`,
+        );
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      totalWaitTime += pollInterval;
+    }
+
+    if (totalWaitTime >= maxWaitTime) {
+      throw new Error(
+        `Timeout waiting for operation ${operation.id} (${operation.action}) to complete`,
+      );
+    }
+  }
+
+  return;
+}
+
+/**
+ * Response structure for branch API operations
+ */
+interface NeonBranchType {
+  /**
+   * The ID of the project containing this branch
+   */
+  projectId: string;
+
+  /**
+   * ID of the parent branch
+   */
+  parent_id?: string;
+
+  /**
+   * Log Sequence Number (LSN) of the parent branch
+   */
+  parent_lsn?: string;
+
+  /**
+   * Timestamp of the parent branch
+   */
+  parent_timestamp?: string;
+
+  /**
+   * The branch ID
+   */
+  id: string;
+
+  /**
+   * Name of the branch
+   */
+  name: string;
+
+  /**
+   * Current state of the branch
+   */
+  current_state: "init" | "ready";
+
+  /**
+   * Pending state of the branch
+   */
+  pending_state?: "init" | "ready";
+
+  /**
+   * Logical size of the branch in bytes
+   */
+  logical_size?: number;
+
+  /**
+   * Physical size of the branch in bytes
+   */
+  physical_size?: number;
+
+  /**
+   * Time at which the branch was created
+   */
+  createdAt: string;
+
+  /**
+   * Time at which the branch was last updated
+   */
+  updatedAt: string;
+
+  /**
+   * Whether this is the primary branch
+   */
+  primary: boolean;
+
+  /**
+   * Whether this is the default branch
+   */
+  default: boolean;
+
+  /**
+   * Whether the branch is protected from deletion
+   */
+  protected: boolean;
+
+  /**
+   * CPU seconds used by the branch
+   */
   cpu_used_sec?: number;
 
   /**
@@ -241,7 +626,7 @@ export interface NeonBranch
   active_time_seconds?: number;
 
   /**
-   * Written data in bytes
+   * Data written in bytes
    */
   written_data_bytes?: number;
 
@@ -249,22 +634,6 @@ export interface NeonBranch
    * Data transfer in bytes
    */
   data_transfer_bytes?: number;
-}
-
-/**
- * Operation details for async branch operations
- */
-interface NeonOperation {
-  id: string;
-  project_id: string;
-  branch_id?: string;
-  endpoint_id?: string;
-  action: string;
-  status: "running" | "finished" | "failed" | "scheduling";
-  error?: string;
-  failures_count: number;
-  created_at: string;
-  updated_at: string;
 }
 
 /**
@@ -301,244 +670,4 @@ interface UpdateBranchPayload {
  */
 interface ListBranchesResponse {
   branches?: NeonBranchType[];
-}
-
-/**
- * Creates a Neon branch for copy-on-write database clones.
- *
- * @example
- * // Create a basic branch from the main branch:
- * const branch = await NeonBranch("feature-branch", {
- *   project_id: "proj_123",
- *   name: "feature/new-feature"
- * });
- *
- * @example
- * // Create a branch from a specific parent branch:
- * const branch = await NeonBranch("dev-branch", {
- *   project_id: "proj_123",
- *   name: "development",
- *   parent_id: "br_main_456"
- * });
- *
- * @example
- * // Create a branch from a specific point in time:
- * const branch = await NeonBranch("restore-branch", {
- *   project_id: "proj_123",
- *   name: "restore-point",
- *   parent_timestamp: "2023-12-01T10:00:00Z"
- * });
- *
- * @example
- * // Adopt an existing branch if it already exists:
- * const branch = await NeonBranch("existing-branch", {
- *   project_id: "proj_123",
- *   name: "staging",
- *   adopt: true
- * });
- */
-export const NeonBranch = Resource(
-  "neon::Branch",
-  async function (
-    this: Context<NeonBranch>,
-    _id: string,
-    props: NeonBranchProps,
-  ): Promise<NeonBranch> {
-    const api = createNeonApi(props);
-    const branchId = this.output?.id;
-
-    if (this.phase === "delete") {
-      if (!branchId) {
-        return this.destroy();
-      }
-
-      try {
-        const deleteResponse = await api.delete(
-          `/projects/${props.project_id}/branches/${branchId}`,
-        );
-
-        if (deleteResponse.status === 404) {
-          return this.destroy();
-        }
-
-        if (!deleteResponse.ok) {
-          await handleApiError(deleteResponse, "delete", "branch", branchId);
-        }
-
-        const deleteData: NeonBranchApiResponse = await deleteResponse.json();
-        if (deleteData.operations && deleteData.operations.length > 0) {
-          await waitForOperations(api, deleteData.operations);
-        }
-      } catch (error: unknown) {
-        if ((error as { status?: number }).status === 404) {
-          return this.destroy();
-        }
-        throw error;
-      }
-
-      return this.destroy();
-    }
-
-    let response: NeonBranchApiResponse;
-
-    try {
-      if (this.phase === "update" && branchId) {
-        const updatePayload: UpdateBranchPayload = { branch: {} };
-        if (props.name !== undefined) {
-          updatePayload.branch.name = props.name;
-        }
-
-        if (Object.keys(updatePayload.branch).length > 0) {
-          const updateResponse = await api.patch(
-            `/projects/${props.project_id}/branches/${branchId}`,
-            updatePayload,
-          );
-
-          if (!updateResponse.ok) {
-            await handleApiError(updateResponse, "update", "branch", branchId);
-          }
-
-          response = await updateResponse.json();
-        } else {
-          const getResponse = await api.get(
-            `/projects/${props.project_id}/branches/${branchId}`,
-          );
-          if (!getResponse.ok) {
-            await handleApiError(getResponse, "get", "branch", branchId);
-          }
-          response = await getResponse.json();
-        }
-      } else {
-        if (props.adopt) {
-          const listResponse = await api.get(
-            `/projects/${props.project_id}/branches`,
-          );
-          if (!listResponse.ok) {
-            await handleApiError(listResponse, "list", "branch");
-          }
-
-          const listData: ListBranchesResponse = await listResponse.json();
-          const existingBranch = listData.branches?.find(
-            (br: NeonBranchType) => br.name === props.name,
-          );
-
-          if (existingBranch) {
-            response = { branch: existingBranch };
-          } else {
-            response = await createNewBranch(api, props);
-          }
-        } else {
-          response = await createNewBranch(api, props);
-        }
-      }
-
-      if (response.operations && response.operations.length > 0) {
-        await waitForOperations(api, response.operations);
-      }
-
-      if (response.branch?.id) {
-        const getResponse = await api.get(
-          `/projects/${props.project_id}/branches/${response.branch.id}`,
-        );
-        if (!getResponse.ok) {
-          await handleApiError(
-            getResponse,
-            "get",
-            "branch",
-            response.branch.id,
-          );
-        }
-        response = await getResponse.json();
-      }
-
-      return this({
-        ...response.branch,
-        baseUrl: props.baseUrl,
-      });
-    } catch (error: unknown) {
-      if ((error as { status?: number }).status === 404) {
-        throw new Error(`Project ${props.project_id} not found`);
-      }
-      throw error;
-    }
-  },
-);
-
-async function createNewBranch(
-  api: NeonApi,
-  props: NeonBranchProps,
-): Promise<NeonBranchApiResponse> {
-  const createPayload: CreateBranchPayload = {
-    branch: {},
-  };
-
-  if (props.name !== undefined) {
-    createPayload.branch.name = props.name;
-  }
-  if (props.parent_id !== undefined) {
-    createPayload.branch.parent_id = props.parent_id;
-  }
-  if (props.parent_lsn !== undefined) {
-    createPayload.branch.parent_lsn = props.parent_lsn;
-  }
-  if (props.parent_timestamp !== undefined) {
-    createPayload.branch.parent_timestamp = props.parent_timestamp;
-  }
-
-  const createResponse = await api.post(
-    `/projects/${props.project_id}/branches`,
-    createPayload,
-  );
-
-  if (!createResponse.ok) {
-    await handleApiError(createResponse, "create", "branch");
-  }
-
-  return await createResponse.json();
-}
-
-async function waitForOperations(
-  api: NeonApi,
-  operations: NeonOperation[],
-): Promise<void> {
-  const maxWaitTime = 300000;
-  const pollInterval = 2000;
-
-  for (const operation of operations) {
-    let totalWaitTime = 0;
-
-    while (totalWaitTime < maxWaitTime) {
-      const opResponse = await api.get(
-        `/projects/${operation.project_id}/operations/${operation.id}`,
-      );
-
-      if (!opResponse.ok) {
-        await handleApiError(opResponse, "get", "operation", operation.id);
-      }
-
-      const opData: { operation: NeonOperation } = await opResponse.json();
-      const currentOp = opData.operation;
-
-      if (currentOp.status === "finished") {
-        break;
-      }
-
-      if (currentOp.status === "failed") {
-        throw new Error(
-          `Operation ${operation.id} (${operation.action}) failed: ${currentOp.error || "Unknown error"}`,
-        );
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
-      totalWaitTime += pollInterval;
-    }
-
-    if (totalWaitTime >= maxWaitTime) {
-      throw new Error(
-        `Timeout waiting for operation ${operation.id} (${operation.action}) to complete`,
-      );
-    }
-  }
-
-  return;
 }
