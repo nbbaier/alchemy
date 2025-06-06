@@ -3,6 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import prettier from "prettier";
 import { validateCloudFormationSpec, type CloudFormationResourceSpecification, type ResourceType, type PropertyType, type Property } from "./cfn-spec-schema.js";
+import { getPropertyDocumentation, getCacheInfo } from "./doc-parser.js";
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
@@ -96,10 +97,43 @@ function sanitizeTypeName(typeName: string | undefined): string {
     .replace(/^(\d)/, "_$1"); // Ensure it doesn't start with a number
 }
 
-function generatePropsInterface(
+/**
+ * Enhanced function to get documentation for a property
+ * Falls back to original documentation if AI parsing fails
+ */
+async function getEnhancedDocumentation(
+  prop: Property,
+  propertyName: string,
+  allPropertyNames: string[]
+): Promise<string> {
+  // If there's no original documentation, return empty
+  if (!prop.Documentation) {
+    return "";
+  }
+
+  // Try to get enhanced documentation from AI parsing
+  try {
+    const enhancedDoc = await getPropertyDocumentation(
+      prop.Documentation,
+      propertyName,
+      allPropertyNames
+    );
+    
+    if (enhancedDoc) {
+      return enhancedDoc;
+    }
+  } catch (error) {
+    console.warn(`Failed to get enhanced documentation for ${propertyName}:`, error);
+  }
+
+  // Fall back to original documentation (which is just a URL)
+  return prop.Documentation;
+}
+
+async function generatePropsInterface(
   resourceType: ResourceType,
   resourceName: string,
-): string {
+): Promise<string> {
   const lines: string[] = [];
 
   // Add interface documentation if available
@@ -109,11 +143,17 @@ function generatePropsInterface(
 
   lines.push(`export interface ${resourceName}Props {`);
 
-  // Add properties
+  // Get all property names for validation
+  const allPropertyNames = Object.keys(resourceType.Properties);
+
+  // Add properties with enhanced documentation
   for (const [propName, prop] of Object.entries(resourceType.Properties)) {
+    // Get enhanced documentation
+    const enhancedDoc = await getEnhancedDocumentation(prop, propName, allPropertyNames);
+    
     // Add documentation comment if available
-    if (prop.Documentation) {
-      lines.push(`  /** ${prop.Documentation} */`);
+    if (enhancedDoc) {
+      lines.push(`  /** ${enhancedDoc} */`);
     }
 
     const propType = convertPropertyToTypeScript(prop);
@@ -125,20 +165,26 @@ function generatePropsInterface(
   return lines.join("\n");
 }
 
-function generatePropertyTypeInterface(
+async function generatePropertyTypeInterface(
   properties: Record<string, Property>,
   typeName: string,
-): string {
+): Promise<string> {
   const lines: string[] = [];
   const sanitizedTypeName = sanitizeTypeName(typeName);
 
   lines.push(`export interface ${sanitizedTypeName} {`);
 
-  // Add properties
+  // Get all property names for validation
+  const allPropertyNames = Object.keys(properties);
+
+  // Add properties with enhanced documentation
   for (const [propName, prop] of Object.entries(properties)) {
+    // Get enhanced documentation
+    const enhancedDoc = await getEnhancedDocumentation(prop, propName, allPropertyNames);
+    
     // Add documentation comment if available
-    if (prop.Documentation) {
-      lines.push(`  /** ${prop.Documentation} */`);
+    if (enhancedDoc) {
+      lines.push(`  /** ${enhancedDoc} */`);
     }
 
     const propType = convertPropertyToTypeScript(prop);
@@ -254,7 +300,7 @@ async function generateTypesForService(
   for (const [typeName, propertyType] of Object.entries(servicePropertyTypes)) {
     if ("Properties" in propertyType && propertyType.Properties) {
       // Complex type with properties
-      const propertyInterface = generatePropertyTypeInterface(
+      const propertyInterface = await generatePropertyTypeInterface(
         propertyType.Properties,
         typeName,
       );
@@ -268,7 +314,7 @@ async function generateTypesForService(
 
   // Generate resource props interfaces
   for (const [resourceName, resourceType] of Object.entries(serviceResourceTypes)) {
-    const propsInterface = generatePropsInterface(resourceType, resourceName);
+    const propsInterface = await generatePropsInterface(resourceType, resourceName);
     declarations.push(propsInterface);
   }
 
@@ -287,10 +333,14 @@ async function generateTypesForService(
   console.log(`Writing types to ${outputFile}...`);
   await writeFile(outputFile, formattedCode);
   
+  // Show cache statistics
+  const cacheInfo = getCacheInfo();
+  
   console.log(`Successfully generated types for ${serviceName}:`);
   console.log(`  - Property types: ${Object.keys(servicePropertyTypes).length}`);
   console.log(`  - Resource types: ${Object.keys(serviceResourceTypes).length}`);
   console.log(`  - Output file: ${outputFile}`);
+  console.log(`  - Documentation cache: ${cacheInfo.urls} URLs, ${cacheInfo.totalProperties} properties`);
 }
 
 try {
