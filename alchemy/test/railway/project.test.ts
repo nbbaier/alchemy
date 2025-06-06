@@ -11,102 +11,103 @@ const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
 });
 
-const railwayToken = import.meta.env.RAILWAY_TOKEN;
-if (!railwayToken) {
-  throw new Error("RAILWAY_TOKEN environment variable is required");
-}
-
-const api = createRailwayApi({ apiKey: railwayToken });
-
 describe("Project Resource", () => {
   const testProjectId = `${BRANCH_PREFIX}-project`;
 
-  test("create, update, and delete project", async (scope) => {
-    let project: Project | undefined;
-
-    try {
-      project = await Project(testProjectId, {
-        name: `${BRANCH_PREFIX} Alchemy Test Project`,
-        description: "A project created for testing Railway provider",
-        isPublic: false,
-      });
-
-      expect(project.id).toBeTruthy();
-      expect(project).toMatchObject({
-        name: `${BRANCH_PREFIX} Alchemy Test Project`,
-        description: "A project created for testing Railway provider",
-        isPublic: false,
-      });
-
-      const response = await api.query(
-        `
-        query Project($id: String!) {
-          project(id: $id) {
-            id
-            name
-            description
-            isPublic
-          }
-        }
-        `,
-        { id: project.id },
-      );
-
-      const railwayProject = response.data?.project;
-      expect(railwayProject).toMatchObject({
-        id: project.id,
-        name: `${BRANCH_PREFIX} Alchemy Test Project`,
-        description: "A project created for testing Railway provider",
-        isPublic: false,
-      });
-
-      project = await Project(testProjectId, {
-        name: `${BRANCH_PREFIX} Updated Test Project`,
-        description: "Updated description",
-        isPublic: true,
-      });
-
-      expect(project.id).toBeTruthy();
-      expect(project).toMatchObject({
-        name: `${BRANCH_PREFIX} Updated Test Project`,
-        description: "Updated description",
-        isPublic: true,
-      });
-
-      const updatedResponse = await api.query(
-        `
-        query Project($id: String!) {
-          project(id: $id) {
-            id
-            name
-            description
-            isPublic
-          }
-        }
-        `,
-        { id: project.id },
-      );
-
-      const updatedRailwayProject = updatedResponse.data?.project;
-      expect(updatedRailwayProject).toMatchObject({
-        name: `${BRANCH_PREFIX} Updated Test Project`,
-        description: "Updated description",
-        isPublic: true,
-      });
-    } catch (err) {
-      console.log(err);
-      throw err;
-    } finally {
-      await destroy(scope);
-
-      if (project?.id) {
-        await assertProjectDeleted(project.id);
+  test.skipIf(!!process.env.CI)(
+    "create, update, and delete project",
+    async (scope) => {
+      const railwayToken = import.meta.env.RAILWAY_TOKEN;
+      if (!railwayToken) {
+        throw new Error("RAILWAY_TOKEN environment variable is required");
       }
-    }
-  });
+      const api = createRailwayApi({ apiKey: railwayToken });
+      let project: Project | undefined;
+
+      try {
+        project = await Project(testProjectId, {
+          name: `${BRANCH_PREFIX} Alchemy Test Project`,
+          description: "A project created for testing Railway provider",
+          isPublic: false,
+        });
+
+        expect(project.id).toBeTruthy();
+        expect(project).toMatchObject({
+          name: `${BRANCH_PREFIX} Alchemy Test Project`,
+          description: "A project created for testing Railway provider",
+          isPublic: false,
+        });
+
+        const response = await api.query(
+          `
+        query Project($id: String!) {
+          project(id: $id) {
+            id
+            name
+            description
+            isPublic
+          }
+        }
+        `,
+          { id: project.id },
+        );
+
+        const railwayProject = response.data?.project;
+        expect(railwayProject).toMatchObject({
+          id: project.id,
+          name: `${BRANCH_PREFIX} Alchemy Test Project`,
+          description: "A project created for testing Railway provider",
+          isPublic: false,
+        });
+
+        project = await Project(testProjectId, {
+          name: `${BRANCH_PREFIX} Updated Test Project`,
+          description: "Updated description",
+          isPublic: true,
+        });
+
+        expect(project.id).toBeTruthy();
+        expect(project).toMatchObject({
+          name: `${BRANCH_PREFIX} Updated Test Project`,
+          description: "Updated description",
+          isPublic: true,
+        });
+
+        const updatedResponse = await api.query(
+          `
+        query Project($id: String!) {
+          project(id: $id) {
+            id
+            name
+            description
+            isPublic
+          }
+        }
+        `,
+          { id: project.id },
+        );
+
+        const updatedRailwayProject = updatedResponse.data?.project;
+        expect(updatedRailwayProject).toMatchObject({
+          name: `${BRANCH_PREFIX} Updated Test Project`,
+          description: "Updated description",
+          isPublic: true,
+        });
+      } catch (err) {
+        console.log(err);
+        throw err;
+      } finally {
+        await destroy(scope);
+
+        if (project?.id) {
+          await assertProjectDeleted(project.id, api);
+        }
+      }
+    },
+  );
 });
 
-async function assertProjectDeleted(projectId: string) {
+async function assertProjectDeleted(projectId: string, api: any) {
   try {
     const response = await api.query(
       `

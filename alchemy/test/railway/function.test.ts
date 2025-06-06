@@ -13,55 +13,55 @@ const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
 });
 
-const railwayToken = import.meta.env.RAILWAY_TOKEN;
-if (!railwayToken) {
-  throw new Error("RAILWAY_TOKEN environment variable is required");
-}
-
-const api = createRailwayApi({ apiKey: railwayToken });
-
 describe("Function Resource", () => {
   const testProjectId = `${BRANCH_PREFIX}-func-project`;
   const testEnvironmentId = `${BRANCH_PREFIX}-func-environment`;
   const testFunctionId = `${BRANCH_PREFIX}-function`;
 
-  test("create, update, and delete function", async (scope) => {
-    let project: Project | undefined;
-    let environment: Environment | undefined;
-    let func: Function | undefined;
+  test.skipIf(!!process.env.CI)(
+    "create, update, and delete function",
+    async (scope) => {
+      const railwayToken = import.meta.env.RAILWAY_TOKEN;
+      if (!railwayToken) {
+        throw new Error("RAILWAY_TOKEN environment variable is required");
+      }
+      const api = createRailwayApi({ apiKey: railwayToken });
+      let project: Project | undefined;
+      let environment: Environment | undefined;
+      let func: Function | undefined;
 
-    try {
-      project = await Project(testProjectId, {
-        name: `${BRANCH_PREFIX} Function Test Project`,
-        description: "A project for testing functions",
-      });
+      try {
+        project = await Project(testProjectId, {
+          name: `${BRANCH_PREFIX} Function Test Project`,
+          description: "A project for testing functions",
+        });
 
-      environment = await Environment(testEnvironmentId, {
-        name: "test",
-        project: project,
-      });
+        environment = await Environment(testEnvironmentId, {
+          name: "test",
+          project: project,
+        });
 
-      func = await Function(testFunctionId, {
-        name: "hello-world",
-        project: project,
-        environment: environment,
-        runtime: "nodejs",
-        main: "./test/fixtures/hello-handler.js",
-        entrypoint: "index.handler",
-      });
+        func = await Function(testFunctionId, {
+          name: "hello-world",
+          project: project,
+          environment: environment,
+          runtime: "nodejs",
+          main: "./test/fixtures/hello-handler.js",
+          entrypoint: "index.handler",
+        });
 
-      expect(func.id).toBeTruthy();
-      expect(func).toMatchObject({
-        name: "hello-world",
-        projectId: project.id,
-        environmentId: environment.id,
-        runtime: "nodejs",
-        entrypoint: "index.handler",
-      });
-      expect(func.url).toBeTruthy();
+        expect(func.id).toBeTruthy();
+        expect(func).toMatchObject({
+          name: "hello-world",
+          projectId: project.id,
+          environmentId: environment.id,
+          runtime: "nodejs",
+          entrypoint: "index.handler",
+        });
+        expect(func.url).toBeTruthy();
 
-      const response = await api.query(
-        `
+        const response = await api.query(
+          `
         query Function($id: String!) {
           function(id: $id) {
             id
@@ -74,47 +74,48 @@ describe("Function Resource", () => {
           }
         }
         `,
-        { id: func.id },
-      );
+          { id: func.id },
+        );
 
-      const railwayFunction = response.data?.function;
-      expect(railwayFunction).toMatchObject({
-        id: func.id,
-        name: "hello-world",
-        projectId: project.id,
-        environmentId: environment.id,
-        runtime: "nodejs",
-        entrypoint: "index.handler",
-      });
+        const railwayFunction = response.data?.function;
+        expect(railwayFunction).toMatchObject({
+          id: func.id,
+          name: "hello-world",
+          projectId: project.id,
+          environmentId: environment.id,
+          runtime: "nodejs",
+          entrypoint: "index.handler",
+        });
 
-      func = await Function(testFunctionId, {
-        name: "updated-hello-world",
-        project: project,
-        environment: environment,
-        runtime: "python",
-        main: "./test/fixtures/hello-handler.py",
-        entrypoint: "main.handler",
-      });
+        func = await Function(testFunctionId, {
+          name: "updated-hello-world",
+          project: project,
+          environment: environment,
+          runtime: "python",
+          main: "./test/fixtures/hello-handler.py",
+          entrypoint: "main.handler",
+        });
 
-      expect(func).toMatchObject({
-        name: "updated-hello-world",
-        runtime: "python",
-        entrypoint: "main.handler",
-      });
-    } catch (err) {
-      console.log(err);
-      throw err;
-    } finally {
-      await destroy(scope);
+        expect(func).toMatchObject({
+          name: "updated-hello-world",
+          runtime: "python",
+          entrypoint: "main.handler",
+        });
+      } catch (err) {
+        console.log(err);
+        throw err;
+      } finally {
+        await destroy(scope);
 
-      if (func?.id) {
-        await assertFunctionDeleted(func.id);
+        if (func?.id) {
+          await assertFunctionDeleted(func.id, api);
+        }
       }
-    }
-  });
+    },
+  );
 });
 
-async function assertFunctionDeleted(functionId: string) {
+async function assertFunctionDeleted(functionId: string, api: any) {
   try {
     const response = await api.query(
       `

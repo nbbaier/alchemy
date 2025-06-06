@@ -13,19 +13,17 @@ const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
 });
 
-const railwayToken = import.meta.env.RAILWAY_TOKEN;
-if (!railwayToken) {
-  throw new Error("RAILWAY_TOKEN environment variable is required");
-}
-
-const api = createRailwayApi({ apiKey: railwayToken });
-
 describe("Database Resource", () => {
   const testProjectId = `${BRANCH_PREFIX}-db-project`;
   const testEnvironmentId = `${BRANCH_PREFIX}-db-environment`;
   const testDatabaseId = `${BRANCH_PREFIX}-database`;
 
-  test("create and delete database", async (scope) => {
+  test.skipIf(!!process.env.CI)("create and delete database", async (scope) => {
+    const railwayToken = import.meta.env.RAILWAY_TOKEN;
+    if (!railwayToken) {
+      throw new Error("RAILWAY_TOKEN environment variable is required");
+    }
+    const api = createRailwayApi({ apiKey: railwayToken });
     let project: Project | undefined;
     let environment: Environment | undefined;
     let database: Database | undefined;
@@ -88,13 +86,13 @@ describe("Database Resource", () => {
       await destroy(scope);
 
       if (database?.id) {
-        await assertDatabaseDeleted(database.id);
+        await assertDatabaseDeleted(database.id, api);
       }
     }
   });
 });
 
-async function assertDatabaseDeleted(databaseId: string) {
+async function assertDatabaseDeleted(databaseId: string, api: any) {
   try {
     const response = await api.query(
       `

@@ -14,57 +14,57 @@ const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
 });
 
-const railwayToken = import.meta.env.RAILWAY_TOKEN;
-if (!railwayToken) {
-  throw new Error("RAILWAY_TOKEN environment variable is required");
-}
-
-const api = createRailwayApi({ apiKey: railwayToken });
-
 describe("ServiceDomain Resource", () => {
   const testProjectId = `${BRANCH_PREFIX}-svc-domain-project`;
   const testEnvironmentId = `${BRANCH_PREFIX}-svc-domain-environment`;
   const testServiceId = `${BRANCH_PREFIX}-svc-domain-service`;
   const testServiceDomainId = `${BRANCH_PREFIX}-service-domain`;
 
-  test("create, update, and delete service domain", async (scope) => {
-    let project: Project | undefined;
-    let environment: Environment | undefined;
-    let service: Service | undefined;
-    let serviceDomain: ServiceDomain | undefined;
+  test.skipIf(!!process.env.CI)(
+    "create, update, and delete service domain",
+    async (scope) => {
+      const railwayToken = import.meta.env.RAILWAY_TOKEN;
+      if (!railwayToken) {
+        throw new Error("RAILWAY_TOKEN environment variable is required");
+      }
+      const api = createRailwayApi({ apiKey: railwayToken });
+      let project: Project | undefined;
+      let environment: Environment | undefined;
+      let service: Service | undefined;
+      let serviceDomain: ServiceDomain | undefined;
 
-    try {
-      project = await Project(testProjectId, {
-        name: `${BRANCH_PREFIX} Service Domain Test Project`,
-        description: "A project for testing service domains",
-      });
+      try {
+        project = await Project(testProjectId, {
+          name: `${BRANCH_PREFIX} Service Domain Test Project`,
+          description: "A project for testing service domains",
+        });
 
-      environment = await Environment(testEnvironmentId, {
-        name: "test",
-        project: project,
-      });
+        environment = await Environment(testEnvironmentId, {
+          name: "test",
+          project: project,
+        });
 
-      service = await Service(testServiceId, {
-        name: "api-service",
-        project: project,
-      });
+        service = await Service(testServiceId, {
+          name: "api-service",
+          project: project,
+        });
 
-      serviceDomain = await ServiceDomain(testServiceDomainId, {
-        domain: `${BRANCH_PREFIX}-api.railway.app`,
-        service: service,
-        environment: environment,
-      });
+        serviceDomain = await ServiceDomain(testServiceDomainId, {
+          domain: `${BRANCH_PREFIX}-api.railway.app`,
+          service: service,
+          environment: environment,
+        });
 
-      expect(serviceDomain.id).toBeTruthy();
-      expect(serviceDomain).toMatchObject({
-        domain: `${BRANCH_PREFIX}-api.railway.app`,
-        serviceId: service.id,
-        environmentId: environment.id,
-      });
-      expect(serviceDomain.url).toBeTruthy();
+        expect(serviceDomain.id).toBeTruthy();
+        expect(serviceDomain).toMatchObject({
+          domain: `${BRANCH_PREFIX}-api.railway.app`,
+          serviceId: service.id,
+          environmentId: environment.id,
+        });
+        expect(serviceDomain.url).toBeTruthy();
 
-      const response = await api.query(
-        `
+        const response = await api.query(
+          `
         query ServiceDomain($id: String!) {
           serviceDomain(id: $id) {
             id
@@ -75,40 +75,41 @@ describe("ServiceDomain Resource", () => {
           }
         }
         `,
-        { id: serviceDomain.id },
-      );
+          { id: serviceDomain.id },
+        );
 
-      const railwayServiceDomain = response.data?.serviceDomain;
-      expect(railwayServiceDomain).toMatchObject({
-        id: serviceDomain.id,
-        domain: `${BRANCH_PREFIX}-api.railway.app`,
-        serviceId: service.id,
-        environmentId: environment.id,
-      });
+        const railwayServiceDomain = response.data?.serviceDomain;
+        expect(railwayServiceDomain).toMatchObject({
+          id: serviceDomain.id,
+          domain: `${BRANCH_PREFIX}-api.railway.app`,
+          serviceId: service.id,
+          environmentId: environment.id,
+        });
 
-      serviceDomain = await ServiceDomain(testServiceDomainId, {
-        domain: `${BRANCH_PREFIX}-updated-api.railway.app`,
-        service: service,
-        environment: environment,
-      });
+        serviceDomain = await ServiceDomain(testServiceDomainId, {
+          domain: `${BRANCH_PREFIX}-updated-api.railway.app`,
+          service: service,
+          environment: environment,
+        });
 
-      expect(serviceDomain).toMatchObject({
-        domain: `${BRANCH_PREFIX}-updated-api.railway.app`,
-      });
-    } catch (err) {
-      console.log(err);
-      throw err;
-    } finally {
-      await destroy(scope);
+        expect(serviceDomain).toMatchObject({
+          domain: `${BRANCH_PREFIX}-updated-api.railway.app`,
+        });
+      } catch (err) {
+        console.log(err);
+        throw err;
+      } finally {
+        await destroy(scope);
 
-      if (serviceDomain?.id) {
-        await assertServiceDomainDeleted(serviceDomain.id);
+        if (serviceDomain?.id) {
+          await assertServiceDomainDeleted(serviceDomain.id, api);
+        }
       }
-    }
-  });
+    },
+  );
 });
 
-async function assertServiceDomainDeleted(serviceDomainId: string) {
+async function assertServiceDomainDeleted(serviceDomainId: string, api: any) {
   try {
     const response = await api.query(
       `

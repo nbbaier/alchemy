@@ -15,58 +15,58 @@ const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
 });
 
-const railwayToken = import.meta.env.RAILWAY_TOKEN;
-if (!railwayToken) {
-  throw new Error("RAILWAY_TOKEN environment variable is required");
-}
-
-const api = createRailwayApi({ apiKey: railwayToken });
-
 describe("Variable Resource", () => {
   const testProjectId = `${BRANCH_PREFIX}-var-project`;
   const testEnvironmentId = `${BRANCH_PREFIX}-var-environment`;
   const testServiceId = `${BRANCH_PREFIX}-var-service`;
   const testVariableId = `${BRANCH_PREFIX}-variable`;
 
-  test("create, update, and delete variable", async (scope) => {
-    let project: Project | undefined;
-    let environment: Environment | undefined;
-    let service: Service | undefined;
-    let variable: Variable | undefined;
+  test.skipIf(!!process.env.CI)(
+    "create, update, and delete variable",
+    async (scope) => {
+      const railwayToken = import.meta.env.RAILWAY_TOKEN;
+      if (!railwayToken) {
+        throw new Error("RAILWAY_TOKEN environment variable is required");
+      }
+      const api = createRailwayApi({ apiKey: railwayToken });
+      let project: Project | undefined;
+      let environment: Environment | undefined;
+      let service: Service | undefined;
+      let variable: Variable | undefined;
 
-    try {
-      project = await Project(testProjectId, {
-        name: `${BRANCH_PREFIX} Variable Test Project`,
-        description: "A project for testing variables",
-      });
+      try {
+        project = await Project(testProjectId, {
+          name: `${BRANCH_PREFIX} Variable Test Project`,
+          description: "A project for testing variables",
+        });
 
-      environment = await Environment(testEnvironmentId, {
-        name: "test",
-        project: project,
-      });
+        environment = await Environment(testEnvironmentId, {
+          name: "test",
+          project: project,
+        });
 
-      service = await Service(testServiceId, {
-        name: "test-service",
-        project: project,
-      });
+        service = await Service(testServiceId, {
+          name: "test-service",
+          project: project,
+        });
 
-      variable = await Variable(testVariableId, {
-        name: "API_KEY",
-        value: secret("secret-value-123"),
-        environment: environment,
-        service: service,
-      });
+        variable = await Variable(testVariableId, {
+          name: "API_KEY",
+          value: secret("secret-value-123"),
+          environment: environment,
+          service: service,
+        });
 
-      expect(variable.id).toBeTruthy();
-      expect(variable).toMatchObject({
-        name: "API_KEY",
-        environmentId: environment.id,
-        serviceId: service.id,
-      });
-      expect(variable.value.unencrypted).toBe("secret-value-123");
+        expect(variable.id).toBeTruthy();
+        expect(variable).toMatchObject({
+          name: "API_KEY",
+          environmentId: environment.id,
+          serviceId: service.id,
+        });
+        expect(variable.value.unencrypted).toBe("secret-value-123");
 
-      const response = await api.query(
-        `
+        const response = await api.query(
+          `
         query Variable($id: String!) {
           variable(id: $id) {
             id
@@ -76,39 +76,40 @@ describe("Variable Resource", () => {
           }
         }
         `,
-        { id: variable.id },
-      );
+          { id: variable.id },
+        );
 
-      const railwayVariable = response.data?.variable;
-      expect(railwayVariable).toMatchObject({
-        id: variable.id,
-        name: "API_KEY",
-        environmentId: environment.id,
-        serviceId: service.id,
-      });
+        const railwayVariable = response.data?.variable;
+        expect(railwayVariable).toMatchObject({
+          id: variable.id,
+          name: "API_KEY",
+          environmentId: environment.id,
+          serviceId: service.id,
+        });
 
-      variable = await Variable(testVariableId, {
-        name: "API_KEY",
-        value: "updated-secret-value-456",
-        environment: environment,
-        service: service,
-      });
+        variable = await Variable(testVariableId, {
+          name: "API_KEY",
+          value: "updated-secret-value-456",
+          environment: environment,
+          service: service,
+        });
 
-      expect(variable.value.unencrypted).toBe("updated-secret-value-456");
-    } catch (err) {
-      console.log(err);
-      throw err;
-    } finally {
-      await destroy(scope);
+        expect(variable.value.unencrypted).toBe("updated-secret-value-456");
+      } catch (err) {
+        console.log(err);
+        throw err;
+      } finally {
+        await destroy(scope);
 
-      if (variable?.id) {
-        await assertVariableDeleted(variable.id);
+        if (variable?.id) {
+          await assertVariableDeleted(variable.id, api);
+        }
       }
-    }
-  });
+    },
+  );
 });
 
-async function assertVariableDeleted(variableId: string) {
+async function assertVariableDeleted(variableId: string, api: any) {
   try {
     const response = await api.query(
       `

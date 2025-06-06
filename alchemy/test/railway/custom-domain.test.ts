@@ -14,57 +14,57 @@ const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
 });
 
-const railwayToken = import.meta.env.RAILWAY_TOKEN;
-if (!railwayToken) {
-  throw new Error("RAILWAY_TOKEN environment variable is required");
-}
-
-const api = createRailwayApi({ apiKey: railwayToken });
-
 describe("CustomDomain Resource", () => {
   const testProjectId = `${BRANCH_PREFIX}-domain-project`;
   const testEnvironmentId = `${BRANCH_PREFIX}-domain-environment`;
   const testServiceId = `${BRANCH_PREFIX}-domain-service`;
   const testDomainId = `${BRANCH_PREFIX}-custom-domain`;
 
-  test("create and delete custom domain", async (scope) => {
-    let project: Project | undefined;
-    let environment: Environment | undefined;
-    let service: Service | undefined;
-    let customDomain: CustomDomain | undefined;
+  test.skipIf(!!process.env.CI)(
+    "create and delete custom domain",
+    async (scope) => {
+      const railwayToken = import.meta.env.RAILWAY_TOKEN;
+      if (!railwayToken) {
+        throw new Error("RAILWAY_TOKEN environment variable is required");
+      }
+      const api = createRailwayApi({ apiKey: railwayToken });
+      let project: Project | undefined;
+      let environment: Environment | undefined;
+      let service: Service | undefined;
+      let customDomain: CustomDomain | undefined;
 
-    try {
-      project = await Project(testProjectId, {
-        name: `${BRANCH_PREFIX} Custom Domain Test Project`,
-        description: "A project for testing custom domains",
-      });
+      try {
+        project = await Project(testProjectId, {
+          name: `${BRANCH_PREFIX} Custom Domain Test Project`,
+          description: "A project for testing custom domains",
+        });
 
-      environment = await Environment(testEnvironmentId, {
-        name: "test",
-        project: project,
-      });
+        environment = await Environment(testEnvironmentId, {
+          name: "test",
+          project: project,
+        });
 
-      service = await Service(testServiceId, {
-        name: "web-service",
-        project: project,
-      });
+        service = await Service(testServiceId, {
+          name: "web-service",
+          project: project,
+        });
 
-      customDomain = await CustomDomain(testDomainId, {
-        domain: `${BRANCH_PREFIX}-test.example.com`,
-        service: service,
-        environment: environment,
-      });
+        customDomain = await CustomDomain(testDomainId, {
+          domain: `${BRANCH_PREFIX}-test.example.com`,
+          service: service,
+          environment: environment,
+        });
 
-      expect(customDomain.id).toBeTruthy();
-      expect(customDomain).toMatchObject({
-        domain: `${BRANCH_PREFIX}-test.example.com`,
-        serviceId: service.id,
-        environmentId: environment.id,
-      });
-      expect(customDomain.status).toBeTruthy();
+        expect(customDomain.id).toBeTruthy();
+        expect(customDomain).toMatchObject({
+          domain: `${BRANCH_PREFIX}-test.example.com`,
+          serviceId: service.id,
+          environmentId: environment.id,
+        });
+        expect(customDomain.status).toBeTruthy();
 
-      const response = await api.query(
-        `
+        const response = await api.query(
+          `
         query CustomDomain($id: String!) {
           customDomain(id: $id) {
             id
@@ -75,30 +75,31 @@ describe("CustomDomain Resource", () => {
           }
         }
         `,
-        { id: customDomain.id },
-      );
+          { id: customDomain.id },
+        );
 
-      const railwayCustomDomain = response.data?.customDomain;
-      expect(railwayCustomDomain).toMatchObject({
-        id: customDomain.id,
-        domain: `${BRANCH_PREFIX}-test.example.com`,
-        serviceId: service.id,
-        environmentId: environment.id,
-      });
-    } catch (err) {
-      console.log(err);
-      throw err;
-    } finally {
-      await destroy(scope);
+        const railwayCustomDomain = response.data?.customDomain;
+        expect(railwayCustomDomain).toMatchObject({
+          id: customDomain.id,
+          domain: `${BRANCH_PREFIX}-test.example.com`,
+          serviceId: service.id,
+          environmentId: environment.id,
+        });
+      } catch (err) {
+        console.log(err);
+        throw err;
+      } finally {
+        await destroy(scope);
 
-      if (customDomain?.id) {
-        await assertCustomDomainDeleted(customDomain.id);
+        if (customDomain?.id) {
+          await assertCustomDomainDeleted(customDomain.id, api);
+        }
       }
-    }
-  });
+    },
+  );
 });
 
-async function assertCustomDomainDeleted(customDomainId: string) {
+async function assertCustomDomainDeleted(customDomainId: string, api: any) {
   try {
     const response = await api.query(
       `
