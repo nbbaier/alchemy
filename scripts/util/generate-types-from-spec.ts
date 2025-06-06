@@ -345,6 +345,19 @@ async function generateTypesForService(
     declarations.push(propsInterface);
   }
 
+  // Generate service type export as the default export
+  if (Object.keys(serviceResourceTypes).length > 0) {
+    const serviceTypeName = serviceInfo.servicePart.replace(/[^a-zA-Z0-9]/g, "");
+    const resourceKeys = Object.keys(serviceResourceTypes).map(name => `  ${name}: ${name}Props;`).join("\n");
+    
+    const serviceTypeDeclaration = `interface ${serviceTypeName} {
+${resourceKeys}
+}
+
+export default ${serviceTypeName};`;
+    declarations.push(serviceTypeDeclaration);
+  }
+
   // Format the generated code with Prettier
   const unformattedCode = declarations.join("\n\n");
   const formattedCode = await prettier.format(unformattedCode, {

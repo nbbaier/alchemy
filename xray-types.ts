@@ -3,80 +3,89 @@
 // Service: AWS::XRay
 
 export interface Tag {
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-resource-tags.html#cfn-resource-tags-value */
+  /** The value for the tag. You can specify a value that's 1 to 256 characters in length. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -. */
   Value: string;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-resource-tags.html#cfn-resource-tags-key */
+  /** The key name of the tag. You can specify a value that's 1 to 128 Unicode characters in length and can't be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., :, /, =, +, @, -, and ". */
   Key: string;
 }
 
 export interface InsightsConfiguration {
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-group-insightsconfiguration.html#cfn-xray-group-insightsconfiguration-notificationsenabled */
+  /** Set the NotificationsEnabled value to true to enable insights notifications. Notifications can only be enabled on a group with InsightsEnabled set to true. */
   NotificationsEnabled?: boolean;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-group-insightsconfiguration.html#cfn-xray-group-insightsconfiguration-insightsenabled */
+  /** Set the InsightsEnabled value to true to enable insights or false to disable insights. */
   InsightsEnabled?: boolean;
 }
 
 export interface SamplingRule {
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-samplingrule-samplingrule.html#cfn-xray-samplingrule-samplingrule-priority */
+  /** The priority of the sampling rule. */
   Priority: number;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-samplingrule-samplingrule.html#cfn-xray-samplingrule-samplingrule-reservoirsize */
+  /** A fixed number of matching requests to instrument per second, prior to applying the fixed rate. The reservoir is not used directly by services, but applies to all services using the rule collectively. */
   ReservoirSize: number;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-samplingrule-samplingrule.html#cfn-xray-samplingrule-samplingrule-rulearn */
+  /** The ARN of the sampling rule. Specify a rule by either name or ARN, but not both. Specifying a sampling rule by name is recommended, as specifying by ARN will be deprecated in future. */
   RuleARN?: string;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-samplingrule-samplingrule.html#cfn-xray-samplingrule-samplingrule-urlpath */
+  /** Matches the path from a request URL. */
   URLPath: string;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-samplingrule-samplingrule.html#cfn-xray-samplingrule-samplingrule-attributes */
+  /** Matches attributes derived from the request. Maximum number of 5 items. Key Length Constraints: Minimum length of 1. Maximum length of 32. Value Length Constraints: Minimum length of 1. Maximum length of 32. @pattern ".{1,}" */
   Attributes?: Record<string, any>;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-samplingrule-samplingrule.html#cfn-xray-samplingrule-samplingrule-fixedrate */
+  /** The percentage of matching requests to instrument, after the reservoir is exhausted. */
   FixedRate: number;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-samplingrule-samplingrule.html#cfn-xray-samplingrule-samplingrule-host */
+  /** Matches the hostname from a request URL. */
   Host: string;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-samplingrule-samplingrule.html#cfn-xray-samplingrule-samplingrule-resourcearn */
+  /** Matches the ARN of the AWS resource on which the service runs. */
   ResourceARN: string;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-samplingrule-samplingrule.html#cfn-xray-samplingrule-samplingrule-httpmethod */
+  /** Matches the HTTP method of a request. */
   HTTPMethod: string;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-samplingrule-samplingrule.html#cfn-xray-samplingrule-samplingrule-servicename */
+  /** Matches the name that the service uses to identify itself in segments. */
   ServiceName: string;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-samplingrule-samplingrule.html#cfn-xray-samplingrule-samplingrule-version */
+  /** The version of the sampling rule. Version can only be set when creating a new sampling rule. */
   Version?: number;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-samplingrule-samplingrule.html#cfn-xray-samplingrule-samplingrule-servicetype */
+  /** Matches the origin that the service uses to identify its type in segments. */
   ServiceType: string;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-xray-samplingrule-samplingrule.html#cfn-xray-samplingrule-samplingrule-rulename */
+  /** The name of the sampling rule. Specify a rule by either name or ARN, but not both. */
   RuleName?: string;
 }
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-group.html */
 export interface GroupProps {
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-group.html#cfn-xray-group-groupname */
+  /** The unique case-sensitive name of the group. @pattern "^[a-zA-Z0-9-_]{1,32}$" */
   GroupName: string;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-group.html#cfn-xray-group-insightsconfiguration */
+  /** The structure containing configurations related to insights. */
   InsightsConfiguration?: InsightsConfiguration;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-group.html#cfn-xray-group-filterexpression */
+  /** The filter expression defining the parameters to include traces. */
   FilterExpression?: string;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-group.html#cfn-xray-group-tags */
+  /** An array of key-value pairs to apply to this resource. */
   Tags?: Tag[];
 }
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-resourcepolicy.html */
 export interface ResourcePolicyProps {
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-resourcepolicy.html#cfn-xray-resourcepolicy-bypasspolicylockoutcheck */
+  /** A flag to indicate whether to bypass the resource-based policy lockout safety check. */
   BypassPolicyLockoutCheck?: boolean;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-resourcepolicy.html#cfn-xray-resourcepolicy-policyname */
+  /** The name of the resource-based policy. Must be unique within a specific AWS account. @pattern "[\w+=,.@-]+" */
   PolicyName: string;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-resourcepolicy.html#cfn-xray-resourcepolicy-policydocument */
+  /** The resource-based policy document, which can be up to 5kb in size. */
   PolicyDocument: string;
 }
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-samplingrule.html */
 export interface SamplingRuleProps {
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-samplingrule.html#cfn-xray-samplingrule-samplingrule */
+  /** The sampling rule to be created or updated. */
   SamplingRule?: SamplingRule;
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-samplingrule.html#cfn-xray-samplingrule-tags */
+  /** An array of key-value pairs to apply to this resource. */
   Tags?: Tag[];
 }
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-transactionsearchconfig.html */
 export interface TransactionSearchConfigProps {
-  /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-transactionsearchconfig.html#cfn-xray-transactionsearchconfig-indexingpercentage */
+  /** Specifies the percentage of requests to index. This value must be between 0 and 100. @pattern "^[0-9]{1,3}$" */
   IndexingPercentage?: number;
 }
+
+interface XRay {
+  Group: GroupProps;
+  ResourcePolicy: ResourcePolicyProps;
+  SamplingRule: SamplingRuleProps;
+  TransactionSearchConfig: TransactionSearchConfigProps;
+}
+
+export default XRay;
