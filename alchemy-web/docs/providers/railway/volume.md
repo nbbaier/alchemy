@@ -1,47 +1,142 @@
+---
+title: Managing Railway Volumes with Alchemy
+description: Learn how to create and manage Railway volumes using Alchemy for persistent storage in your applications.
+---
+
 # Railway Volume
 
 A Railway volume represents persistent storage that can be mounted to services within a project environment.
 
-## Example Usage
+## Basic Volume
+
+Create a simple data volume:
 
 ```typescript
 import { Environment, Project, Volume } from "alchemy/railway";
 
-// Create project and environment first
 const project = await Project("my-project", {
   name: "My Application",
 });
 
 const environment = await Environment("prod-env", {
   name: "production",
-  projectId: project.id,
+  project: project,
 });
 
-// Create a data volume
 const dataVolume = await Volume("data-volume", {
   name: "app-data",
-  projectId: project.id,
-  environmentId: environment.id,
+  project: project,
+  environment: environment,
   mountPath: "/data",
   size: 1024, // 1GB
 });
+```
 
-// Create a larger volume for file storage
+## Large Storage Volume
+
+Create a volume for file uploads and user content:
+
+```typescript
+import { Environment, Project, Volume } from "alchemy/railway";
+
+const project = await Project("content-platform", {
+  name: "Content Platform",
+  description: "User-generated content platform",
+});
+
+const environment = await Environment("prod-env", {
+  name: "production",
+  project: project,
+});
+
 const fileStorage = await Volume("file-storage", {
   name: "user-uploads",
-  projectId: project.id,
-  environmentId: environment.id,
+  project: project,
+  environment: environment,
   mountPath: "/app/uploads",
   size: 10240, // 10GB
 });
 
-// Create a logs volume
+const mediaStorage = await Volume("media-storage", {
+  name: "media-files",
+  project: project,
+  environment: environment,
+  mountPath: "/app/media",
+  size: 51200, // 50GB
+});
+```
+
+## Application Logs
+
+Set up volumes for log storage and monitoring:
+
+```typescript
+import { Environment, Project, Volume } from "alchemy/railway";
+
+const project = await Project("enterprise-app", {
+  name: "Enterprise Application",
+});
+
+const environment = await Environment("prod-env", {
+  name: "production",
+  project: project,
+});
+
 const logsVolume = await Volume("logs-volume", {
   name: "application-logs",
-  projectId: project.id,
-  environmentId: environment.id,
+  project: project,
+  environment: environment,
   mountPath: "/var/log/app",
   size: 2048, // 2GB
+});
+
+const auditVolume = await Volume("audit-volume", {
+  name: "audit-logs",
+  project: project,
+  environment: environment,
+  mountPath: "/var/log/audit",
+  size: 4096, // 4GB
+});
+```
+
+## Database Storage
+
+Create volumes for database data persistence:
+
+```typescript
+import { Environment, Project, Volume } from "alchemy/railway";
+
+const project = await Project("database-app", {
+  name: "Database Application",
+});
+
+const environment = await Environment("prod-env", {
+  name: "production",
+  project: project,
+});
+
+const dbVolume = await Volume("db-volume", {
+  name: "postgres-data",
+  project: project,
+  environment: environment,
+  mountPath: "/var/lib/postgresql/data",
+  size: 20480, // 20GB
+});
+```
+
+## Using String References
+
+Reference projects and environments by their ID strings:
+
+```typescript
+import { Volume } from "alchemy/railway";
+
+const volume = await Volume("my-volume", {
+  name: "persistent-data",
+  project: "project_abc123",
+  environment: "env_xyz789",
+  mountPath: "/data",
+  size: 5120, // 5GB
 });
 ```
 
@@ -49,45 +144,20 @@ const logsVolume = await Volume("logs-volume", {
 
 ### Required
 
-- **name** (string): The name of the volume.
-- **projectId** (string): The ID of the project this volume belongs to.
-- **environmentId** (string): The ID of the environment this volume belongs to.
-- **mountPath** (string): The path where the volume will be mounted in the container.
+- **name** (string): The name of the volume
+- **project** (string | Project): The project this volume belongs to
+- **environment** (string | Environment): The environment this volume belongs to
+- **mountPath** (string): The path where the volume will be mounted in the container
 
 ### Optional
 
-- **size** (number): The size of the volume in MB. Defaults to Railway's default size.
-- **apiKey** (Secret): Railway API token to use for authentication. Defaults to `RAILWAY_TOKEN` environment variable.
+- **size** (number): The size of the volume in MB. Defaults to Railway's default size
+- **apiKey** (Secret): Railway API token for authentication. Defaults to `RAILWAY_TOKEN` environment variable
 
 ## Outputs
 
-- **id** (string): The unique identifier of the volume.
-- **createdAt** (string): The timestamp when the volume was created.
-- **updatedAt** (string): The timestamp when the volume was last updated.
-
-## Authentication
-
-The Railway provider requires a Railway API token. You can provide this in two ways:
-
-1. Set the `RAILWAY_TOKEN` environment variable
-2. Pass an `apiKey` parameter using `alchemy.secret()`
-
-```typescript
-import { secret } from "alchemy";
-
-const volume = await Volume("my-volume", {
-  name: "persistent-data",
-  projectId: "project_123",
-  environmentId: "env_456",
-  mountPath: "/data",
-  size: 5120, // 5GB
-  apiKey: secret("your-railway-token"),
-});
-```
-
-## Usage Notes
-
-- Volumes provide persistent storage that survives service restarts and redeployments
-- The mount path should be an absolute path within the container
-- Volume size is specified in megabytes (MB)
-- Volumes are environment-specific and cannot be shared across environments
+- **id** (string): The unique identifier of the volume
+- **projectId** (string): The ID of the parent project
+- **environmentId** (string): The ID of the parent environment
+- **createdAt** (string): When the volume was created
+- **updatedAt** (string): When the volume was last updated

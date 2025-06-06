@@ -1,44 +1,119 @@
+---
+title: Managing Railway Databases with Alchemy
+description: Learn how to create and manage Railway databases using Alchemy for persistent data storage in your applications.
+---
+
 # Railway Database
 
 A Railway database represents a managed database instance within a project environment.
 
-## Example Usage
+## Basic Database
+
+Create a PostgreSQL database for your application:
 
 ```typescript
 import { Database, Environment, Project } from "alchemy/railway";
 
-// Create project and environment first
 const project = await Project("my-project", {
   name: "My Application",
 });
 
 const environment = await Environment("prod-env", {
   name: "production",
-  projectId: project.id,
+  project: project,
 });
 
-// Create a PostgreSQL database
 const postgres = await Database("postgres-db", {
   name: "main-database",
-  projectId: project.id,
-  environmentId: environment.id,
+  project: project,
+  environment: environment,
+  type: "postgresql",
+});
+```
+
+## Multiple Database Types
+
+Set up different databases for various use cases:
+
+```typescript
+import { Database, Environment, Project } from "alchemy/railway";
+
+const project = await Project("web-app", {
+  name: "Web Application",
+  description: "Full-stack web application",
+});
+
+const environment = await Environment("prod-env", {
+  name: "production",
+  project: project,
+});
+
+// PostgreSQL for main application data
+const postgres = await Database("postgres-db", {
+  name: "main-database",
+  project: project,
+  environment: environment,
   type: "postgresql",
 });
 
-// Create a Redis cache
+// Redis for caching and sessions
 const redis = await Database("redis-cache", {
   name: "session-cache",
-  projectId: project.id,
-  environmentId: environment.id,
+  project: project,
+  environment: environment,
   type: "redis",
 });
 
-// Create a MySQL database
+// MySQL for legacy data
 const mysql = await Database("mysql-db", {
   name: "legacy-database",
-  projectId: project.id,
-  environmentId: environment.id,
+  project: project,
+  environment: environment,
   type: "mysql",
+});
+```
+
+## Production Setup
+
+Create a production database with proper naming:
+
+```typescript
+import { Database, Environment, Project } from "alchemy/railway";
+
+const project = await Project("ecommerce-platform", {
+  name: "E-commerce Platform",
+  description: "Online store with inventory management",
+});
+
+const production = await Environment("production", {
+  name: "production",
+  project: project,
+});
+
+const database = await Database("prod-database", {
+  name: "ecommerce-prod-db",
+  project: project,
+  environment: production,
+  type: "postgresql",
+});
+
+// Access connection details
+console.log(database.connectionString.unencrypted);
+console.log(`Host: ${database.host}:${database.port}`);
+```
+
+## Using String References
+
+Reference projects and environments by their ID strings:
+
+```typescript
+import { Database } from "alchemy/railway";
+
+const database = await Database("my-db", {
+  name: "production-db",
+  project: "project_abc123",
+  environment: "env_xyz789",
+  type: "postgresql",
 });
 ```
 
@@ -46,51 +121,25 @@ const mysql = await Database("mysql-db", {
 
 ### Required
 
-- **name** (string): The name of the database.
-- **projectId** (string): The ID of the project this database belongs to.
-- **environmentId** (string): The ID of the environment this database belongs to.
-- **type** ("postgresql" | "mysql" | "redis" | "mongodb"): The type of database to create.
+- **name** (string): The name of the database
+- **project** (string | Project): The project this database belongs to
+- **environment** (string | Environment): The environment this database belongs to
+- **type** ("postgresql" | "mysql" | "redis" | "mongodb"): The type of database to create
 
 ### Optional
 
-- **apiKey** (Secret): Railway API token to use for authentication. Defaults to `RAILWAY_TOKEN` environment variable.
+- **apiKey** (Secret): Railway API token for authentication. Defaults to `RAILWAY_TOKEN` environment variable
 
 ## Outputs
 
-- **id** (string): The unique identifier of the database.
-- **connectionString** (Secret): The connection string for the database.
-- **host** (string): The hostname of the database.
-- **port** (number): The port number of the database.
-- **username** (string): The username for database access.
-- **password** (Secret): The password for database access.
-- **databaseName** (string): The name of the database.
-- **createdAt** (string): The timestamp when the database was created.
-- **updatedAt** (string): The timestamp when the database was last updated.
-
-## Authentication
-
-The Railway provider requires a Railway API token. You can provide this in two ways:
-
-1. Set the `RAILWAY_TOKEN` environment variable
-2. Pass an `apiKey` parameter using `alchemy.secret()`
-
-```typescript
-import { secret } from "alchemy";
-
-const database = await Database("my-db", {
-  name: "production-db",
-  projectId: "project_123",
-  environmentId: "env_456",
-  type: "postgresql",
-  apiKey: secret("your-railway-token"),
-});
-```
-
-## Security
-
-Database credentials (connection string and password) are automatically wrapped in Alchemy's `Secret` type to ensure they are encrypted when stored in state files. When accessing these values, use the `.unencrypted` property:
-
-```typescript
-console.log(database.connectionString.unencrypted); // Access the connection string
-console.log(database.password.unencrypted); // Access the password
-```
+- **id** (string): The unique identifier of the database
+- **projectId** (string): The ID of the parent project
+- **environmentId** (string): The ID of the parent environment
+- **connectionString** (Secret): The connection string for the database
+- **host** (string): The hostname of the database
+- **port** (number): The port number of the database
+- **username** (string): The username for database access
+- **password** (Secret): The password for database access
+- **databaseName** (string): The name of the database
+- **createdAt** (string): When the database was created
+- **updatedAt** (string): When the database was last updated

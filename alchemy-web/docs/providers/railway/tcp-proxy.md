@@ -1,47 +1,228 @@
+---
+title: Managing Railway TCP Proxies with Alchemy
+description: Learn how to expose TCP services like databases and game servers using Railway TCP proxies with Alchemy.
+---
+
 # Railway TCP Proxy
 
 A Railway TCP proxy allows you to expose TCP services (like databases, game servers, or other non-HTTP services) to the internet.
 
-## Example Usage
+## Game Server Proxy
+
+Set up a TCP proxy for a Minecraft server:
 
 ```typescript
 import { Environment, Project, Service, TcpProxy } from "alchemy/railway";
 
-// Create project, environment, and service first
-const project = await Project("my-project", {
-  name: "My Application",
+const project = await Project("gaming-server", {
+  name: "Gaming Server",
 });
 
 const environment = await Environment("prod-env", {
   name: "production",
-  projectId: project.id,
+  project: project,
 });
 
 const service = await Service("game-server", {
   name: "minecraft-server",
-  projectId: project.id,
+  project: project,
 });
 
-// Create a TCP proxy for a Minecraft server
 const gameProxy = await TcpProxy("minecraft-proxy", {
   applicationPort: 25565,
   proxyPort: 25565,
-  serviceId: service.id,
-  environmentId: environment.id,
+  service: service,
+  environment: environment,
 });
 
-// Create a TCP proxy for a database
+console.log(`Connect to: ${gameProxy.domain}:25565`);
+```
+
+## Database Proxy
+
+Create a TCP proxy for direct database access:
+
+```typescript
+import { Environment, Project, Service, TcpProxy } from "alchemy/railway";
+
+const project = await Project("database-project", {
+  name: "Database Project",
+});
+
+const environment = await Environment("prod-env", {
+  name: "production",
+  project: project,
+});
+
+const dbService = await Service("postgres-service", {
+  name: "postgres",
+  project: project,
+});
+
 const dbProxy = await TcpProxy("db-proxy", {
   applicationPort: 5432,
-  serviceId: service.id,
-  environmentId: environment.id,
+  service: dbService,
+  environment: environment,
 });
 
-// Create a TCP proxy with automatic port assignment
+console.log(`Database connection: ${dbProxy.domain}:${dbProxy.proxyPort}`);
+```
+
+## Custom Port Assignment
+
+Let Railway automatically assign external ports:
+
+```typescript
+import { Environment, Project, Service, TcpProxy } from "alchemy/railway";
+
+const project = await Project("tcp-services", {
+  name: "TCP Services",
+});
+
+const environment = await Environment("prod-env", {
+  name: "production",
+  project: project,
+});
+
+const redisService = await Service("redis-service", {
+  name: "redis",
+  project: project,
+});
+
+const customService = await Service("custom-service", {
+  name: "custom-tcp",
+  project: project,
+});
+
+// Redis proxy with automatic port assignment
+const redisProxy = await TcpProxy("redis-proxy", {
+  applicationPort: 6379,
+  service: redisService,
+  environment: environment,
+});
+
+// Custom TCP service proxy
 const customProxy = await TcpProxy("custom-proxy", {
   applicationPort: 8080,
-  serviceId: service.id,
-  environmentId: environment.id,
+  service: customService,
+  environment: environment,
+});
+
+console.log(`Redis: ${redisProxy.domain}:${redisProxy.proxyPort}`);
+console.log(`Custom: ${customProxy.domain}:${customProxy.proxyPort}`);
+```
+
+## Multiple Game Servers
+
+Set up proxies for different game servers:
+
+```typescript
+import { Environment, Project, Service, TcpProxy } from "alchemy/railway";
+
+const project = await Project("game-hosting", {
+  name: "Game Hosting Platform",
+});
+
+const environment = await Environment("prod-env", {
+  name: "production",
+  project: project,
+});
+
+const minecraftService = await Service("minecraft-service", {
+  name: "minecraft",
+  project: project,
+});
+
+const csgoService = await Service("csgo-service", {
+  name: "csgo",
+  project: project,
+});
+
+const valheimService = await Service("valheim-service", {
+  name: "valheim",
+  project: project,
+});
+
+// Minecraft server
+const minecraftProxy = await TcpProxy("minecraft-proxy", {
+  applicationPort: 25565,
+  proxyPort: 25565,
+  service: minecraftService,
+  environment: environment,
+});
+
+// CS:GO server
+const csgoProxy = await TcpProxy("csgo-proxy", {
+  applicationPort: 27015,
+  proxyPort: 27015,
+  service: csgoService,
+  environment: environment,
+});
+
+// Valheim server
+const valheimProxy = await TcpProxy("valheim-proxy", {
+  applicationPort: 2456,
+  proxyPort: 2456,
+  service: valheimService,
+  environment: environment,
+});
+```
+
+## Development and Production
+
+Set up TCP proxies for different environments:
+
+```typescript
+import { Environment, Project, Service, TcpProxy } from "alchemy/railway";
+
+const project = await Project("tcp-app", {
+  name: "TCP Application",
+});
+
+const development = await Environment("dev-env", {
+  name: "development",
+  project: project,
+});
+
+const production = await Environment("prod-env", {
+  name: "production",
+  project: project,
+});
+
+const service = await Service("tcp-service", {
+  name: "tcp-app",
+  project: project,
+});
+
+// Development proxy
+const devProxy = await TcpProxy("dev-proxy", {
+  applicationPort: 3000,
+  proxyPort: 3000,
+  service: service,
+  environment: development,
+});
+
+// Production proxy
+const prodProxy = await TcpProxy("prod-proxy", {
+  applicationPort: 3000,
+  proxyPort: 3000,
+  service: service,
+  environment: production,
+});
+```
+
+## Using String References
+
+Reference services and environments by their ID strings:
+
+```typescript
+import { TcpProxy } from "alchemy/railway";
+
+const tcpProxy = await TcpProxy("my-proxy", {
+  applicationPort: 3000,
+  proxyPort: 8080,
+  service: "service_abc123",
+  environment: "env_xyz789",
 });
 ```
 
@@ -49,67 +230,21 @@ const customProxy = await TcpProxy("custom-proxy", {
 
 ### Required
 
-- **applicationPort** (number): The port your application listens on inside the container.
-- **serviceId** (string): The ID of the service this proxy belongs to.
-- **environmentId** (string): The ID of the environment this proxy belongs to.
+- **applicationPort** (number): The port your application listens on inside the container
+- **service** (string | Service): The service this proxy belongs to
+- **environment** (string | Environment): The environment this proxy belongs to
 
 ### Optional
 
-- **proxyPort** (number): The external port to expose. If not specified, Railway will assign one automatically.
-- **apiKey** (Secret): Railway API token to use for authentication. Defaults to `RAILWAY_TOKEN` environment variable.
+- **proxyPort** (number): The external port to expose. If not specified, Railway will assign one automatically
+- **apiKey** (Secret): Railway API token for authentication. Defaults to `RAILWAY_TOKEN` environment variable
 
 ## Outputs
 
-- **id** (string): The unique identifier of the TCP proxy.
-- **domain** (string): The domain where the TCP service can be accessed.
-- **createdAt** (string): The timestamp when the proxy was created.
-- **updatedAt** (string): The timestamp when the proxy was last updated.
-
-## Authentication
-
-The Railway provider requires a Railway API token. You can provide this in two ways:
-
-1. Set the `RAILWAY_TOKEN` environment variable
-2. Pass an `apiKey` parameter using `alchemy.secret()`
-
-```typescript
-import { secret } from "alchemy";
-
-const tcpProxy = await TcpProxy("my-proxy", {
-  applicationPort: 3000,
-  proxyPort: 8080,
-  serviceId: "service_123",
-  environmentId: "env_456",
-  apiKey: secret("your-railway-token"),
-});
-```
-
-## Use Cases
-
-TCP proxies are useful for:
-
-- **Game Servers**: Minecraft, CS:GO, or other game servers
-- **Databases**: Direct database connections (though not recommended for production)
-- **Custom Protocols**: Services using custom TCP protocols
-- **Legacy Applications**: Applications that don't use HTTP
-
-## Connection
-
-Once created, you can connect to your TCP service using:
-
-```
-{domain}:{proxyPort}
-```
-
-For example, if your proxy domain is `tcp-proxy-123.railway.app` and proxy port is `25565`, you would connect to:
-
-```
-tcp-proxy-123.railway.app:25565
-```
-
-## Security Considerations
-
-- TCP proxies expose your service directly to the internet
-- Consider implementing authentication and encryption at the application level
-- Use firewall rules or IP allowlists when possible
-- Monitor connections and implement rate limiting if needed
+- **id** (string): The unique identifier of the TCP proxy
+- **serviceId** (string): The ID of the parent service
+- **environmentId** (string): The ID of the parent environment
+- **domain** (string): The domain where the TCP service can be accessed
+- **proxyPort** (number): The external port assigned to the proxy
+- **createdAt** (string): When the proxy was created
+- **updatedAt** (string): When the proxy was last updated

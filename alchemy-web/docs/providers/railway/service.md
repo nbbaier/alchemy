@@ -1,36 +1,63 @@
+---
+title: Managing Railway Services with Alchemy
+description: Learn how to create and deploy Railway services using Alchemy for application and microservice management.
+---
+
 # Railway Service
 
 A Railway service represents an application or microservice deployed within a project environment.
 
-## Example Usage
+## Basic Service
+
+Create a simple service within a project:
 
 ```typescript
 import { Project, Service } from "alchemy/railway";
 
-// Create a project first
 const project = await Project("my-project", {
   name: "My Application",
 });
 
-// Create a basic service
 const api = await Service("api-service", {
   name: "api",
-  projectId: project.id,
+  project: project,
+});
+```
+
+## GitHub Repository Service
+
+Deploy a service directly from a GitHub repository:
+
+```typescript
+import { Project, Service } from "alchemy/railway";
+
+const project = await Project("web-project", {
+  name: "Web Application",
 });
 
-// Create a service from a GitHub repository
 const webApp = await Service("web-app", {
-  name: "web-app",
-  projectId: project.id,
+  name: "frontend",
+  project: project,
   sourceRepo: "https://github.com/myorg/web-app",
   sourceRepoBranch: "main",
   rootDirectory: "/",
 });
+```
 
-// Create a service with custom configuration
+## Microservice with Custom Configuration
+
+Set up a background worker with specific build configuration:
+
+```typescript
+import { Project, Service } from "alchemy/railway";
+
+const project = await Project("microservices", {
+  name: "Microservices Platform",
+});
+
 const worker = await Service("background-worker", {
   name: "worker",
-  projectId: project.id,
+  project: project,
   sourceRepo: "https://github.com/myorg/worker",
   sourceRepoBranch: "develop",
   rootDirectory: "/worker",
@@ -38,40 +65,58 @@ const worker = await Service("background-worker", {
 });
 ```
 
+## Monorepo Service
+
+Deploy a specific service from a monorepo:
+
+```typescript
+import { Project, Service } from "alchemy/railway";
+
+const project = await Project("monorepo-project", {
+  name: "Monorepo Application",
+});
+
+const authService = await Service("auth-service", {
+  name: "auth",
+  project: project,
+  sourceRepo: "https://github.com/myorg/monorepo",
+  sourceRepoBranch: "main",
+  rootDirectory: "/services/auth",
+  configPath: "./services/auth/railway.toml",
+});
+```
+
+## Using String References
+
+Reference projects by their ID string:
+
+```typescript
+import { Service } from "alchemy/railway";
+
+const service = await Service("my-service", {
+  name: "api",
+  project: "project_abc123",
+});
+```
+
 ## Properties
 
 ### Required
 
-- **name** (string): The name of the service.
-- **projectId** (string): The ID of the project this service belongs to.
+- **name** (string): The name of the service
+- **project** (string | Project): The project this service belongs to
 
 ### Optional
 
-- **sourceRepo** (string): The URL of the source repository.
-- **sourceRepoBranch** (string): The branch to deploy from.
-- **rootDirectory** (string): The root directory of the service in the repository.
-- **configPath** (string): Path to the Railway configuration file.
-- **apiKey** (Secret): Railway API token to use for authentication. Defaults to `RAILWAY_TOKEN` environment variable.
+- **sourceRepo** (string): URL of the source repository
+- **sourceRepoBranch** (string): Branch to deploy from
+- **rootDirectory** (string): Root directory of the service in the repository
+- **configPath** (string): Path to the Railway configuration file
+- **apiKey** (Secret): Railway API token for authentication. Defaults to `RAILWAY_TOKEN` environment variable
 
 ## Outputs
 
-- **id** (string): The unique identifier of the service.
-- **createdAt** (string): The timestamp when the service was created.
-- **updatedAt** (string): The timestamp when the service was last updated.
-
-## Authentication
-
-The Railway provider requires a Railway API token. You can provide this in two ways:
-
-1. Set the `RAILWAY_TOKEN` environment variable
-2. Pass an `apiKey` parameter using `alchemy.secret()`
-
-```typescript
-import { secret } from "alchemy";
-
-const service = await Service("my-service", {
-  name: "api",
-  projectId: "project_123",
-  apiKey: secret("your-railway-token"),
-});
-```
+- **id** (string): The unique identifier of the service
+- **projectId** (string): The ID of the parent project
+- **createdAt** (string): When the service was created
+- **updatedAt** (string): When the service was last updated

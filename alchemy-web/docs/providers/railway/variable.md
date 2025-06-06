@@ -1,50 +1,170 @@
+---
+title: Managing Railway Variables with Alchemy
+description: Learn how to create and manage Railway environment variables using Alchemy for secure configuration management.
+---
+
 # Railway Variable
 
 A Railway variable represents an environment variable for a service within a specific environment.
 
-## Example Usage
+## Basic Variable
+
+Create a simple environment variable:
 
 ```typescript
 import { Environment, Project, Service, Variable } from "alchemy/railway";
-import { secret } from "alchemy";
 
-// Create project, environment, and service first
 const project = await Project("my-project", {
   name: "My Application",
 });
 
 const environment = await Environment("prod-env", {
   name: "production",
-  projectId: project.id,
+  project: project,
 });
 
 const service = await Service("api-service", {
   name: "api",
-  projectId: project.id,
+  project: project,
 });
 
-// Create a public variable
 const port = await Variable("port-var", {
   name: "PORT",
   value: "3000",
-  environmentId: environment.id,
-  serviceId: service.id,
+  environment: environment,
+  service: service,
+});
+```
+
+## Secret Variable
+
+Store sensitive values securely:
+
+```typescript
+import { Environment, Project, Service, Variable, secret } from "alchemy/railway";
+
+const project = await Project("secure-app", {
+  name: "Secure Application",
 });
 
-// Create a secret variable
+const environment = await Environment("prod-env", {
+  name: "production",
+  project: project,
+});
+
+const service = await Service("api-service", {
+  name: "api",
+  project: project,
+});
+
 const apiKey = await Variable("api-key-var", {
   name: "API_KEY",
   value: secret("super-secret-key-123"),
-  environmentId: environment.id,
-  serviceId: service.id,
+  environment: environment,
+  service: service,
+});
+```
+
+## Database Configuration
+
+Set up database connection variables:
+
+```typescript
+import { Database, Environment, Project, Service, Variable } from "alchemy/railway";
+
+const project = await Project("web-app", {
+  name: "Web Application",
 });
 
-// Create a database URL variable
+const environment = await Environment("prod-env", {
+  name: "production",
+  project: project,
+});
+
+const service = await Service("api-service", {
+  name: "api",
+  project: project,
+});
+
+const database = await Database("postgres-db", {
+  name: "main-database",
+  project: project,
+  environment: environment,
+  type: "postgresql",
+});
+
 const dbUrl = await Variable("db-url-var", {
   name: "DATABASE_URL",
-  value: secret("postgresql://user:pass@host:5432/db"),
-  environmentId: environment.id,
-  serviceId: service.id,
+  value: database.connectionString,
+  environment: environment,
+  service: service,
+});
+```
+
+## Bulk Variables
+
+Configure multiple environment variables:
+
+```typescript
+import { Environment, Project, Service, Variable, secret } from "alchemy/railway";
+
+const project = await Project("microservice", {
+  name: "Microservice Platform",
+});
+
+const environment = await Environment("prod-env", {
+  name: "production",
+  project: project,
+});
+
+const service = await Service("auth-service", {
+  name: "auth",
+  project: project,
+});
+
+// Application configuration
+const port = await Variable("port", {
+  name: "PORT",
+  value: "8080",
+  environment: environment,
+  service: service,
+});
+
+const nodeEnv = await Variable("node-env", {
+  name: "NODE_ENV",
+  value: "production",
+  environment: environment,
+  service: service,
+});
+
+// Secret configuration
+const jwtSecret = await Variable("jwt-secret", {
+  name: "JWT_SECRET",
+  value: secret("your-jwt-secret-key"),
+  environment: environment,
+  service: service,
+});
+
+const dbPassword = await Variable("db-password", {
+  name: "DB_PASSWORD",
+  value: secret("secure-database-password"),
+  environment: environment,
+  service: service,
+});
+```
+
+## Using String References
+
+Reference services and environments by their ID strings:
+
+```typescript
+import { Variable, secret } from "alchemy/railway";
+
+const variable = await Variable("my-var", {
+  name: "SECRET_KEY",
+  value: secret("my-secret-value"),
+  environment: "env_abc123",
+  service: "service_xyz789",
 });
 ```
 
@@ -52,45 +172,20 @@ const dbUrl = await Variable("db-url-var", {
 
 ### Required
 
-- **name** (string): The name of the environment variable.
-- **value** (Secret | string): The value of the variable. Sensitive values should use `secret()`.
-- **environmentId** (string): The ID of the environment this variable belongs to.
-- **serviceId** (string): The ID of the service this variable belongs to.
+- **name** (string): The name of the environment variable
+- **value** (Secret | string): The value of the variable. Sensitive values should use `secret()`
+- **environment** (string | Environment): The environment this variable belongs to
+- **service** (string | Service): The service this variable belongs to
 
 ### Optional
 
-- **apiKey** (Secret): Railway API token to use for authentication. Defaults to `RAILWAY_TOKEN` environment variable.
+- **apiKey** (Secret): Railway API token for authentication. Defaults to `RAILWAY_TOKEN` environment variable
 
 ## Outputs
 
-- **id** (string): The unique identifier of the variable.
-- **value** (Secret): The value of the variable (always wrapped as a Secret).
-- **createdAt** (string): The timestamp when the variable was created.
-- **updatedAt** (string): The timestamp when the variable was last updated.
-
-## Authentication
-
-The Railway provider requires a Railway API token. You can provide this in two ways:
-
-1. Set the `RAILWAY_TOKEN` environment variable
-2. Pass an `apiKey` parameter using `alchemy.secret()`
-
-```typescript
-import { secret } from "alchemy";
-
-const variable = await Variable("my-var", {
-  name: "SECRET_KEY",
-  value: secret("my-secret-value"),
-  environmentId: "env_123",
-  serviceId: "service_456",
-  apiKey: secret("your-railway-token"),
-});
-```
-
-## Security
-
-Variable values are automatically wrapped in Alchemy's `Secret` type to ensure they are encrypted when stored in state files. When accessing the value, use the `.unencrypted` property:
-
-```typescript
-console.log(variable.value.unencrypted); // Access the actual value
-```
+- **id** (string): The unique identifier of the variable
+- **environmentId** (string): The ID of the parent environment
+- **serviceId** (string): The ID of the parent service
+- **value** (Secret): The value of the variable (always wrapped as a Secret)
+- **createdAt** (string): When the variable was created
+- **updatedAt** (string): When the variable was last updated

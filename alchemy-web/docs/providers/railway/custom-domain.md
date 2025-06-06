@@ -1,39 +1,180 @@
+---
+title: Managing Railway Custom Domains with Alchemy
+description: Learn how to configure custom domains for Railway services using Alchemy for branded web applications.
+---
+
 # Railway Custom Domain
 
 A Railway custom domain allows you to use your own domain name for a service instead of the default Railway-provided domain.
 
-## Example Usage
+## Basic Custom Domain
+
+Set up a custom domain for your web application:
 
 ```typescript
 import { CustomDomain, Environment, Project, Service } from "alchemy/railway";
 
-// Create project, environment, and service first
 const project = await Project("my-project", {
   name: "My Application",
 });
 
 const environment = await Environment("prod-env", {
   name: "production",
-  projectId: project.id,
+  project: project,
 });
 
 const service = await Service("web-service", {
   name: "web-app",
-  projectId: project.id,
+  project: project,
 });
 
-// Create a custom domain
 const customDomain = await CustomDomain("my-domain", {
   domain: "api.mycompany.com",
-  serviceId: service.id,
-  environmentId: environment.id,
+  service: service,
+  environment: environment,
+});
+```
+
+## Multiple Domains
+
+Configure multiple domains for different services:
+
+```typescript
+import { CustomDomain, Environment, Project, Service } from "alchemy/railway";
+
+const project = await Project("saas-platform", {
+  name: "SaaS Platform",
+  description: "Multi-tenant SaaS application",
 });
 
-// Create a subdomain
+const environment = await Environment("prod-env", {
+  name: "production",
+  project: project,
+});
+
+const apiService = await Service("api-service", {
+  name: "api",
+  project: project,
+});
+
+const webService = await Service("web-service", {
+  name: "web-app",
+  project: project,
+});
+
+// API domain
 const apiDomain = await CustomDomain("api-domain", {
-  domain: "api.example.org",
-  serviceId: service.id,
-  environmentId: environment.id,
+  domain: "api.mycompany.com",
+  service: apiService,
+  environment: environment,
+});
+
+// Web application domain
+const webDomain = await CustomDomain("web-domain", {
+  domain: "app.mycompany.com",
+  service: webService,
+  environment: environment,
+});
+
+// Documentation domain
+const docsDomain = await CustomDomain("docs-domain", {
+  domain: "docs.mycompany.com",
+  service: webService,
+  environment: environment,
+});
+```
+
+## Production Setup
+
+Set up custom domains for a production environment:
+
+```typescript
+import { CustomDomain, Environment, Project, Service } from "alchemy/railway";
+
+const project = await Project("ecommerce-platform", {
+  name: "E-commerce Platform",
+});
+
+const production = await Environment("production", {
+  name: "production",
+  project: project,
+});
+
+const webService = await Service("web-service", {
+  name: "storefront",
+  project: project,
+});
+
+const apiService = await Service("api-service", {
+  name: "api",
+  project: project,
+});
+
+// Main storefront domain
+const storeDomain = await CustomDomain("store-domain", {
+  domain: "shop.example.com",
+  service: webService,
+  environment: production,
+});
+
+// API domain
+const apiDomain = await CustomDomain("api-domain", {
+  domain: "api.example.com",
+  service: apiService,
+  environment: production,
+});
+
+console.log(`Store status: ${storeDomain.status}`);
+console.log(`API status: ${apiDomain.status}`);
+```
+
+## Subdomain Configuration
+
+Configure subdomains for different features:
+
+```typescript
+import { CustomDomain, Environment, Project, Service } from "alchemy/railway";
+
+const project = await Project("multi-tenant-app", {
+  name: "Multi-tenant Application",
+});
+
+const environment = await Environment("prod-env", {
+  name: "production",
+  project: project,
+});
+
+const service = await Service("app-service", {
+  name: "application",
+  project: project,
+});
+
+// Admin subdomain
+const adminDomain = await CustomDomain("admin-domain", {
+  domain: "admin.myapp.com",
+  service: service,
+  environment: environment,
+});
+
+// Customer portal subdomain
+const portalDomain = await CustomDomain("portal-domain", {
+  domain: "portal.myapp.com",
+  service: service,
+  environment: environment,
+});
+```
+
+## Using String References
+
+Reference services and environments by their ID strings:
+
+```typescript
+import { CustomDomain } from "alchemy/railway";
+
+const customDomain = await CustomDomain("my-domain", {
+  domain: "api.myapp.com",
+  service: "service_abc123",
+  environment: "env_xyz789",
 });
 ```
 
@@ -41,51 +182,19 @@ const apiDomain = await CustomDomain("api-domain", {
 
 ### Required
 
-- **domain** (string): The custom domain name to use.
-- **serviceId** (string): The ID of the service this domain points to.
-- **environmentId** (string): The ID of the environment this domain belongs to.
+- **domain** (string): The custom domain name to use
+- **service** (string | Service): The service this domain points to
+- **environment** (string | Environment): The environment this domain belongs to
 
 ### Optional
 
-- **apiKey** (Secret): Railway API token to use for authentication. Defaults to `RAILWAY_TOKEN` environment variable.
+- **apiKey** (Secret): Railway API token for authentication. Defaults to `RAILWAY_TOKEN` environment variable
 
 ## Outputs
 
-- **id** (string): The unique identifier of the custom domain.
-- **status** (string): The status of the domain (e.g., "pending", "active", "failed").
-- **createdAt** (string): The timestamp when the domain was created.
-- **updatedAt** (string): The timestamp when the domain was last updated.
-
-## Authentication
-
-The Railway provider requires a Railway API token. You can provide this in two ways:
-
-1. Set the `RAILWAY_TOKEN` environment variable
-2. Pass an `apiKey` parameter using `alchemy.secret()`
-
-```typescript
-import { secret } from "alchemy";
-
-const customDomain = await CustomDomain("my-domain", {
-  domain: "api.myapp.com",
-  serviceId: "service_123",
-  environmentId: "env_456",
-  apiKey: secret("your-railway-token"),
-});
-```
-
-## DNS Configuration
-
-After creating a custom domain, you'll need to configure your DNS settings:
-
-1. Create a CNAME record pointing your domain to the Railway-provided target
-2. Wait for DNS propagation (can take up to 48 hours)
-3. Railway will automatically provision an SSL certificate once DNS is configured
-
-## Domain Status
-
-The `status` field indicates the current state of your custom domain:
-
-- **pending**: Domain is being set up
-- **active**: Domain is live and serving traffic
-- **failed**: Domain setup failed (check DNS configuration)
+- **id** (string): The unique identifier of the custom domain
+- **serviceId** (string): The ID of the parent service
+- **environmentId** (string): The ID of the parent environment
+- **status** (string): The status of the domain (e.g., "pending", "active", "failed")
+- **createdAt** (string): When the domain was created
+- **updatedAt** (string): When the domain was last updated
