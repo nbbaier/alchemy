@@ -17,20 +17,13 @@ const environment = await Environment("prod-env", {
   projectId: project.id,
 });
 
-// Create a Node.js function with inline code
+// Create a Node.js function from a local file
 const helloWorld = await Function("hello-function", {
   name: "hello-world",
   projectId: project.id,
   environmentId: environment.id,
   runtime: "nodejs",
-  sourceCode: `
-    exports.handler = async (event) => {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: 'Hello World!' })
-      };
-    };
-  `,
+  main: "./src/handlers/hello.ts",
   entrypoint: "index.handler",
 });
 
@@ -40,6 +33,7 @@ const dataProcessor = await Function("data-processor", {
   projectId: project.id,
   environmentId: environment.id,
   runtime: "python",
+  main: "./functions/processor.py",
   sourceRepo: "https://github.com/myorg/data-functions",
   sourceRepoBranch: "main",
   entrypoint: "main.handler",
@@ -68,7 +62,7 @@ const apiGateway = await Function("api-gateway", {
 
 ### Optional
 
-- **sourceCode** (string): Inline source code for the function. Use this for simple functions.
+- **main** (string): Path to the main function file. For Node.js functions, this will be bundled using esbuild.
 - **sourceRepo** (string): The URL of the source repository. Use this for more complex functions.
 - **sourceRepoBranch** (string): The branch to deploy from when using a repository.
 - **entrypoint** (string): The entry point for the function (e.g., "index.handler", "main.py").
@@ -96,7 +90,7 @@ const func = await Function("my-function", {
   projectId: "project_123",
   environmentId: "env_456",
   runtime: "nodejs",
-  sourceCode: "exports.handler = async (event) => ({ statusCode: 200 });",
+  main: "./src/webhook.ts",
   entrypoint: "index.handler",
   apiKey: secret("your-railway-token"),
 });
@@ -115,7 +109,7 @@ Railway Functions support multiple runtime environments:
 
 You can deploy functions in two ways:
 
-1. **Inline Code**: Provide the `sourceCode` property for simple functions
-2. **Repository**: Provide `sourceRepo` and optionally `sourceRepoBranch` for more complex functions stored in version control
+1. **Local Files**: Provide the `main` property pointing to your function file. For Node.js functions, this will be automatically bundled using esbuild.
+2. **Repository**: Provide `sourceRepo` and optionally `sourceRepoBranch` for functions stored in version control
 
 The `entrypoint` property specifies how Railway should invoke your function and varies by runtime.

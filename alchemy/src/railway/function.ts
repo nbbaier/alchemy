@@ -1,6 +1,7 @@
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
+import { Bundle } from "../esbuild/bundle.ts";
 import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
 
 export interface FunctionProps {
@@ -8,7 +9,7 @@ export interface FunctionProps {
   projectId: string;
   environmentId: string;
   runtime: "nodejs" | "python" | "go" | "rust";
-  sourceCode?: string;
+  main: string;
   sourceRepo?: string;
   sourceRepoBranch?: string;
   entrypoint?: string;
@@ -20,25 +21,26 @@ export interface FunctionProps {
  *
  * @example
  * ```typescript
- * // Create a basic Node.js function with inline source code
+ * // Create a basic Node.js function from local file
  * const apiHandler = await Function("api-handler", {
  *   name: "webhook-processor",
  *   projectId: project.id,
  *   environmentId: environment.id,
  *   runtime: "nodejs",
- *   sourceCode: "exports.handler = async (event) => { return { statusCode: 200, body: 'Hello World' }; };",
- *   entrypoint: "index.handler",
+ *   main: "./src/handlers/webhook.ts",
+ *   entrypoint: "handler",
  * });
  * ```
  *
  * @example
  * ```typescript
- * // Create a Python function from a GitHub repository
+ * // Create a Python function from GitHub repository
  * const dataProcessor = await Function("data-processor", {
  *   name: "analytics-function",
  *   projectId: project.id,
  *   environmentId: environment.id,
  *   runtime: "python",
+ *   main: "./functions/analytics.py",
  *   sourceRepo: "https://github.com/myorg/analytics-functions",
  *   sourceRepoBranch: "main",
  *   entrypoint: "main.handler",
@@ -53,6 +55,7 @@ export interface FunctionProps {
  *   projectId: project.id,
  *   environmentId: environment.id,
  *   runtime: "go",
+ *   main: "./cmd/worker/main.go",
  *   sourceRepo: "https://github.com/myorg/go-functions",
  *   sourceRepoBranch: "production",
  *   entrypoint: "main",
@@ -76,6 +79,19 @@ export const Function = Resource(
     props: FunctionProps,
   ): Promise<Function> {
     const api = createRailwayApi({ apiKey: props.apiKey });
+
+    let bundledCode: string | undefined;
+    if (props.runtime === "nodejs" && !props.sourceRepo) {
+      const bundle = await Bundle(`${_id}-bundle`, {
+        entryPoint: props.main,
+        format: "cjs",
+        target: "node18",
+        platform: "node",
+        bundle: true,
+        minify: true,
+      });
+      bundledCode = bundle.content;
+    }
 
     if (this.phase === "delete") {
       try {
@@ -121,7 +137,7 @@ export const Function = Resource(
           input: {
             name: props.name,
             runtime: props.runtime,
-            sourceCode: props.sourceCode,
+            sourceCode: bundledCode,
             sourceRepo: props.sourceRepo,
             sourceRepoBranch: props.sourceRepoBranch,
             entrypoint: props.entrypoint,
@@ -140,7 +156,7 @@ export const Function = Resource(
         projectId: func.projectId,
         environmentId: func.environmentId,
         runtime: func.runtime,
-        sourceCode: func.sourceCode,
+        main: props.main,
         sourceRepo: func.sourceRepo,
         sourceRepoBranch: func.sourceRepoBranch,
         entrypoint: func.entrypoint,
@@ -175,7 +191,7 @@ export const Function = Resource(
           projectId: props.projectId,
           environmentId: props.environmentId,
           runtime: props.runtime,
-          sourceCode: props.sourceCode,
+          sourceCode: bundledCode,
           sourceRepo: props.sourceRepo,
           sourceRepoBranch: props.sourceRepoBranch,
           entrypoint: props.entrypoint,
@@ -194,7 +210,7 @@ export const Function = Resource(
       projectId: func.projectId,
       environmentId: func.environmentId,
       runtime: func.runtime,
-      sourceCode: func.sourceCode,
+      main: props.main,
       sourceRepo: func.sourceRepo,
       sourceRepoBranch: func.sourceRepoBranch,
       entrypoint: func.entrypoint,

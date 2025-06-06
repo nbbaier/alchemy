@@ -46,8 +46,7 @@ describe("Function Resource", () => {
         projectId: project.id,
         environmentId: environment.id,
         runtime: "nodejs",
-        sourceCode:
-          "exports.handler = async (event) => { return { statusCode: 200, body: 'Hello World' }; };",
+        main: "./test/fixtures/hello-handler.js",
         entrypoint: "index.handler",
       });
 
@@ -93,8 +92,7 @@ describe("Function Resource", () => {
         projectId: project.id,
         environmentId: environment.id,
         runtime: "python",
-        sourceCode:
-          "def handler(event, context): return {'statusCode': 200, 'body': 'Hello Updated World'}",
+        main: "./test/fixtures/hello-handler.py",
         entrypoint: "main.handler",
       });
 
