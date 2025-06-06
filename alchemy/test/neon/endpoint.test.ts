@@ -40,14 +40,16 @@ describe("NeonEndpoint Resource", () => {
         type: "read_only",
       });
 
-      expect(endpoint.id).toBeTruthy();
-      expect(endpoint.type).toEqual("read_only");
-      expect(endpoint.projectId).toEqual(project.id);
-      expect(endpoint.branchId).toEqual(branch.id);
-      expect(endpoint.host).toBeTruthy();
-      expect(endpoint.currentState).toBeTruthy();
-      expect(endpoint.createdAt).toBeTruthy();
-      expect(endpoint.updatedAt).toBeTruthy();
+      expect(endpoint).toMatchObject({
+        id: expect.any(String),
+        type: "read_only",
+        projectId: project.id,
+        branchId: branch.id,
+        host: expect.any(String),
+        currentState: expect.any(String),
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      });
 
       const getResponse = await api.get(
         `/projects/${project.id}/endpoints/${endpoint.id}`,
@@ -66,8 +68,10 @@ describe("NeonEndpoint Resource", () => {
         disabled: true,
       });
 
-      expect(endpoint.id).toBeTruthy();
-      expect(endpoint.disabled).toEqual(true);
+      expect(endpoint).toMatchObject({
+        id: expect.any(String),
+        disabled: true,
+      });
 
       const getUpdatedResponse = await api.get(
         `/projects/${project.id}/endpoints/${endpoint.id}`,
@@ -122,10 +126,12 @@ describe("NeonEndpoint Resource", () => {
         adopt: true,
       });
 
-      expect(endpoint.id).toEqual(createdEndpoint.endpoint.id);
-      expect(endpoint.type).toEqual("read_only");
-      expect(endpoint.projectId).toEqual(project.id);
-      expect(endpoint.branchId).toEqual(branch.id);
+      expect(endpoint).toMatchObject({
+        id: createdEndpoint.endpoint.id,
+        type: "read_only",
+        projectId: project.id,
+        branchId: branch.id,
+      });
     } finally {
       await destroy(scope);
     }

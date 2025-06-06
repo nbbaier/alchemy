@@ -44,11 +44,13 @@ describe("NeonRole Resource", () => {
         name: roleName,
       });
 
-      expect(role.name).toEqual(roleName);
-      expect(role.branchId).toEqual(branch.id);
-      expect(role.protected).toBeDefined();
-      expect(role.createdAt).toBeTruthy();
-      expect(role.updatedAt).toBeTruthy();
+      expect(role).toMatchObject({
+        name: roleName,
+        branchId: branch.id,
+        protected: expect.any(Boolean),
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      });
 
       const getResponse = await api.get(
         `/projects/${project.id}/branches/${branch.id}/roles/${roleName}`,
@@ -103,8 +105,10 @@ describe("NeonRole Resource", () => {
         adopt: true,
       });
 
-      expect(role.name).toEqual(createdRole.role.name);
-      expect(role.branchId).toEqual(branch.id);
+      expect(role).toMatchObject({
+        name: createdRole.role.name,
+        branchId: branch.id,
+      });
     } finally {
       await destroy(scope);
     }

@@ -45,12 +45,14 @@ describe("NeonDatabase Resource", () => {
         ownerName: project.roles[0].name,
       });
 
-      expect(database.id).toBeTruthy();
-      expect(database.name).toEqual(databaseName);
-      expect(database.branchId).toEqual(branch.id);
-      expect(database.ownerName).toBeTruthy();
-      expect(database.createdAt).toBeTruthy();
-      expect(database.updatedAt).toBeTruthy();
+      expect(database).toMatchObject({
+        id: expect.any(Number),
+        name: databaseName,
+        branchId: branch.id,
+        ownerName: expect.any(String),
+        createdAt: expect.any(String),
+        updatedAt: expect.any(String),
+      });
 
       const listResponse = await api.get(
         `/projects/${project.id}/branches/${branch.id}/databases`,
@@ -72,8 +74,10 @@ describe("NeonDatabase Resource", () => {
         ownerName: updatedOwner,
       });
 
-      expect(database.id).toBeTruthy();
-      expect(database.ownerName).toEqual(updatedOwner);
+      expect(database).toMatchObject({
+        id: expect.any(Number),
+        ownerName: updatedOwner,
+      });
     } finally {
       await destroy(scope);
 
@@ -130,9 +134,11 @@ describe("NeonDatabase Resource", () => {
         adopt: true,
       });
 
-      expect(database.id).toEqual(createdDatabase.database.id);
-      expect(database.name).toEqual(databaseName);
-      expect(database.branchId).toEqual(branch.id);
+      expect(database).toMatchObject({
+        id: createdDatabase.database.id,
+        name: databaseName,
+        branchId: branch.id,
+      });
     } finally {
       await destroy(scope);
     }
