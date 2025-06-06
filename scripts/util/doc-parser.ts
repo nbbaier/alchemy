@@ -1,18 +1,27 @@
 #!/usr/bin/env bun
-import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { generateObject } from "ai";
 import { z } from "zod";
 
 // Schema for the structured output from the AI model
 const DocumentationSchema = z.object({
   properties: z.array(z.object({
     propertyName: z.string(),
-    docstring: z.string()
+    docstring: z.string(),
+    allowedValues: z.array(z.string()).nullable().optional(),
+    pattern: z.string().nullable().optional()
   }))
 });
 
+// Enhanced property info interface
+export interface PropertyInfo {
+  docstring: string;
+  allowedValues?: string[] | null;
+  pattern?: string | null;
+}
+
 // Cache for parsed documentation
-const documentationCache = new Map<string, Map<string, string>>();
+const documentationCache = new Map<string, Map<string, PropertyInfo>>();
 
 /**
  * Extracts the base URL from a CloudFormation documentation link
@@ -30,7 +39,7 @@ function extractBaseUrl(documentationUrl: string): string {
 /**
  * Fetches and parses CloudFormation documentation page using AI
  */
-async function parseDocumentationPage(baseUrl: string): Promise<Map<string, string>> {
+async function parseDocumentationPage(baseUrl: string): Promise<Map<string, PropertyInfo>> {
   console.log(`Fetching and parsing documentation from: ${baseUrl}`);
   
   // Check if OpenAI API key is available
@@ -50,7 +59,7 @@ async function parseDocumentationPage(baseUrl: string): Promise<Map<string, stri
     // Use AI to parse the HTML and extract property documentation
     const result = await generateObject({
       model: openai("gpt-4o-mini"), // Fast, cost-effective model
-      prompt: `You are parsing a CloudFormation resource documentation page. Extract ALL property names and their descriptions from this HTML content.
+      prompt: `You are parsing a CloudFormation resource documentation page. Extract ALL property names, their descriptions, and any allowed values from this HTML content.
 
 Important instructions:
 - Look for sections that describe properties, parameters, or attributes
@@ -62,15 +71,52 @@ Important instructions:
 - Keep descriptions concise but informative (1-3 sentences)
 - Remove any HTML formatting from descriptions
 
+ALLOWED VALUES EXTRACTION:
+- Look for "Allowed values:", "Valid values:", "Possible values:", or similar phrases
+- Extract the exact string values that are allowed for each property
+- Only include literal string values, not patterns or ranges
+- Common patterns include: "ENABLED | DISABLED", "true | false", "ACTIVE | INACTIVE"
+- If a property has allowed values, include them in the allowedValues array
+- If no allowed values are specified, set allowedValues to null or omit the field entirely
+- DO NOT include regex patterns or format specifications in allowedValues
+
+PATTERN EXTRACTION:
+- Look for "Pattern:", "Format:", "Regex:", "Regular expression:", or similar phrases
+- Extract regex patterns that define valid formats for string values
+- Common patterns include format specifications like "^[a-zA-Z0-9\-_]+$" or date formats
+- Only include actual regex patterns, not literal string values
+- If a property has a pattern constraint, include it in the pattern field
+- If no pattern is specified, set pattern to null or omit the field entirely
+
 HTML Content:
 ${html}`,
       schema: DocumentationSchema,
+      maxRetries: 5,
+      experimental_repairText: async (input) => {
+        const json = JSON.parse(input.text);
+        
+        // Map over properties and remove null values from allowedValues arrays
+        if (json.properties && Array.isArray(json.properties)) {
+          json.properties = json.properties.map((property: any) => {
+            if (property.allowedValues && Array.isArray(property.allowedValues)) {
+              property.allowedValues = property.allowedValues.filter((value: any) => value !== null);
+            }
+            return property;
+          });
+        }
+        
+        return JSON.stringify(json, null, 2);
+      }
     });
     
     // Convert to a Map for easy lookup
-    const propertyMap = new Map<string, string>();
+    const propertyMap = new Map<string, PropertyInfo>();
     for (const prop of result.object.properties) {
-      propertyMap.set(prop.propertyName, prop.docstring);
+      propertyMap.set(prop.propertyName, {
+        docstring: prop.docstring,
+        allowedValues: prop.allowedValues || undefined, // Convert null to undefined for consistency
+        pattern: prop.pattern || undefined // Convert null to undefined for consistency
+      });
     }
     
     console.log(`Parsed ${propertyMap.size} properties from ${baseUrl}`);
@@ -89,7 +135,7 @@ export async function getPropertyDocumentation(
   documentationUrl: string,
   propertyName: string,
   requiredProperties: string[]
-): Promise<string | null> {
+): Promise<PropertyInfo | null> {
   const baseUrl = extractBaseUrl(documentationUrl);
   
   // Check cache first
@@ -101,13 +147,12 @@ export async function getPropertyDocumentation(
       propertyMap = await parseDocumentationPage(baseUrl);
       documentationCache.set(baseUrl, propertyMap);
     } catch (error) {
-      console.warn(`Failed to parse documentation for ${baseUrl}, falling back to original documentation`);
-      return null;
+      throw error;
     }
   }
   
   // Validate that all required properties have documentation
-  const missingProperties = requiredProperties.filter(prop => !propertyMap.has(prop));
+  const missingProperties = requiredProperties.filter(prop => !propertyMap?.has(prop));
   
   if (missingProperties.length > 0) {
     console.warn(`Missing documentation for properties: ${missingProperties.join(', ')} in ${baseUrl}`);
@@ -121,7 +166,7 @@ export async function getPropertyDocumentation(
       documentationCache.set(baseUrl, propertyMap);
       
       // Check again for missing properties
-      const stillMissingProperties = requiredProperties.filter(prop => !propertyMap.has(prop));
+      const stillMissingProperties = requiredProperties.filter(prop => !propertyMap?.has(prop));
       if (stillMissingProperties.length > 0) {
         console.warn(`Still missing documentation after retry: ${stillMissingProperties.join(', ')}`);
       }

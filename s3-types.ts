@@ -10,52 +10,52 @@ export interface Tag {
 }
 
 export interface AccessGrantsLocationConfiguration {
-  /** The S3SubPrefix is appended to the location scope creating the grant scope. Use this field to narrow the scope of the grant to a subset of the location scope. This field is required if the location scope is the default location s3:// because you cannot create a grant for all of your S3 data in the Region and must narrow the scope. */
+  /** The S3SubPrefix is appended to the location scope creating the grant scope. Use this field to narrow the scope of the grant to a subset of the location scope. This field is required if the location scope is the default location s3:// because you cannot create a grant for all of your S3 data in the Region and must narrow the scope. For example, if the location scope is the default location s3://, the S3SubPrefx can be a <bucket-name>/*, so the full grant scope path would be s3://<bucket-name>/*. Or the S3SubPrefx can be <bucket-name>/<prefix-name>*, so the full grant scope path would be s3://<bucket-name>/<prefix-name>*. */
   S3SubPrefix: string;
 }
 
 export interface Grantee {
-  /** The type of the grantee to which access has been granted. It can be one of the following values: IAM (an IAM user or role), DIRECTORY_USER (your corporate directory user), or DIRECTORY_GROUP (your corporate directory group). */
-  GranteeType: string;
-  /** The unique identifier of the Grantee. If the grantee type is IAM, the identifier is the IAM Amazon Resource Name (ARN) of the user or role. If the grantee type is a directory user or group, the identifier is a 128-bit universally unique identifier (UUID) in the format a1b2c3d4-5678-90ab-cdef-EXAMPLE11111. */
+  /** The type of the grantee to which access has been granted. It can be one of the following values: IAM, DIRECTORY_USER, or DIRECTORY_GROUP. */
+  GranteeType: "IAM" | "DIRECTORY_USER" | "DIRECTORY_GROUP";
+  /** The unique identifier of the Grantee. If the grantee type is IAM, the identifier is the IAM Amazon Resource Name (ARN) of the user or role. If the grantee type is a directory user or group, the identifier is a 128-bit universally unique identifier (UUID). */
   GranteeIdentifier: string;
 }
 
 export interface PublicAccessBlockConfiguration {
-  /** Specifies whether Amazon S3 should restrict public bucket policies for this bucket. Setting this element to TRUE restricts access to this bucket to only AWS service principals and authorized users within this account if the bucket has a public policy. */
+  /** Specifies whether Amazon S3 should restrict public bucket policies for this bucket. Setting this element to TRUE restricts access to this bucket to only AWS service principals and authorized users within this account if the bucket has a public policy. Enabling this setting doesn't affect previously stored bucket policies, except that public and cross-account access within any public bucket policy is blocked. */
   RestrictPublicBuckets?: boolean;
-  /** Specifies whether Amazon S3 should block public bucket policies for this bucket. Setting this element to TRUE causes Amazon S3 to reject calls to PUT Bucket policy if the specified bucket policy allows public access. */
+  /** Specifies whether Amazon S3 should block public bucket policies for this bucket. Setting this element to TRUE causes Amazon S3 to reject calls to PUT Bucket policy if the specified bucket policy allows public access. Enabling this setting doesn't affect existing bucket policies. */
   BlockPublicPolicy?: boolean;
-  /** Specifies whether Amazon S3 should block public access control lists (ACLs) for this bucket and objects in this bucket. Setting this element to TRUE causes PUT Bucket ACL and PUT Object ACL calls to fail if the specified ACL is public. */
+  /** Specifies whether Amazon S3 should block public access control lists (ACLs) for this bucket and objects in this bucket. Setting this element to TRUE causes PUT Bucket ACL and PUT Object ACL calls to fail if the specified ACL is public. Enabling this setting doesn't affect existing policies or ACLs. */
   BlockPublicAcls?: boolean;
-  /** Specifies whether Amazon S3 should ignore public ACLs for this bucket and objects in this bucket. Setting this element to TRUE causes Amazon S3 to ignore all public ACLs on this bucket and objects in this bucket. */
+  /** Specifies whether Amazon S3 should ignore public ACLs for this bucket and objects in this bucket. Setting this element to TRUE causes Amazon S3 to ignore all public ACLs on this bucket and objects in this bucket. Enabling this setting doesn't affect the persistence of any existing ACLs and doesn't prevent new public ACLs from being set. */
   IgnorePublicAcls?: boolean;
 }
 
 export interface VpcConfiguration {
-  /** If this field is specified, the access point will only allow connections from the specified VPC ID. Required: No, Type: String, Minimum: 1, Maximum: 1024, Update requires: Replacement. */
+  /** If this field is specified, the access point will only allow connections from the specified VPC ID. */
   VpcId?: string;
 }
 
 export interface AbortIncompleteMultipartUpload {
-  /** Specifies the number of days after which Amazon S3 stops an incomplete multipart upload. Required: Yes, Type: Integer, Minimum: 0, Update requires: No interruption. */
+  /** Specifies the number of days after which Amazon S3 stops an incomplete multipart upload. */
   DaysAfterInitiation: number;
 }
 
 export interface AccelerateConfiguration {
-  /** Specifies the transfer acceleration status of the bucket. Required: Yes. Type: String. Allowed values: Enabled | Suspended. Update requires: No interruption. */
-  AccelerationStatus: string;
+  /** Specifies the transfer acceleration status of the bucket. */
+  AccelerationStatus: "Enabled" | "Suspended";
 }
 
 export interface AccessControlTranslation {
-  /** Specifies the replica ownership. For default and valid values, see PUT bucket replication in the Amazon S3 API Reference. Required: Yes, Type: String, Allowed values: Destination, Update requires: No interruption. */
-  Owner: string;
+  /** Specifies the replica ownership. For default and valid values, see PUT bucket replication in the Amazon S3 API Reference. */
+  Owner: "Destination";
 }
 
 export interface AnalyticsConfiguration {
   /** Contains data related to access patterns to be collected and made available to analyze the tradeoffs between different storage classes. */
   StorageClassAnalysis: StorageClassAnalysis;
-  /** The tags to use when evaluating an analytics filter. */
+  /** The tags to use when evaluating an analytics filter. The analytics only includes objects that meet the filter's criteria. If no filter is specified, all of the contents of the bucket are included in the analysis. */
   TagFilters?: TagFilter[];
   /** The ID that identifies the analytics configuration. */
   Id: string;
@@ -64,7 +64,7 @@ export interface AnalyticsConfiguration {
 }
 
 export interface BucketEncryption {
-  /** Specifies the default server-side-encryption configuration. Required: Yes. Type: Array of ServerSideEncryptionRule. */
+  /** Specifies the default server-side-encryption configuration. */
   ServerSideEncryptionConfiguration: ServerSideEncryptionRule[];
 }
 
@@ -74,15 +74,15 @@ export interface CorsConfiguration {
 }
 
 export interface CorsRule {
-  /** One or more headers in the response that you want customers to be able to access from their applications. */
+  /** One or more headers in the response that you want customers to be able to access from their applications (for example, from a JavaScript XMLHttpRequest object). */
   ExposedHeaders?: string[];
-  /** An HTTP method that you allow the origin to run. Allowed values include GET, PUT, HEAD, POST, and DELETE. */
-  AllowedMethods: string[];
+  /** An HTTP method that you allow the origin to run. */
+  AllowedMethods: ("GET" | "PUT" | "HEAD" | "POST" | "DELETE")[];
   /** One or more origins you want customers to be able to access the bucket from. */
   AllowedOrigins: string[];
-  /** Headers that are specified in the Access-Control-Request-Headers header. These headers are allowed in a preflight OPTIONS request. */
+  /** Headers that are specified in the Access-Control-Request-Headers header. These headers are allowed in a preflight OPTIONS request. In response to any preflight OPTIONS request, Amazon S3 returns any requested headers that are allowed. */
   AllowedHeaders?: string[];
-  /** The time in seconds that your browser is to cache the preflight response for the specified resource. */
+  /** The time in seconds that your browser is to cache the preflight response for the specified resource. @pattern "^[0-9]+$" */
   MaxAge?: number;
   /** A unique identifier for this rule. The value must be no more than 255 characters. */
   Id?: string;
@@ -101,19 +101,19 @@ export interface DefaultRetention {
   /** The number of days that you want to specify for the default retention period. If Object Lock is turned on, you must specify Mode and specify either Days or Years. */
   Days?: number;
   /** The default Object Lock retention mode you want to apply to new objects placed in the specified bucket. If Object Lock is turned on, you must specify Mode and specify either Days or Years. */
-  Mode?: string;
+  Mode?: "COMPLIANCE" | "GOVERNANCE";
 }
 
 export interface DeleteMarkerReplication {
-  /** Indicates whether to replicate delete markers. Disabled by default. Allowed values are Disabled or Enabled. */
-  Status?: string;
+  /** Indicates whether to replicate delete markers. Disabled by default. */
+  Status?: "Disabled" | "Enabled";
 }
 
 export interface Destination {
   /** The Amazon Resource Name (ARN) of the bucket to which data is exported. */
   BucketArn: string;
-  /** Specifies the file format used when exporting data to Amazon S3. Allowed values are CSV, ORC, or Parquet. */
-  Format: string;
+  /** Specifies the file format used when exporting data to Amazon S3. */
+  Format: "CSV" | "ORC" | "Parquet";
   /** The account ID that owns the destination S3 bucket. If no account ID is provided, the owner is not validated before exporting data. */
   BucketAccountId?: string;
   /** The prefix to use when exporting data. The prefix is prepended to all results. */
@@ -126,7 +126,7 @@ export interface EncryptionConfiguration {
 }
 
 export interface EventBridgeConfiguration {
-  /** Enables delivery of events to Amazon EventBridge. Required: Yes. Type: Boolean. Update requires: No interruption. */
+  /** Enables delivery of events to Amazon EventBridge. */
   EventBridgeEnabled: boolean;
 }
 
@@ -139,8 +139,8 @@ export interface FilterRule {
 
 export interface IntelligentTieringConfiguration {
   /** Specifies the status of the configuration. */
-  Status: string;
-  /** Specifies a list of S3 Intelligent-Tiering storage class tiers in the configuration. */
+  Status: "Disabled" | "Enabled";
+  /** Specifies a list of S3 Intelligent-Tiering storage class tiers in the configuration. At least one tier must be defined in the list. At most, you can specify two tiers in the list, one for each available AccessTier: ARCHIVE_ACCESS and DEEP_ARCHIVE_ACCESS. */
   Tierings: Tiering[];
   /** A container for a key-value pair. */
   TagFilters?: TagFilter[];
@@ -154,9 +154,25 @@ export interface InventoryConfiguration {
   /** Contains information about where to publish the inventory results. */
   Destination: Destination;
   /** Contains the optional fields that are included in the inventory results. */
-  OptionalFields?: string[];
+  OptionalFields?: (
+    | "Size"
+    | "LastModifiedDate"
+    | "StorageClass"
+    | "ETag"
+    | "IsMultipartUploaded"
+    | "ReplicationStatus"
+    | "EncryptionStatus"
+    | "ObjectLockRetainUntilDate"
+    | "ObjectLockMode"
+    | "ObjectLockLegalHoldStatus"
+    | "IntelligentTieringAccessTier"
+    | "BucketKeyStatus"
+    | "ChecksumAlgorithm"
+    | "ObjectAccessControlList"
+    | "ObjectOwner"
+  )[];
   /** Object versions to include in the inventory list. If set to All, the list includes all the object versions, which adds the version-related fields VersionId, IsLatest, and DeleteMarker to the list. If set to Current, the list does not contain these version-related fields. */
-  IncludedObjectVersions: string;
+  IncludedObjectVersions: "All" | "Current";
   /** Specifies whether the inventory is enabled or disabled. If set to True, an inventory list is generated. If set to False, no inventory list is generated. */
   Enabled: boolean;
   /** The ID used to identify the inventory configuration. */
@@ -164,7 +180,7 @@ export interface InventoryConfiguration {
   /** Specifies the inventory filter prefix. */
   Prefix?: string;
   /** Specifies the schedule for generating inventory results. */
-  ScheduleFrequency: string;
+  ScheduleFrequency: "Daily" | "Weekly";
 }
 
 export interface LambdaConfiguration {
@@ -177,8 +193,8 @@ export interface LambdaConfiguration {
 }
 
 export interface LifecycleConfiguration {
-  /** Indicates which default minimum object size behavior is applied to the lifecycle configuration. */
-  TransitionDefaultMinimumObjectSize?: string;
+  /** Indicates which default minimum object size behavior is applied to the lifecycle configuration. This parameter applies to general purpose buckets only. It isn't supported for directory bucket lifecycle configurations. */
+  TransitionDefaultMinimumObjectSize?: "varies_by_storage_class" | "all_storage_classes_128K";
   /** A lifecycle rule for individual objects in an Amazon S3 bucket. */
   Rules: Rule[];
 }
@@ -199,7 +215,7 @@ export interface MetadataTableConfiguration {
 
 export interface Metrics {
   /** Specifies whether the replication metrics are enabled. */
-  Status: string;
+  Status: "Disabled" | "Enabled";
   /** A container specifying the time threshold for emitting the s3:Replication:OperationMissedThreshold event. */
   EventThreshold?: ReplicationTimeValue;
 }
@@ -224,7 +240,14 @@ export interface NoncurrentVersionExpiration {
 
 export interface NoncurrentVersionTransition {
   /** The class of storage used to store the object. */
-  StorageClass: string;
+  StorageClass:
+    | "DEEP_ARCHIVE"
+    | "GLACIER"
+    | "Glacier"
+    | "GLACIER_IR"
+    | "INTELLIGENT_TIERING"
+    | "ONEZONE_IA"
+    | "STANDARD_IA";
   /** Specifies the number of days an object is noncurrent before Amazon S3 can perform the associated action. */
   TransitionInDays: number;
   /** Specifies how many noncurrent versions Amazon S3 will retain. If there are this many more recent noncurrent versions, Amazon S3 will take the associated action. */
@@ -243,14 +266,14 @@ export interface NotificationConfiguration {
 }
 
 export interface NotificationFilter {
-  /** A container for object key name prefix and suffix filtering rules. Required: Yes. Type: S3KeyFilter. */
+  /** A container for object key name prefix and suffix filtering rules. */
   S3Key: S3KeyFilter;
 }
 
 export interface ObjectLockConfiguration {
   /** Indicates whether this bucket has an Object Lock configuration enabled. Enable ObjectLockEnabled when you apply ObjectLockConfiguration to a bucket. */
-  ObjectLockEnabled?: string;
-  /** Specifies the Object Lock rule for the specified object. Enable this rule when you apply ObjectLockConfiguration to a bucket. If Object Lock is turned on, bucket settings require both Mode and a period of either Days or Years. */
+  ObjectLockEnabled?: "Enabled";
+  /** Specifies the Object Lock rule for the specified object. Enable this rule when you apply ObjectLockConfiguration to a bucket. If Object Lock is turned on, bucket settings require both Mode and a period of either Days or Years. You cannot specify Days and Years at the same time. */
   Rule?: ObjectLockRule;
 }
 
@@ -260,65 +283,65 @@ export interface ObjectLockRule {
 }
 
 export interface OwnershipControls {
-  /** Specifies the container element for Object Ownership rules. Required: Yes. Type: Array of OwnershipControlsRule. */
+  /** Specifies the container element for Object Ownership rules. */
   Rules: OwnershipControlsRule[];
 }
 
 export interface OwnershipControlsRule {
-  /** Specifies an object ownership rule. This property is optional and of type String. Allowed values include ObjectWriter, BucketOwnerPreferred, and BucketOwnerEnforced. */
-  ObjectOwnership?: string;
+  /** Specifies an object ownership rule. */
+  ObjectOwnership?: "ObjectWriter" | "BucketOwnerPreferred" | "BucketOwnerEnforced";
 }
 
 export interface PartitionedPrefix {
   /** Specifies the partition date source for the partitioned prefix. PartitionDateSource can be EventTime or DeliveryTime. For DeliveryTime, the time in the log file names corresponds to the delivery time for the log files. For EventTime, the logs delivered are for a specific day only. The year, month, and day correspond to the day on which the event occurred, and the hour, minutes and seconds are set to 00 in the key. */
-  PartitionDateSource?: string;
+  PartitionDateSource?: "EventTime" | "DeliveryTime";
 }
 
 export interface QueueConfiguration {
-  /** The filtering rules that determine which objects trigger notifications. Required: No, Type: NotificationFilter. */
+  /** The filtering rules that determine which objects trigger notifications. For example, you can create a filter so that Amazon S3 sends notifications only when image files with a .jpg extension are added to the bucket. */
   Filter?: NotificationFilter;
-  /** The Amazon S3 bucket event about which you want to publish messages to Amazon SQS. Required: Yes, Type: String. */
+  /** The Amazon S3 bucket event about which you want to publish messages to Amazon SQS. For more information, see Supported Event Types in the Amazon S3 User Guide. */
   Event: string;
-  /** The Amazon Resource Name (ARN) of the Amazon SQS queue to which Amazon S3 publishes a message when it detects events of the specified type. Required: Yes, Type: String. */
+  /** The Amazon Resource Name (ARN) of the Amazon SQS queue to which Amazon S3 publishes a message when it detects events of the specified type. FIFO queues are not allowed when enabling an SQS queue as the event notification destination. */
   Queue: string;
 }
 
 export interface RedirectAllRequestsTo {
   /** Protocol to use when redirecting requests. The default is the protocol that is used in the original request. */
-  Protocol?: string;
+  Protocol?: "http" | "https";
   /** Name of the host where requests are redirected. */
   HostName: string;
 }
 
 export interface RedirectRule {
-  /** The specific object key to use in the redirect request. Not required if one of the siblings is present. */
+  /** The specific object key to use in the redirect request. Not required if one of the siblings is present. Can be present only if ReplaceKeyPrefixWith is not provided. */
   ReplaceKeyWith?: string;
   /** The HTTP redirect code to use on the response. Not required if one of the siblings is present. */
   HttpRedirectCode?: string;
   /** Protocol to use when redirecting requests. The default is the protocol that is used in the original request. */
-  Protocol?: string;
+  Protocol?: "http" | "https";
   /** The host name to use in the redirect request. */
   HostName?: string;
-  /** The object key prefix to use in the redirect request. Not required if one of the siblings is present. */
+  /** The object key prefix to use in the redirect request. Not required if one of the siblings is present. Can be present only if ReplaceKeyWith is not provided. */
   ReplaceKeyPrefixWith?: string;
 }
 
 export interface ReplicaModifications {
-  /** Specifies whether Amazon S3 replicates modifications on replicas. Allowed values: Enabled | Disabled. Required: Yes, Type: String. */
-  Status: string;
+  /** Specifies whether Amazon S3 replicates modifications on replicas. */
+  Status: "Enabled" | "Disabled";
 }
 
 export interface ReplicationConfiguration {
-  /** The Amazon Resource Name (ARN) of the AWS Identity and Access Management (IAM) role that Amazon S3 assumes when replicating objects. */
+  /** The Amazon Resource Name (ARN) of the AWS Identity and Access Management (IAM) role that Amazon S3 assumes when replicating objects. For more information, see How to Set Up Replication in the Amazon S3 User Guide. */
   Role: string;
   /** A container for one or more replication rules. A replication configuration must have at least one rule and can contain a maximum of 1,000 rules. */
   Rules: ReplicationRule[];
 }
 
 export interface ReplicationDestination {
-  /** Specify this only in a cross-account scenario where source and destination bucket owners are not the same, and you want to change replica ownership to the AWS account that owns the destination bucket. */
+  /** Specify this only in a cross-account scenario (where source and destination bucket owners are not the same), and you want to change replica ownership to the AWS account that owns the destination bucket. If this is not specified in the replication configuration, the replicas are owned by same AWS account that owns the source object. */
   AccessControlTranslation?: AccessControlTranslation;
-  /** Destination bucket owner account ID. In a cross-account scenario, if you direct Amazon S3 to change replica ownership to the AWS account that owns the destination bucket by specifying the AccessControlTranslation property, this is the account ID of the destination bucket owner. */
+  /** Destination bucket owner account ID. In a cross-account scenario, if you direct Amazon S3 to change replica ownership to the AWS account that owns the destination bucket by specifying the AccessControlTranslation property, this is the account ID of the destination bucket owner. If you specify the AccessControlTranslation property, the Account property is required. */
   Account?: string;
   /** A container specifying replication metrics-related settings enabling replication metrics and events. */
   Metrics?: Metrics;
@@ -326,15 +349,23 @@ export interface ReplicationDestination {
   Bucket: string;
   /** Specifies encryption-related information. */
   EncryptionConfiguration?: EncryptionConfiguration;
-  /** The storage class to use when replicating objects, such as S3 Standard or reduced redundancy. */
-  StorageClass?: string;
-  /** A container specifying S3 Replication Time Control (S3 RTC), including whether S3 RTC is enabled and the time when all objects and operations on objects must be replicated. */
+  /** The storage class to use when replicating objects, such as S3 Standard or reduced redundancy. By default, Amazon S3 uses the storage class of the source object to create the object replica. */
+  StorageClass?:
+    | "DEEP_ARCHIVE"
+    | "GLACIER"
+    | "GLACIER_IR"
+    | "INTELLIGENT_TIERING"
+    | "ONEZONE_IA"
+    | "REDUCED_REDUNDANCY"
+    | "STANDARD"
+    | "STANDARD_IA";
+  /** A container specifying S3 Replication Time Control (S3 RTC), including whether S3 RTC is enabled and the time when all objects and operations on objects must be replicated. Must be specified together with a Metrics block. */
   ReplicationTime?: ReplicationTime;
 }
 
 export interface ReplicationRule {
-  /** Specifies whether the rule is enabled. Allowed values are Disabled or Enabled. */
-  Status: string;
+  /** Specifies whether the rule is enabled. */
+  Status: "Disabled" | "Enabled";
   /** A container for information about the replication destination and its configurations including enabling the S3 Replication Time Control (S3 RTC). */
   Destination: ReplicationDestination;
   /** A filter that identifies the subset of objects to which the replication rule applies. A Filter must specify exactly one Prefix, TagFilter, or an And child element. */
@@ -369,52 +400,52 @@ export interface ReplicationRuleFilter {
 
 export interface ReplicationTime {
   /** Specifies whether the replication time is enabled. */
-  Status: string;
+  Status: "Disabled" | "Enabled";
   /** A container specifying the time by which replication should be complete for all objects and operations on objects. */
   Time: ReplicationTimeValue;
 }
 
 export interface ReplicationTimeValue {
-  /** Contains an integer specifying time in minutes. Valid value: 15. Required: Yes, Type: Integer, Update requires: No interruption. */
+  /** Contains an integer specifying time in minutes. */
   Minutes: number;
 }
 
 export interface RoutingRule {
   /** Container for redirect information. You can redirect requests to another host, to another page, or with another protocol. In the event of an error, you can specify a different error code to return. */
   RedirectRule: RedirectRule;
-  /** A container for describing a condition that must be met for the specified redirect to apply. For example, if the request is for pages in the /docs folder, redirect to the /documents folder. */
+  /** A container for describing a condition that must be met for the specified redirect to apply. For example, if request is for pages in the /docs folder, redirect to the /documents folder. If request results in HTTP error 4xx, redirect request to another host where you might process the error. */
   RoutingRuleCondition?: RoutingRuleCondition;
 }
 
 export interface RoutingRuleCondition {
-  /** The object key name prefix when the redirect is applied. This identifies all objects in the specified folder. Required when the parent element Condition is specified and sibling HttpErrorCodeReturnedEquals is not specified. */
+  /** The object key name prefix when the redirect is applied. For example, to redirect requests for ExamplePage.html, the key prefix will be ExamplePage.html. To redirect request for all pages with the prefix docs/, the key prefix will be docs/, which identifies all objects in the docs/ folder. Required when the parent element Condition is specified and sibling HttpErrorCodeReturnedEquals is not specified. If both conditions are specified, both must be true for the redirect to be applied. */
   KeyPrefixEquals?: string;
-  /** The HTTP error code when the redirect is applied. If the error code equals this value, then the specified redirect is applied. Required when the parent element Condition is specified and sibling KeyPrefixEquals is not specified. */
+  /** The HTTP error code when the redirect is applied. In the event of an error, if the error code equals this value, then the specified redirect is applied. Required when parent element Condition is specified and sibling KeyPrefixEquals is not specified. If both are specified, then both must be true for the redirect to be applied. */
   HttpErrorCodeReturnedEquals?: string;
 }
 
 export interface Rule {
   /** If Enabled, the rule is currently being applied. If Disabled, the rule is not currently being applied. */
-  Status: string;
-  /** Indicates whether Amazon S3 will remove a delete marker without any noncurrent versions. */
+  Status: "Enabled" | "Disabled";
+  /** Indicates whether Amazon S3 will remove a delete marker without any noncurrent versions. If set to true, the delete marker will be removed if there are no noncurrent versions. */
   ExpiredObjectDeleteMarker?: boolean;
-  /** (Deprecated.) For buckets with versioning enabled, specifies the time, in days, between when a new version of the object is uploaded and when old versions expire. */
+  /** (Deprecated.) For buckets with versioning enabled (or suspended), specifies the time, in days, between when a new version of the object is uploaded to the bucket and when old versions of the object expire. */
   NoncurrentVersionExpirationInDays?: number;
   /** One or more transition rules that specify when an object transitions to a specified storage class. */
   Transitions?: Transition[];
-  /** Specifies the minimum object size in bytes for this rule to apply to. Objects must be larger than this value. */
+  /** Specifies the minimum object size in bytes for this rule to apply to. Objects must be larger than this value in bytes. @pattern "[0-9]+" */
   ObjectSizeGreaterThan?: string;
   /** Tags to use to identify a subset of objects to which the lifecycle rule applies. */
   TagFilters?: TagFilter[];
-  /** For buckets with versioning enabled, one or more transition rules that specify when non-current objects transition to a specified storage class. */
+  /** For buckets with versioning enabled (or suspended), one or more transition rules that specify when non-current objects transition to a specified storage class. */
   NoncurrentVersionTransitions?: NoncurrentVersionTransition[];
   /** Object key prefix that identifies one or more objects to which this rule applies. */
   Prefix?: string;
-  /** Specifies the maximum object size in bytes for this rule to apply to. Objects must be smaller than this value. */
+  /** Specifies the maximum object size in bytes for this rule to apply to. Objects must be smaller than this value in bytes. @pattern "[0-9]+" */
   ObjectSizeLessThan?: string;
-  /** (Deprecated.) For buckets with versioning enabled, specifies when non-current objects transition to a specified storage class. */
+  /** (Deprecated.) For buckets with versioning enabled (or suspended), specifies when non-current objects transition to a specified storage class. */
   NoncurrentVersionTransition?: NoncurrentVersionTransition;
-  /** Indicates when objects are deleted from Amazon S3 and Amazon S3 Glacier. The date value must be in ISO 8601 format. */
+  /** Indicates when objects are deleted from Amazon S3 and Amazon S3 Glacier. The date value must be in ISO 8601 format. The time is always midnight UTC. @pattern "^([0-2]\d{3})-(0[0-9]|1[0-2])-([0-2]\d|3[01])T([01]\d|2[0-4]):([0-5]\d):([0-6]\d)((\.\d{3})?)Z$" */
   ExpirationDate?: string;
   /** Specifies when noncurrent object versions expire. Upon expiration, Amazon S3 permanently deletes the noncurrent object versions. */
   NoncurrentVersionExpiration?: NoncurrentVersionExpiration;
@@ -429,7 +460,7 @@ export interface Rule {
 }
 
 export interface S3KeyFilter {
-  /** A list of containers for the key-value pair that defines the criteria for the filter rule. Required: Yes. Type: Array of FilterRule. */
+  /** A list of containers for the key-value pair that defines the criteria for the filter rule. */
   Rules: FilterRule[];
 }
 
@@ -445,14 +476,14 @@ export interface S3TablesDestination {
 }
 
 export interface ServerSideEncryptionByDefault {
-  /** Server-side encryption algorithm to use for the default encryption. */
-  SSEAlgorithm: string;
-  /** AWS Key Management Service (KMS) customer managed key ID to use for the default encryption. */
+  /** Server-side encryption algorithm to use for the default encryption. For directory buckets, there are only two supported values for server-side encryption: AES256 and aws:kms. */
+  SSEAlgorithm: "aws:kms" | "AES256" | "aws:kms:dsse";
+  /** AWS Key Management Service (KMS) customer managed key ID to use for the default encryption. You can specify the key ID, key alias, or the Amazon Resource Name (ARN) of the KMS key. This parameter is allowed if and only if SSEAlgorithm is set to aws:kms or aws:kms:dsse. */
   KMSMasterKeyID?: string;
 }
 
 export interface ServerSideEncryptionRule {
-  /** Specifies whether Amazon S3 should use an S3 Bucket Key with server-side encryption using KMS (SSE-KMS) for new objects in the bucket. Existing objects are not affected. By default, S3 Bucket Key is not enabled. */
+  /** Specifies whether Amazon S3 should use an S3 Bucket Key with server-side encryption using KMS (SSE-KMS) for new objects in the bucket. Existing objects are not affected. Setting the BucketKeyEnabled element to true causes Amazon S3 to use an S3 Bucket Key. By default, S3 Bucket Key is not enabled. */
   BucketKeyEnabled?: boolean;
   /** Specifies the default server-side encryption to apply to new objects in the bucket. If a PUT Object request doesn't specify any server-side encryption, this default encryption will be applied. */
   ServerSideEncryptionByDefault?: ServerSideEncryptionByDefault;
@@ -466,12 +497,12 @@ export interface SourceSelectionCriteria {
 }
 
 export interface SseKmsEncryptedObjects {
-  /** Specifies whether Amazon S3 replicates objects created with server-side encryption using an AWS KMS key stored in AWS Key Management Service. Required: Yes, Type: String, Allowed values: Disabled | Enabled, Update requires: No interruption. */
-  Status: string;
+  /** Specifies whether Amazon S3 replicates objects created with server-side encryption using an AWS KMS key stored in AWS Key Management Service. */
+  Status: "Disabled" | "Enabled";
 }
 
 export interface StorageClassAnalysis {
-  /** Specifies how data related to the storage class analysis for an Amazon S3 bucket should be exported. Required: No. Type: DataExport. */
+  /** Specifies how data related to the storage class analysis for an Amazon S3 bucket should be exported. */
   DataExport?: DataExport;
 }
 
@@ -490,9 +521,9 @@ export interface TargetObjectKeyFormat {
 }
 
 export interface Tiering {
-  /** S3 Intelligent-Tiering access tier. It specifies the access tier for the S3 Intelligent-Tiering storage class, which can be ARCHIVE_ACCESS or DEEP_ARCHIVE_ACCESS. */
-  AccessTier: string;
-  /** The number of consecutive days of no access after which an object will be eligible to be transitioned to the corresponding tier. The minimum is 90 days for Archive Access and 180 days for Deep Archive Access, with a maximum of 730 days. */
+  /** S3 Intelligent-Tiering access tier. See Storage class for automatically optimizing frequently and infrequently accessed objects for a list of access tiers in the S3 Intelligent-Tiering storage class. */
+  AccessTier: "ARCHIVE_ACCESS" | "DEEP_ARCHIVE_ACCESS";
+  /** The number of consecutive days of no access after which an object will be eligible to be transitioned to the corresponding tier. The minimum number of days specified for Archive Access tier must be at least 90 days and Deep Archive Access tier must be at least 180 days. The maximum can be up to 2 years (730 days). */
   Days: number;
 }
 
@@ -506,23 +537,30 @@ export interface TopicConfiguration {
 }
 
 export interface Transition {
-  /** Indicates when objects are transitioned to the specified storage class. The date value must be in ISO 8601 format. */
+  /** Indicates when objects are transitioned to the specified storage class. The date value must be in ISO 8601 format. The time is always midnight UTC. @pattern "^([0-2]\d{3})-(0[0-9]|1[0-2])-([0-2]\d|3[01])T([01]\d|2[0-4]):([0-5]\d):([0-6]\d)((\.\d{3})?)Z$" */
   TransitionDate?: string;
   /** The storage class to which you want the object to transition. */
-  StorageClass: string;
-  /** Indicates the number of days after creation when objects are transitioned to the specified storage class. */
+  StorageClass:
+    | "DEEP_ARCHIVE"
+    | "GLACIER"
+    | "Glacier"
+    | "GLACIER_IR"
+    | "INTELLIGENT_TIERING"
+    | "ONEZONE_IA"
+    | "STANDARD_IA";
+  /** Indicates the number of days after creation when objects are transitioned to the specified storage class. If the specified storage class is INTELLIGENT_TIERING, GLACIER_IR, GLACIER, or DEEP_ARCHIVE, valid values are 0 or positive integers. If the specified storage class is STANDARD_IA or ONEZONE_IA, valid values are positive integers greater than 30. */
   TransitionInDays?: number;
 }
 
 export interface VersioningConfiguration {
-  /** The versioning state of the bucket. Required: Yes, Type: String, Allowed values: Enabled | Suspended. */
-  Status: string;
+  /** The versioning state of the bucket. */
+  Status: "Enabled" | "Suspended";
 }
 
 export interface WebsiteConfiguration {
   /** The name of the index document for the website. */
   IndexDocument?: string;
-  /** The redirect behavior for every request to this bucket's website endpoint. If you specify this property, you can't specify any other property. */
+  /** The redirect behavior for every request to this bucket's website endpoint. */
   RedirectAllRequestsTo?: RedirectAllRequestsTo;
   /** Rules that define when a redirect is applied and the redirect behavior. */
   RoutingRules?: RoutingRule[];
@@ -531,15 +569,15 @@ export interface WebsiteConfiguration {
 }
 
 export interface Region {
-  /** The name of the associated bucket for the Region. */
+  /** The name of the associated bucket for the Region. @pattern "^[a-z0-9][a-z0-9//.//-]*[a-z0-9]$" */
   Bucket: string;
-  /** The AWS account ID that owns the Amazon S3 bucket that's associated with this Multi-Region Access Point. */
+  /** The AWS account ID that owns the Amazon S3 bucket that's associated with this Multi-Region Access Point. @pattern "^[0-9]{12}$" */
   BucketAccountId?: string;
 }
 
 export interface PolicyStatus {
   /** The policy status for this bucket. TRUE indicates that this bucket is public. FALSE indicates that the bucket is not public. */
-  IsPublic: string;
+  IsPublic: "true" | "false";
 }
 
 export interface AccountLevel {
@@ -558,7 +596,7 @@ export interface AccountLevel {
 }
 
 export interface ActivityMetrics {
-  /** A property that indicates whether the activity metrics is enabled. Required: No, Type: Boolean, Update requires: No interruption. */
+  /** A property that indicates whether the activity metrics is enabled. */
   IsEnabled?: boolean;
 }
 
@@ -573,7 +611,7 @@ export interface AdvancedDataProtectionMetrics {
 }
 
 export interface AwsOrg {
-  /** This resource contains the ARN of the AWS Organization. Required: Yes. Type: String. Update requires: No interruption. */
+  /** This resource contains the ARN of the AWS Organization. */
   Arn: string;
 }
 
@@ -593,7 +631,7 @@ export interface BucketLevel {
 export interface BucketsAndRegions {
   /** This property contains the details of the Regions for the S3 Storage Lens configuration. */
   Regions?: string[];
-  /** This property contains the details of the buckets for the Amazon S3 Storage Lens configuration. This should be the bucket Amazon Resource Name (ARN). */
+  /** This property contains the details of the buckets for the Amazon S3 Storage Lens configuration. This should be the bucket Amazon Resource Name(ARN). */
   Buckets?: string[];
 }
 
@@ -615,22 +653,22 @@ export interface Encryption {
 }
 
 export interface PrefixLevel {
-  /** A property for the prefix-level storage metrics for Amazon S3 Storage Lens. Required: Yes. Type: PrefixLevelStorageMetrics. */
+  /** A property for the prefix-level storage metrics for Amazon S3 Storage Lens. */
   StorageMetrics: PrefixLevelStorageMetrics;
 }
 
 export interface PrefixLevelStorageMetrics {
   /** This property identifies whether the details of the prefix-level storage metrics for S3 Storage Lens are enabled. */
   IsEnabled?: boolean;
-  /** This property identifies the criteria for selecting the prefix-level storage metrics for S3 Storage Lens. */
+  /** This property identifies whether the details of the prefix-level storage metrics for S3 Storage Lens are enabled. */
   SelectionCriteria?: SelectionCriteria;
 }
 
 export interface S3BucketDestination {
   /** This property contains the details of the output schema version of the S3 Storage Lens export bucket destination. */
-  OutputSchemaVersion: string;
+  OutputSchemaVersion: "V_1";
   /** This property contains the details of the format of the S3 Storage Lens export bucket destination. */
-  Format: string;
+  Format: "CSV" | "Parquet";
   /** This property contains the details of the AWS account ID of the S3 Storage Lens export bucket destination. */
   AccountId: string;
   /** This property contains the details of the prefix of the bucket destination of the S3 Storage Lens export. */
@@ -642,7 +680,7 @@ export interface S3BucketDestination {
 }
 
 export interface SSEKMS {
-  /** Specifies the Amazon Resource Name (ARN) of the customer managed AWS KMS key to use for encrypting the S3 Storage Lens metrics export file. Amazon S3 only supports symmetric encryption keys. */
+  /** Specifies the Amazon Resource Name (ARN) of the customer managed AWS KMS key to use for encrypting the S3 Storage Lens metrics export file. Amazon S3 only supports symmetric encryption keys. For more information, see Special-purpose keys in the AWS Key Management Service Developer Guide. */
   KeyId: string;
 }
 
@@ -666,7 +704,7 @@ export interface StorageLensConfiguration {
   Include?: BucketsAndRegions;
   /** This property contains the details of the AWS Organization for the S3 Storage Lens configuration. */
   AwsOrg?: AwsOrg;
-  /** This property contains the details of the ID of the S3 Storage Lens configuration. */
+  /** This property contains the details of the ID of the S3 Storage Lens configuration. @pattern "^[a-zA-Z0-9\-_.]+$" */
   Id: string;
   /** This property contains the details of the ARN of the S3 Storage Lens configuration. This property is read-only. */
   StorageLensArn?: string;
@@ -707,11 +745,11 @@ export interface Filter {
   /** This property contains the And logical operator, which allows multiple filter conditions to be joined for more complex comparisons of Storage Lens group data. Objects must match all of the listed filter conditions that are joined by the And logical operator. Only one of each filter condition is allowed. */
   And?: And;
   /** This property contains a list of prefixes. At least one prefix must be specified. Up to 10 prefixes are allowed. */
-  MatchAnyPrefix?: string[];
+  MatchAnyPrefix?: "10"[];
   /** This property contains the list of S3 object tags. At least one object tag must be specified. Up to 10 object tags are allowed. */
   MatchAnyTag?: Tag[];
   /** This property contains a list of suffixes. At least one suffix must be specified. Up to 10 suffixes are allowed. */
-  MatchAnySuffix?: string[];
+  MatchAnySuffix?: "10"[];
   /** This property contains BytesGreaterThan and BytesLessThan to define the object size range (minimum and maximum number of Bytes). */
   MatchObjectSize?: MatchObjectSize;
 }
@@ -745,27 +783,27 @@ export interface Or {
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-accessgrant.html */
 export interface AccessGrantProps {
-  /** The user, group, or role to which you are granting access. You can grant access to an IAM user or role. */
+  /** The user, group, or role to which you are granting access. You can grant access to an IAM user or role. If you have added your corporate directory to AWSIAM Identity Center and associated your Identity Center instance with your S3 Access Grants instance, the grantee can also be a corporate directory user or group. */
   Grantee: Grantee;
-  /** The configuration options of the grant location. The grant location is the S3 path to the data to which you are granting access. */
+  /** The configuration options of the grant location. The grant location is the S3 path to the data to which you are granting access. It contains the S3SubPrefix field. */
   AccessGrantsLocationConfiguration?: AccessGrantsLocationConfiguration;
-  /** The Amazon Resource Name (ARN) of an AWS IAM Identity Center application associated with your Identity Center instance. */
+  /** The Amazon Resource Name (ARN) of an AWSIAM Identity Center application associated with your Identity Center instance. If the grant includes an application ARN, the grantee can only access the S3 data through this application. */
   ApplicationArn?: string;
-  /** The type of access that you are granting to your S3 data, which can be set to READ, WRITE, or READWRITE. */
-  Permission: string;
-  /** The type of S3SubPrefix. The only possible value is Object. */
-  S3PrefixType?: string;
-  /** The AWS resource tags that you are adding to the access grant. Each tag is a label consisting of a user-defined key and value. */
+  /** The type of access that you are granting to your S3 data, which can be set to one of the following values: READ – Grant read-only access to the S3 data. WRITE – Grant write-only access to the S3 data. READWRITE – Grant both read and write access to the S3 data. */
+  Permission: "READ" | "WRITE" | "READWRITE";
+  /** The type of S3SubPrefix. The only possible value is Object. Pass this value if the access grant scope is an object. Do not pass this value if the access grant scope is a bucket or a bucket and a prefix. */
+  S3PrefixType?: "Object";
+  /** The AWS resource tags that you are adding to the access grant. Each tag is a label consisting of a user-defined key and value. Tags can help you manage, identify, organize, search for, and filter resources. */
   Tags?: Tag[];
-  /** The ID of the registered location to which you are granting access. S3 Access Grants assigns this ID when you register the location. */
+  /** The ID of the registered location to which you are granting access. S3 Access Grants assigns this ID when you register the location. S3 Access Grants assigns the ID default to the default location s3:// and assigns an auto-generated ID to other locations that you register. */
   AccessGrantsLocationId: string;
 }
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-accessgrantsinstance.html */
 export interface AccessGrantsInstanceProps {
-  /** If you would like to associate your S3 Access Grants instance with an AWS IAM Identity Center instance, use this field to pass the Amazon Resource Name (ARN) of the AWS IAM Identity Center instance that you are associating with your S3 Access Grants instance. */
+  /** If you would like to associate your S3 Access Grants instance with an AWS IAM Identity Center instance, use this field to pass the Amazon Resource Name (ARN) of the AWS IAM Identity Center instance that you are associating with your S3 Access Grants instance. An IAM Identity Center instance is your corporate identity directory that you added to the IAM Identity Center. */
   IdentityCenterArn?: string;
-  /** The AWS resource tags that you are adding to the S3 Access Grants instance. Each tag is a label consisting of a user-defined key and value. */
+  /** The AWS resource tags that you are adding to the S3 Access Grants instance. Each tag is a label consisting of a user-defined key and value. Tags can help you manage, identify, organize, search for, and filter resources. */
   Tags?: Tag[];
 }
 
@@ -783,59 +821,67 @@ export interface AccessGrantsLocationProps {
 export interface AccessPointProps {
   /** The access point policy associated with this access point. */
   Policy?: any;
-  /** The PublicAccessBlock configuration that you want to apply to this Amazon S3 bucket. */
+  /** The PublicAccessBlock configuration that you want to apply to this Amazon S3 bucket. You can enable the configuration options in any combination. */
   PublicAccessBlockConfiguration?: PublicAccessBlockConfiguration;
   /** The name of the bucket associated with this access point. */
   Bucket: string;
-  /** The AWS account ID associated with the S3 bucket associated with this access point. */
+  /** The AWS account ID associated with the S3 bucket associated with this access point. @pattern "^\d{12}$" */
   BucketAccountId?: string;
   /** The Virtual Private Cloud (VPC) configuration for this access point, if one exists. */
   VpcConfiguration?: VpcConfiguration;
-  /** The name of this access point. If you don't specify a name, AWS CloudFormation generates a unique ID and uses that ID for the access point name. */
+  /** The name of this access point. If you don't specify a name, AWS CloudFormation generates a unique ID and uses that ID for the access point name. @pattern "^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$" */
   Name?: string;
 }
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-bucket.html */
 export interface BucketProps {
-  /** Specifies the inventory configuration for an Amazon S3 bucket. */
+  /** Specifies the inventory configuration for an Amazon S3 bucket. For more information, see GET Bucket inventory in the Amazon S3 API Reference. */
   InventoryConfigurations?: InventoryConfiguration[];
   /** Specifies default encryption for a bucket using server-side encryption with Amazon S3-managed keys (SSE-S3), AWS KMS-managed keys (SSE-KMS), or dual-layer server-side encryption with KMS-managed keys (DSSE-KMS). */
   BucketEncryption?: BucketEncryption;
-  /** Information used to configure the bucket as a static website. */
+  /** Information used to configure the bucket as a static website. For more information, see Hosting Websites on Amazon S3. */
   WebsiteConfiguration?: WebsiteConfiguration;
   /** Configuration that defines how Amazon S3 handles bucket notifications. */
   NotificationConfiguration?: NotificationConfiguration;
-  /** Specifies the lifecycle configuration for objects in an Amazon S3 bucket. */
+  /** Specifies the lifecycle configuration for objects in an Amazon S3 bucket. For more information, see Object Lifecycle Management in the Amazon S3 User Guide. */
   LifecycleConfiguration?: LifecycleConfiguration;
-  /** Enables multiple versions of all objects in this bucket. */
+  /** Enables multiple versions of all objects in this bucket. You might enable versioning to prevent objects from being deleted or overwritten by mistake. */
   VersioningConfiguration?: VersioningConfiguration;
   /** Specifies a metrics configuration for the CloudWatch request metrics from an Amazon S3 bucket. */
   MetricsConfigurations?: MetricsConfiguration[];
-  /** A canned access control list (ACL) that grants predefined permissions to the bucket. */
-  AccessControl?: string;
+  /** A canned access control list (ACL) that grants predefined permissions to the bucket. For more information about canned ACLs, see Canned ACL in the Amazon S3 User Guide. */
+  AccessControl?:
+    | "AuthenticatedRead"
+    | "AwsExecRead"
+    | "BucketOwnerFullControl"
+    | "BucketOwnerRead"
+    | "LogDeliveryWrite"
+    | "Private"
+    | "PublicRead"
+    | "PublicReadWrite";
   /** The metadata table configuration of an Amazon S3 general purpose bucket. */
   MetadataTableConfiguration?: MetadataTableConfiguration;
   /** Defines how Amazon S3 handles Intelligent-Tiering storage. */
   IntelligentTieringConfigurations?: IntelligentTieringConfiguration[];
   /** Specifies the configuration and any analyses for the analytics filter of an Amazon S3 bucket. */
   AnalyticsConfigurations?: AnalyticsConfiguration[];
-  /** Configures the transfer acceleration state for an Amazon S3 bucket. */
+  /** Configures the transfer acceleration state for an Amazon S3 bucket. For more information, see Amazon S3 Transfer Acceleration in the Amazon S3 User Guide. */
   AccelerateConfiguration?: AccelerateConfiguration;
   /** Configuration that defines how Amazon S3 handles public access. */
   PublicAccessBlockConfiguration?: PublicAccessBlockConfiguration;
-  /** A name for the bucket. The bucket name must contain only lowercase letters, numbers, periods (.), and dashes (-). */
+  /** A name for the bucket. If you don't specify a name, AWS CloudFormation generates a unique ID and uses that ID for the bucket name. The bucket name must contain only lowercase letters, numbers, periods (.), and dashes (-). */
   BucketName?: string;
-  /** Describes the cross-origin access configuration for objects in an Amazon S3 bucket. */
+  /** Describes the cross-origin access configuration for objects in an Amazon S3 bucket. For more information, see Enabling Cross-Origin Resource Sharing in the Amazon S3 User Guide. */
   CorsConfiguration?: CorsConfiguration;
   /** Configuration that defines how Amazon S3 handles Object Ownership rules. */
   OwnershipControls?: OwnershipControls;
-  /** Places an Object Lock configuration on the specified bucket. */
+  /** Places an Object Lock configuration on the specified bucket. The rule specified in the Object Lock configuration will be applied by default to every new object placed in the specified bucket. */
   ObjectLockConfiguration?: ObjectLockConfiguration;
-  /** Indicates whether this bucket has an Object Lock configuration enabled. */
+  /** Indicates whether this bucket has an Object Lock configuration enabled. Enable ObjectLockEnabled when you apply ObjectLockConfiguration to a bucket. */
   ObjectLockEnabled?: boolean;
   /** Settings that define where logs are stored. */
   LoggingConfiguration?: LoggingConfiguration;
-  /** Configuration for replicating objects in an S3 bucket. */
+  /** Configuration for replicating objects in a S3 bucket. To enable replication, you must also enable versioning by using the VersioningConfiguration property. */
   ReplicationConfiguration?: ReplicationConfiguration;
   /** An arbitrary set of tags (key-value pairs) for this S3 bucket. */
   Tags?: Tag[];
@@ -845,17 +891,17 @@ export interface BucketProps {
 export interface BucketPolicyProps {
   /** The name of the Amazon S3 bucket to which the policy applies. */
   Bucket: string;
-  /** A policy document containing permissions to add to the specified bucket. In IAM, you must provide policy documents in JSON format, but in CloudFormation, you can provide the policy in JSON or YAML format. */
+  /** A policy document containing permissions to add to the specified bucket. In IAM, you must provide policy documents in JSON format. However, in CloudFormation you can provide the policy in JSON or YAML format because CloudFormation converts YAML to JSON before submitting it to IAM. */
   PolicyDocument: any;
 }
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-multiregionaccesspoint.html */
 export interface MultiRegionAccessPointProps {
-  /** The PublicAccessBlock configuration that you want to apply to this Multi-Region Access Point. */
+  /** The PublicAccessBlock configuration that you want to apply to this Multi-Region Access Point. You can enable the configuration options in any combination. */
   PublicAccessBlockConfiguration?: PublicAccessBlockConfiguration;
   /** A collection of the Regions and buckets associated with the Multi-Region Access Point. */
   Regions: Region[];
-  /** The name of the Multi-Region Access Point. */
+  /** The name of the Multi-Region Access Point. @pattern "^[a-z0-9][-a-z0-9]{1,48}[a-z0-9]$" */
   Name?: string;
 }
 
@@ -863,7 +909,7 @@ export interface MultiRegionAccessPointProps {
 export interface MultiRegionAccessPointPolicyProps {
   /** The access policy associated with the Multi-Region Access Point. */
   Policy: any;
-  /** The name of the Multi-Region Access Point. */
+  /** The name of the Multi-Region Access Point. @pattern "^[a-z0-9][-a-z0-9]{1,48}[a-z0-9]$" */
   MrapName: string;
 }
 
@@ -877,10 +923,10 @@ export interface StorageLensProps {
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-storagelensgroup.html */
 export interface StorageLensGroupProps {
-  /** This property contains the criteria for the Storage Lens group data that is displayed. */
+  /** This property contains the criteria for the Storage Lens group data that is displayed */
   Filter: Filter;
   /** This property contains the AWS resource tags that you're adding to your Storage Lens group. This parameter is optional. */
   Tags?: Tag[];
-  /** This property contains the Storage Lens group name. */
+  /** This property contains the Storage Lens group name. @pattern "^[a-zA-Z0-9\-_]+$" */
   Name: string;
 }

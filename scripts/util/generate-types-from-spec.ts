@@ -3,7 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import prettier from "prettier";
 import { validateCloudFormationSpec, type CloudFormationResourceSpecification, type ResourceType, type PropertyType, type Property } from "./cfn-spec-schema.js";
-import { getPropertyDocumentation, getCacheInfo } from "./doc-parser.js";
+import { getPropertyDocumentation, getCacheInfo, type PropertyInfo } from "./doc-parser.js";
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
@@ -35,7 +35,7 @@ function parseServiceName(serviceName: string): ParsedServiceInfo {
   };
 }
 
-function convertPropertyToTypeScript(prop: Property): string {
+function convertPropertyToTypeScript(prop: Property, propertyInfo?: PropertyInfo): string {
   // Handle primitive types
   if ("PrimitiveType" in prop && prop.PrimitiveType) {
     let type = prop.PrimitiveType.toLowerCase();
@@ -46,6 +46,12 @@ function convertPropertyToTypeScript(prop: Property): string {
     } else if (type === "timestamp") {
       type = "string"; // timestamps are represented as ISO strings
     }
+    
+    // If this is a string type and we have allowed values, create a union type
+    if (type === "string" && propertyInfo?.allowedValues && propertyInfo.allowedValues.length > 0) {
+      return propertyInfo.allowedValues.map(value => `"${value.replace(/"/g, '\\"')}"`).join(" | ");
+    }
+    
     return type;
   }
   
@@ -60,6 +66,13 @@ function convertPropertyToTypeScript(prop: Property): string {
       } else if (itemType === "timestamp") {
         itemType = "string";
       }
+      
+      // If this is a string array and we have allowed values, create a union type for the items
+      if (itemType === "string" && propertyInfo?.allowedValues && propertyInfo.allowedValues.length > 0) {
+        const unionType = propertyInfo.allowedValues.map(value => `"${value.replace(/"/g, '\\"')}"`).join(" | ");
+        return `(${unionType})[]`;
+      }
+      
       return `${itemType}[]`;
     } else if ("ItemType" in prop && prop.ItemType) {
       return `${sanitizeTypeName(prop.ItemType)}[]`;
@@ -105,10 +118,10 @@ async function getEnhancedDocumentation(
   prop: Property,
   propertyName: string,
   allPropertyNames: string[]
-): Promise<string> {
-  // If there's no original documentation, return empty
+): Promise<PropertyInfo> {
+  // If there's no original documentation, return just the URL
   if (!prop.Documentation) {
-    return "";
+    return { docstring: "" };
   }
 
   // Try to get enhanced documentation from AI parsing
@@ -127,7 +140,7 @@ async function getEnhancedDocumentation(
   }
 
   // Fall back to original documentation (which is just a URL)
-  return prop.Documentation;
+  return { docstring: prop.Documentation };
 }
 
 async function generatePropsInterface(
@@ -149,14 +162,21 @@ async function generatePropsInterface(
   // Add properties with enhanced documentation
   for (const [propName, prop] of Object.entries(resourceType.Properties)) {
     // Get enhanced documentation
-    const enhancedDoc = await getEnhancedDocumentation(prop, propName, allPropertyNames);
+    const propertyInfo = await getEnhancedDocumentation(prop, propName, allPropertyNames);
     
     // Add documentation comment if available
-    if (enhancedDoc) {
-      lines.push(`  /** ${enhancedDoc} */`);
+    if (propertyInfo.docstring) {
+      let docComment = propertyInfo.docstring;
+      
+      // Add pattern information if available
+      if (propertyInfo.pattern) {
+        docComment += ` @pattern "${propertyInfo.pattern}"`;
+      }
+      
+      lines.push(`  /** ${docComment} */`);
     }
 
-    const propType = convertPropertyToTypeScript(prop);
+    const propType = convertPropertyToTypeScript(prop, propertyInfo);
     const required = prop.Required ? "" : "?";
     lines.push(`  ${propName}${required}: ${propType};`);
   }
@@ -180,14 +200,21 @@ async function generatePropertyTypeInterface(
   // Add properties with enhanced documentation
   for (const [propName, prop] of Object.entries(properties)) {
     // Get enhanced documentation
-    const enhancedDoc = await getEnhancedDocumentation(prop, propName, allPropertyNames);
+    const propertyInfo = await getEnhancedDocumentation(prop, propName, allPropertyNames);
     
     // Add documentation comment if available
-    if (enhancedDoc) {
-      lines.push(`  /** ${enhancedDoc} */`);
+    if (propertyInfo.docstring) {
+      let docComment = propertyInfo.docstring;
+      
+      // Add pattern information if available
+      if (propertyInfo.pattern) {
+        docComment += ` @pattern "${propertyInfo.pattern}"`;
+      }
+      
+      lines.push(`  /** ${docComment} */`);
     }
 
-    const propType = convertPropertyToTypeScript(prop);
+    const propType = convertPropertyToTypeScript(prop, propertyInfo);
     const required = prop.Required ? "" : "?";
     lines.push(`  ${propName}${required}: ${propType};`);
   }
