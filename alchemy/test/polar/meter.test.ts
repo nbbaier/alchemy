@@ -19,8 +19,9 @@ describe("Polar Meter Resource", () => {
   const testRunSuffix = "test1";
   const baseLogicalId = `${BRANCH_PREFIX}-test-polar-meter`;
 
-  const generateMeterName = (suffix: string | number) =>
-    `Alchemy Test Meter ${suffix}`;
+  function generateMeterName(suffix: string | number) {
+    return `Alchemy Test Meter ${suffix}`;
+  }
 
   test.skipIf(!!process.env.CI)(
     "create, update, and delete meter",

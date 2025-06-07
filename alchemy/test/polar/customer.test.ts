@@ -19,8 +19,9 @@ describe("Polar Customer Resource", () => {
   const testRunSuffix = "test1";
   const baseLogicalId = `${BRANCH_PREFIX}-test-polar-customer`;
 
-  const generateCustomerEmail = (suffix: string | number) =>
-    `alchemy-test-${suffix}@example.com`;
+  function generateCustomerEmail(suffix: string | number) {
+    return `alchemy-test-${suffix}@example.com`;
+  }
 
   test.skipIf(!!process.env.CI)(
     "create, update, and delete customer",

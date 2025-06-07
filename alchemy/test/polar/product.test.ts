@@ -19,8 +19,9 @@ describe("Polar Product Resource", () => {
   const testRunSuffix = "test1";
   const baseLogicalId = `${BRANCH_PREFIX}-test-polar-product`;
 
-  const generateProductName = (suffix: string | number) =>
-    `Alchemy Test Product ${suffix}`;
+  function generateProductName(suffix: string | number) {
+    return `Alchemy Test Product ${suffix}`;
+  }
 
   test.skipIf(!!process.env.CI)(
     "create, update, and delete product",
