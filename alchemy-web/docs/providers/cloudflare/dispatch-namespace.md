@@ -94,33 +94,3 @@ const userWorker = await Worker("user-worker", {
   namespace: userNamespace
 });
 ```
-
-The dispatcher worker code (`./src/dispatcher.ts`):
-
-```ts
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-    const userWorkerName = url.pathname.split('/')[1];
-    
-    if (userWorkerName && env.NAMESPACE) {
-      return env.NAMESPACE.get(userWorkerName).fetch(request);
-    }
-    
-    return new Response('Dispatcher worker running', { status: 200 });
-  }
-}
-```
-
-The user worker code (`./src/user-worker.ts`):
-
-```ts
-export default {
-  async fetch(request) {
-    return new Response('Hello from user worker!', { 
-      status: 200,
-      headers: { 'Content-Type': 'text/plain' }
-    });
-  }
-}
-```
