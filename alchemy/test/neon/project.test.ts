@@ -3,11 +3,11 @@ import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
 import { createNeonApi } from "../../src/neon/api.ts";
 import {
-  type NeonBranch,
-  type NeonDatabase,
-  type NeonEndpoint,
-  NeonProject,
-  type NeonRole,
+  type Branch,
+  type Database,
+  type Endpoint,
+  Project,
+  type Role,
 } from "../../src/neon/project.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 // must import this or else alchemy.test won't exist
@@ -20,7 +20,7 @@ const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
 });
 
-describe("NeonProject Resource", () => {
+describe("Project Resource", () => {
   // Use BRANCH_PREFIX for deterministic, non-colliding resource names
   const testId = `${BRANCH_PREFIX}-neon-project`;
 
@@ -28,11 +28,11 @@ describe("NeonProject Resource", () => {
   const generateProjectName = () => `Test Project ${testId}}`;
 
   test("create, update, and delete neon project", async (scope) => {
-    let project: NeonProject | undefined;
+    let project: Project | undefined;
     try {
       // Create a test Neon project with basic settings
       const projectName = generateProjectName();
-      project = await NeonProject(testId, {
+      project = await Project(testId, {
         name: projectName,
         regionId: "aws-us-east-1",
         pgVersion: 15,
@@ -47,14 +47,14 @@ describe("NeonProject Resource", () => {
 
       // Verify the additional properties are included
       expect(project.branch).toBeTruthy();
-      const branch: NeonBranch = project.branch!;
+      const branch: Branch = project.branch!;
       expect(branch.name).toBeTruthy();
       expect(branch.id).toBeTruthy();
       expect(branch.projectId).toEqual(project.id);
       expect(branch.currentState).toBeTruthy();
 
       expect(project.endpoints).toBeTruthy();
-      const endpoint: NeonEndpoint = project.endpoints![0];
+      const endpoint: Endpoint = project.endpoints![0];
       expect(endpoint.type).toEqual("read_write");
       expect(endpoint.host).toBeTruthy();
       expect(endpoint.branchId).toBeTruthy();
@@ -69,14 +69,14 @@ describe("NeonProject Resource", () => {
       );
 
       expect(project.databases).toBeTruthy();
-      const database: NeonDatabase = project.databases![0];
+      const database: Database = project.databases![0];
       expect(database.name).toBeTruthy();
       expect(database.id).toBeTruthy();
       expect(database.branchId).toBeTruthy();
       expect(database.ownerName).toBeTruthy();
 
       expect(project.roles).toBeTruthy();
-      const role: NeonRole = project.roles![0];
+      const role: Role = project.roles![0];
       expect(role.name).toBeTruthy();
       expect(role.branchId).toBeTruthy();
 
@@ -98,7 +98,7 @@ describe("NeonProject Resource", () => {
 
       // Update the project name
       const updatedName = `${generateProjectName()}-updated`;
-      project = await NeonProject(testId, {
+      project = await Project(testId, {
         name: updatedName,
         regionId: "aws-us-east-1",
         pg_version: 15,

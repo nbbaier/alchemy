@@ -2,9 +2,9 @@ import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
 import { createNeonApi } from "../../src/neon/api.ts";
-import { NeonBranch } from "../../src/neon/index.ts";
-import { NeonEndpoint } from "../../src/neon/index.ts";
-import { NeonProject } from "../../src/neon/project.ts";
+import { Branch } from "../../src/neon/index.ts";
+import { Endpoint } from "../../src/neon/index.ts";
+import { Project } from "../../src/neon/project.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 import "../../src/test/vitest.ts";
 
@@ -14,27 +14,27 @@ const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
 });
 
-describe("NeonEndpoint Resource", () => {
+describe("Endpoint Resource", () => {
   const testId = `${BRANCH_PREFIX}-neon-endpoint`;
 
   test("create, update, and delete neon endpoint", async (scope) => {
-    let project: NeonProject;
-    let branch: NeonBranch;
-    let endpoint: NeonEndpoint;
+    let project: Project;
+    let branch: Branch;
+    let endpoint: Endpoint;
 
     try {
-      project = await NeonProject(`${testId}-project`, {
+      project = await Project(`${testId}-project`, {
         name: `Test Project ${testId}`,
         regionId: "aws-us-east-1",
         pgVersion: 15,
       });
 
-      branch = await NeonBranch(`${testId}-branch`, {
+      branch = await Branch(`${testId}-branch`, {
         project: project.id,
         name: `Test Branch ${testId}`,
       });
 
-      endpoint = await NeonEndpoint(testId, {
+      endpoint = await Endpoint(testId, {
         project: project.id,
         branch: branch.id,
         type: "read_only",
@@ -61,7 +61,7 @@ describe("NeonEndpoint Resource", () => {
 
       expect(endpoint.currentState).toEqual("active");
 
-      endpoint = await NeonEndpoint(testId, {
+      endpoint = await Endpoint(testId, {
         project: project.id,
         branch: branch.id,
         type: "read_only",
@@ -96,13 +96,13 @@ describe("NeonEndpoint Resource", () => {
     let endpoint: any;
 
     try {
-      project = await NeonProject(`${testId}-project-adopt`, {
+      project = await Project(`${testId}-project-adopt`, {
         name: `Test Project Adopt ${testId}`,
         regionId: "aws-us-east-1",
         pg_version: 15,
       });
 
-      branch = await NeonBranch(`${testId}-branch-adopt`, {
+      branch = await Branch(`${testId}-branch-adopt`, {
         project: project.id,
         name: `Test Branch Adopt ${testId}`,
       });
@@ -119,7 +119,7 @@ describe("NeonEndpoint Resource", () => {
       expect(createResponse.status).toEqual(201);
       const createdEndpoint: any = await createResponse.json();
 
-      endpoint = await NeonEndpoint(`${testId}-adopt`, {
+      endpoint = await Endpoint(`${testId}-adopt`, {
         project: project.id,
         branch: branch.id,
         type: "read_only",

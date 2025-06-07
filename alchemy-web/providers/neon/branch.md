@@ -5,19 +5,19 @@ A Neon branch is a copy-on-write clone of the database. Branches allow you to cr
 ## Example
 
 ```typescript
-import { NeonProject, NeonBranch } from "alchemy/neon";
+import { Project, Branch } from "alchemy/neon";
 
-const project = await NeonProject("my-project", {
+const project = await Project("my-project", {
   name: "My Database Project",
   regionId: "aws-us-east-1",
 });
 
-const devBranch = await NeonBranch("dev-branch", {
+const devBranch = await Branch("dev-branch", {
   project: project,
   name: "development",
 });
 
-const featureBranch = await NeonBranch("feature-branch", {
+const featureBranch = await Branch("feature-branch", {
   project: project,
   name: "feature-xyz",
   parent: devBranch,

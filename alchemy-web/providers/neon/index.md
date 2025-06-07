@@ -15,23 +15,23 @@ Official documentation: [neon.tech/docs](https://neon.tech/docs)
 ## Example Usage
 
 ```ts
-import { NeonProject, NeonBranch, NeonDatabase, NeonRole, NeonEndpoint } from "alchemy/neon";
+import { Project, Branch, Database, Role, Endpoint } from "alchemy/neon";
 
 // Create a project with default settings
-const project = await NeonProject("my-app", {
+const project = await Project("my-app", {
   name: "My Application Database",
   regionId: "aws-us-east-1",
   pgVersion: 16,
 });
 
 // Create a development branch
-const devBranch = await NeonBranch("dev-branch", {
+const devBranch = await Branch("dev-branch", {
   project: project,
   name: "development",
 });
 
 // Create a database for the application
-const database = await NeonDatabase("app-db", {
+const database = await Database("app-db", {
   project: project,
   branch: devBranch,
   name: "myapp_db",
@@ -39,14 +39,14 @@ const database = await NeonDatabase("app-db", {
 });
 
 // Create an application role
-const appRole = await NeonRole("app-role", {
+const appRole = await Role("app-role", {
   project: project,
   branch: devBranch,
   name: "app_user",
 });
 
 // Create a read-write endpoint
-const endpoint = await NeonEndpoint("rw-endpoint", {
+const endpoint = await Endpoint("rw-endpoint", {
   project: project,
   branch: devBranch,
   type: "read_write",

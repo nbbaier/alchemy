@@ -7,15 +7,15 @@ import { createNeonApi, type NeonApiOptions, type NeonApi } from "./api.ts";
 import type { NeonRegion, NeonPgVersion, NeonOperation } from "./types.ts";
 
 // Forward declarations for interfaces that will be imported from their respective files
-import type { NeonBranch } from "./branch.ts";
-import type { NeonDatabase } from "./database.ts";
-import type { NeonEndpoint } from "./endpoint.ts";
-import type { NeonRole } from "./role.ts";
+import type { Branch } from "./branch.ts";
+import type { Database } from "./database.ts";
+import type { Endpoint } from "./endpoint.ts";
+import type { Role } from "./role.ts";
 
 /**
  * Properties for creating or updating a Neon project
  */
-export interface NeonProjectProps extends NeonApiOptions {
+export interface ProjectProps extends NeonApiOptions {
   /**
    * Name of the project
    */
@@ -217,9 +217,9 @@ interface NeonApiResponse {
  * Output returned after Neon project creation/update
  * IMPORTANT: The interface name MUST match the exported resource name
  */
-export interface NeonProject
+export interface Project
   extends Resource<"neon::Project">,
-    Omit<NeonProjectProps, "apiKey" | "existingProjectId"> {
+    Omit<ProjectProps, "apiKey" | "existingProjectId"> {
   /**
    * The ID of the project
    */
@@ -248,22 +248,22 @@ export interface NeonProject
   /**
    * Database roles created with the project
    */
-  roles: [NeonRole, ...NeonRole[]];
+  roles: [Role, ...Role[]];
 
   /**
    * Databases created with the project
    */
-  databases?: [NeonDatabase, ...NeonDatabase[]];
+  databases?: [Database, ...Database[]];
 
   /**
    * Default branch information
    */
-  branch?: NeonBranch;
+  branch?: Branch;
 
   /**
    * Compute endpoints for the project
    */
-  endpoints: [NeonEndpoint, ...NeonEndpoint[]];
+  endpoints: [Endpoint, ...Endpoint[]];
 }
 
 /**
@@ -271,13 +271,13 @@ export interface NeonProject
  *
  * @example
  * // Create a basic Neon project with default settings:
- * const project = await NeonProject("my-project", {
+ * const project = await Project("my-project", {
  *   name: "My Project"
  * });
  *
  * @example
  * // Create a Neon project in a specific region with a specific PostgreSQL version:
- * const euProject = await NeonProject("my-eu-project", {
+ * const euProject = await Project("my-eu-project", {
  *   name: "My EU Project",
  *   regionId: "aws-eu-west-1",
  *   pgVersion: 16,
@@ -286,18 +286,18 @@ export interface NeonProject
  *
  * @example
  * // Create a Neon project with a custom default branch name:
- * const devProject = await NeonProject("dev-project", {
+ * const devProject = await Project("dev-project", {
  *   name: "Development Project",
  *   defaultBranchName: "development"
  * });
  */
-export const NeonProject = Resource(
+export const Project = Resource(
   "neon::Project",
   async function (
-    this: Context<NeonProject>,
+    this: Context<Project>,
     id: string,
-    props: NeonProjectProps,
-  ): Promise<NeonProject> {
+    props: ProjectProps,
+  ): Promise<Project> {
     const api = createNeonApi(props);
     const projectId = props.existingProjectId || this.output?.id;
 

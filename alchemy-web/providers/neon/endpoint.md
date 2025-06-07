@@ -5,19 +5,19 @@ A Neon endpoint is a compute instance that provides access to a database branch.
 ## Example
 
 ```typescript
-import { NeonProject, NeonBranch, NeonEndpoint } from "alchemy/neon";
+import { Project, Branch, Endpoint } from "alchemy/neon";
 
-const project = await NeonProject("my-project", {
+const project = await Project("my-project", {
   name: "My Database Project",
   regionId: "aws-us-east-1",
 });
 
-const branch = await NeonBranch("my-branch", {
+const branch = await Branch("my-branch", {
   project: project,
   name: "main",
 });
 
-const readWriteEndpoint = await NeonEndpoint("rw-endpoint", {
+const readWriteEndpoint = await Endpoint("rw-endpoint", {
   project: project,
   branch: branch,
   type: "read_write",
@@ -25,7 +25,7 @@ const readWriteEndpoint = await NeonEndpoint("rw-endpoint", {
   poolerMode: "transaction",
 });
 
-const readOnlyEndpoint = await NeonEndpoint("ro-endpoint", {
+const readOnlyEndpoint = await Endpoint("ro-endpoint", {
   project: project,
   branch: branch,
   type: "read_only",

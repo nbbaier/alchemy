@@ -2,9 +2,9 @@ import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
 import { createNeonApi } from "../../src/neon/api.ts";
-import { NeonBranch } from "../../src/neon/index.ts";
-import { NeonDatabase } from "../../src/neon/index.ts";
-import { NeonProject } from "../../src/neon/project.ts";
+import { Branch } from "../../src/neon/index.ts";
+import { Database } from "../../src/neon/index.ts";
+import { Project } from "../../src/neon/project.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 import "../../src/test/vitest.ts";
 
@@ -14,30 +14,30 @@ const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
 });
 
-describe("NeonDatabase Resource", () => {
+describe("Database Resource", () => {
   const testId = `${BRANCH_PREFIX}-neon-database`;
 
   const generateDatabaseName = () => `test_db_${testId}`.replace(/-/g, "_");
 
   test("create, update, and delete neon database", async (scope) => {
-    let project: NeonProject;
-    let branch: NeonBranch;
-    let database: NeonDatabase;
+    let project: Project;
+    let branch: Branch;
+    let database: Database;
 
     try {
-      project = await NeonProject(`${testId}-project`, {
+      project = await Project(`${testId}-project`, {
         name: `Test Project ${testId}`,
         regionId: "aws-us-east-1",
         pgVersion: 15,
       });
 
-      branch = await NeonBranch(`${testId}-branch`, {
+      branch = await Branch(`${testId}-branch`, {
         project: project.id,
         name: `Test Branch ${testId}`,
       });
 
       const databaseName = generateDatabaseName();
-      database = await NeonDatabase(testId, {
+      database = await Database(testId, {
         project: project.id,
         branch: branch.id,
         name: databaseName,
@@ -65,7 +65,7 @@ describe("NeonDatabase Resource", () => {
       expect(foundDatabase.name).toEqual(databaseName);
 
       const updatedOwner = project.roles[0].name;
-      database = await NeonDatabase(testId, {
+      database = await Database(testId, {
         project: project.id,
         branch: branch.id,
         name: databaseName,
@@ -95,18 +95,18 @@ describe("NeonDatabase Resource", () => {
   });
 
   test("adopt existing database", async (scope) => {
-    let project: NeonProject;
-    let branch: NeonBranch;
-    let database: NeonDatabase;
+    let project: Project;
+    let branch: Branch;
+    let database: Database;
 
     try {
-      project = await NeonProject(`${testId}-project-adopt`, {
+      project = await Project(`${testId}-project-adopt`, {
         name: `Test Project Adopt ${testId}`,
         regionId: "aws-us-east-1",
         pgVersion: 15,
       });
 
-      branch = await NeonBranch(`${testId}-branch-adopt`, {
+      branch = await Branch(`${testId}-branch-adopt`, {
         project: project.id,
         name: `Test Branch Adopt ${testId}`,
       });
@@ -124,7 +124,7 @@ describe("NeonDatabase Resource", () => {
       expect(createResponse.status).toEqual(201);
       const createdDatabase = await createResponse.json();
 
-      database = await NeonDatabase(`${testId}-adopt`, {
+      database = await Database(`${testId}-adopt`, {
         project: project.id,
         branch: branch.id,
         name: databaseName,

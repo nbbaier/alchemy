@@ -2,22 +2,22 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { handleApiError } from "./api-error.ts";
 import { createNeonApi, type NeonApiOptions, type NeonApi } from "./api.ts";
-import type { NeonProject } from "./project.ts";
-import type { NeonBranch } from "./branch.ts";
+import type { Project } from "./project.ts";
+import type { Branch } from "./branch.ts";
 
 /**
  * Properties for creating or updating a Neon database
  */
-export interface NeonDatabaseProps extends NeonApiOptions {
+export interface DatabaseProps extends NeonApiOptions {
   /**
    * The project containing the branch
    */
-  project: string | NeonProject;
+  project: string | Project;
 
   /**
    * The branch where the database will be created
    */
-  branch: string | NeonBranch;
+  branch: string | Branch;
 
   /**
    * Name of the database
@@ -39,9 +39,9 @@ export interface NeonDatabaseProps extends NeonApiOptions {
 /**
  * A Neon database within a branch
  */
-export interface NeonDatabase
+export interface Database
   extends Resource<"neon::Database">,
-    Omit<NeonDatabaseProps, "apiKey"> {
+    Omit<DatabaseProps, "apiKey"> {
   /**
    * The database ID
    */
@@ -50,12 +50,12 @@ export interface NeonDatabase
   /**
    * The project containing this database
    */
-  project: string | NeonProject;
+  project: string | Project;
 
   /**
    * The branch containing this database
    */
-  branch: string | NeonBranch;
+  branch: string | Branch;
 
   /**
    * Name of the database
@@ -83,7 +83,7 @@ export interface NeonDatabase
  *
  * @example
  * // Create a basic database with default owner:
- * const database = await NeonDatabase("my-database", {
+ * const database = await Database("my-database", {
  *   project: project,
  *   branch: branch,
  *   name: "myapp_db",
@@ -92,7 +92,7 @@ export interface NeonDatabase
  *
  * @example
  * // Create a database with a custom owner role:
- * const database = await NeonDatabase("custom-db", {
+ * const database = await Database("custom-db", {
  *   project: project,
  *   branch: branch,
  *   name: "analytics_db",
@@ -101,7 +101,7 @@ export interface NeonDatabase
  *
  * @example
  * // Adopt an existing database if it already exists:
- * const database = await NeonDatabase("existing-db", {
+ * const database = await Database("existing-db", {
  *   project: project,
  *   branch: branch,
  *   name: "legacy_db",
@@ -109,13 +109,13 @@ export interface NeonDatabase
  *   adopt: true
  * });
  */
-export const NeonDatabase = Resource(
+export const Database = Resource(
   "neon::Database",
   async function (
-    this: Context<NeonDatabase>,
+    this: Context<Database>,
     _id: string,
-    props: NeonDatabaseProps,
-  ): Promise<NeonDatabase> {
+    props: DatabaseProps,
+  ): Promise<Database> {
     const api = createNeonApi(props);
     const databaseId = this.output?.id;
     const projectId =

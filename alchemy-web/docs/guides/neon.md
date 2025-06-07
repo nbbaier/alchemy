@@ -85,7 +85,7 @@ Create an `alchemy.run.ts` file to define your infrastructure:
 /// <reference types="node" />
 
 import alchemy from "alchemy";
-import { NeonProject, NeonBranch, NeonDatabase } from "alchemy/neon";
+import { Project, Branch, Database } from "alchemy/neon";
 import { Worker, Hyperdrive } from "alchemy/cloudflare";
 
 const app = await alchemy("my-neon-app", {
@@ -93,20 +93,20 @@ const app = await alchemy("my-neon-app", {
 });
 
 // Create a Neon PostgreSQL project
-export const project = await NeonProject("my-database", {
+export const project = await Project("my-database", {
   name: "My Application Database",
   regionId: "aws-us-east-1",
   pgVersion: 16,
 });
 
 // Create a development branch for isolated development
-export const devBranch = await NeonBranch("dev-branch", {
+export const devBranch = await Branch("dev-branch", {
   project: project,
   name: "development",
 });
 
 // Create the main application database
-export const database = await NeonDatabase("app-db", {
+export const database = await Database("app-db", {
   project: project,
   branch: devBranch,
   name: "myapp",

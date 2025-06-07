@@ -2,17 +2,17 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { handleApiError } from "./api-error.ts";
 import { createNeonApi, type NeonApiOptions, type NeonApi } from "./api.ts";
-import type { NeonProject } from "./project.ts";
+import type { Project } from "./project.ts";
 import type { BranchState, NeonOperation } from "./types.ts";
 
 /**
  * Properties for creating or updating a Neon branch
  */
-export interface NeonBranchProps extends NeonApiOptions {
+export interface BranchProps extends NeonApiOptions {
   /**
    * The project containing the branch
    */
-  project: string | NeonProject;
+  project: string | Project;
 
   /**
    * Name of the branch
@@ -22,7 +22,7 @@ export interface NeonBranchProps extends NeonApiOptions {
   /**
    * Parent branch to create this branch from
    */
-  parent?: string | NeonBranch;
+  parent?: string | Branch;
 
   /**
    * Log Sequence Number (LSN) of the parent branch to branch from
@@ -45,9 +45,9 @@ export interface NeonBranchProps extends NeonApiOptions {
 /**
  * A Neon branch for copy-on-write database clones
  */
-export interface NeonBranch
+export interface Branch
   extends Resource<"neon::Branch">,
-    Omit<NeonBranchProps, "apiKey"> {
+    Omit<BranchProps, "apiKey"> {
   /**
    * The branch ID
    */
@@ -56,12 +56,12 @@ export interface NeonBranch
   /**
    * The project containing this branch
    */
-  project: string | NeonProject;
+  project: string | Project;
 
   /**
    * Parent branch this branch was created from
    */
-  parent?: string | NeonBranch;
+  parent?: string | Branch;
 
   /**
    * Log Sequence Number (LSN) of the parent branch
@@ -155,14 +155,14 @@ export interface NeonBranch
  *
  * @example
  * // Create a basic branch from the main branch:
- * const branch = await NeonBranch("feature-branch", {
+ * const branch = await Branch("feature-branch", {
  *   project: "proj_123",
  *   name: "feature/new-feature"
  * });
  *
  * @example
  * // Create a branch from a specific parent branch:
- * const branch = await NeonBranch("dev-branch", {
+ * const branch = await Branch("dev-branch", {
  *   project: project,
  *   name: "development",
  *   parentId: "br_main_456"
@@ -170,7 +170,7 @@ export interface NeonBranch
  *
  * @example
  * // Create a branch from a specific point in time:
- * const branch = await NeonBranch("restore-branch", {
+ * const branch = await Branch("restore-branch", {
  *   project: project,
  *   name: "restore-point",
  *   parentTimestamp: "2023-12-01T10:00:00Z"
@@ -178,19 +178,19 @@ export interface NeonBranch
  *
  * @example
  * // Adopt an existing branch if it already exists:
- * const branch = await NeonBranch("existing-branch", {
+ * const branch = await Branch("existing-branch", {
  *   project: project,
  *   name: "staging",
  *   adopt: true
  * });
  */
-export const NeonBranch = Resource(
+export const Branch = Resource(
   "neon::Branch",
   async function (
-    this: Context<NeonBranch>,
+    this: Context<Branch>,
     _id: string,
-    props: NeonBranchProps,
-  ): Promise<NeonBranch> {
+    props: BranchProps,
+  ): Promise<Branch> {
     const api = createNeonApi(props);
     const branchId = this.output?.id;
     const projectId =
@@ -340,7 +340,7 @@ export const NeonBranch = Resource(
 async function createNewBranch(
   api: NeonApi,
   projectId: string,
-  props: NeonBranchProps,
+  props: BranchProps,
   parentId?: string,
 ): Promise<NeonBranchApiResponse> {
   const createPayload: CreateBranchPayload = {

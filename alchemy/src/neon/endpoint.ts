@@ -2,23 +2,23 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { handleApiError } from "./api-error.ts";
 import { createNeonApi, type NeonApiOptions, type NeonApi } from "./api.ts";
-import type { NeonProject } from "./project.ts";
-import type { NeonBranch } from "./branch.ts";
+import type { Project } from "./project.ts";
+import type { Branch } from "./branch.ts";
 import type { NeonRegion, EndpointType, EndpointState, PoolerMode, ComputeProvisioner, NeonOperation } from "./types.ts";
 
 /**
  * Properties for creating or updating a Neon endpoint
  */
-export interface NeonEndpointProps extends NeonApiOptions {
+export interface EndpointProps extends NeonApiOptions {
   /**
    * The project containing the branch
    */
-  project: string | NeonProject;
+  project: string | Project;
 
   /**
    * The branch where the endpoint will be created
    */
-  branch: string | NeonBranch;
+  branch: string | Branch;
 
   /**
    * Type of endpoint (read-write or read-only)
@@ -86,9 +86,9 @@ export interface NeonEndpointProps extends NeonApiOptions {
 /**
  * A Neon endpoint for database connections
  */
-export interface NeonEndpoint
+export interface Endpoint
   extends Resource<"neon::Endpoint">,
-    Omit<NeonEndpointProps, "apiKey"> {
+    Omit<EndpointProps, "apiKey"> {
   /**
    * Hostname for connecting to the endpoint
    */
@@ -102,12 +102,12 @@ export interface NeonEndpoint
   /**
    * The project containing this endpoint
    */
-  project: string | NeonProject;
+  project: string | Project;
 
   /**
    * The branch containing this endpoint
    */
-  branch: string | NeonBranch;
+  branch: string | Branch;
 
   /**
    * Minimum autoscaling compute units
@@ -195,7 +195,7 @@ export interface NeonEndpoint
  *
  * @example
  * // Create a basic read-write endpoint:
- * const endpoint = await NeonEndpoint("main-endpoint", {
+ * const endpoint = await Endpoint("main-endpoint", {
  *   project: project,
  *   branch: branch,
  *   type: "read_write"
@@ -203,7 +203,7 @@ export interface NeonEndpoint
  *
  * @example
  * // Create a read-only endpoint with connection pooling:
- * const endpoint = await NeonEndpoint("readonly-endpoint", {
+ * const endpoint = await Endpoint("readonly-endpoint", {
  *   project: project,
  *   branch: branch,
  *   type: "read_only",
@@ -213,7 +213,7 @@ export interface NeonEndpoint
  *
  * @example
  * // Create an endpoint with custom PostgreSQL settings:
- * const endpoint = await NeonEndpoint("custom-endpoint", {
+ * const endpoint = await Endpoint("custom-endpoint", {
  *   project: project,
  *   branch: branch,
  *   type: "read_write",
@@ -226,20 +226,20 @@ export interface NeonEndpoint
  *
  * @example
  * // Adopt an existing endpoint if it already exists:
- * const endpoint = await NeonEndpoint("existing-endpoint", {
+ * const endpoint = await Endpoint("existing-endpoint", {
  *   project: project,
  *   branch: branch,
  *   type: "read_write",
  *   adopt: true
  * });
  */
-export const NeonEndpoint = Resource(
+export const Endpoint = Resource(
   "neon::Endpoint",
   async function (
-    this: Context<NeonEndpoint>,
+    this: Context<Endpoint>,
     _id: string,
-    props: NeonEndpointProps,
-  ): Promise<NeonEndpoint> {
+    props: EndpointProps,
+  ): Promise<Endpoint> {
     const api = createNeonApi(props);
     const endpointId = this.output?.id;
     const projectId =

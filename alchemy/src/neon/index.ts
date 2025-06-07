@@ -1,17 +1,17 @@
 export * from "./api-error.ts";
 export * from "./api.ts";
 export {
-  NeonBranch,
-  type NeonBranchProps,
+  Branch,
+  type BranchProps,
 } from "./branch.ts";
 export {
-  NeonDatabase,
-  type NeonDatabaseProps,
+  Database,
+  type DatabaseProps,
 } from "./database.ts";
 export {
-  NeonEndpoint,
-  type NeonEndpointProps,
+  Endpoint,
+  type EndpointProps,
 } from "./endpoint.ts";
 export * from "./project.ts";
-export { NeonRole, type NeonRoleProps } from "./role.ts";
+export { Role, type RoleProps } from "./role.ts";
 export * from "./types.ts";

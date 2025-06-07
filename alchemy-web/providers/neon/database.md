@@ -5,19 +5,19 @@ A Neon database is a PostgreSQL database within a branch. Each branch can contai
 ## Example
 
 ```typescript
-import { NeonProject, NeonBranch, NeonDatabase } from "alchemy/neon";
+import { Project, Branch, Database } from "alchemy/neon";
 
-const project = await NeonProject("my-project", {
+const project = await Project("my-project", {
   name: "My Database Project",
   regionId: "aws-us-east-1",
 });
 
-const branch = await NeonBranch("my-branch", {
+const branch = await Branch("my-branch", {
   project: project,
   name: "main",
 });
 
-const database = await NeonDatabase("my-database", {
+const database = await Database("my-database", {
   project: project,
   branch: branch,
   name: "myapp_db",

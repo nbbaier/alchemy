@@ -2,8 +2,8 @@ import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
 import { createNeonApi } from "../../src/neon/api.ts";
-import { NeonBranch } from "../../src/neon/index.ts";
-import { NeonProject } from "../../src/neon/project.ts";
+import { Branch } from "../../src/neon/index.ts";
+import { Project } from "../../src/neon/project.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 import "../../src/test/vitest.ts";
 
@@ -13,24 +13,24 @@ const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
 });
 
-describe("NeonBranch Resource", () => {
+describe("Branch Resource", () => {
   const testId = `${BRANCH_PREFIX}-neon-branch`;
 
   const generateBranchName = () => `Test Branch ${testId}`;
 
   test("create, update, and delete neon branch", async (scope) => {
-    let project: NeonProject;
-    let branch: NeonBranch;
+    let project: Project;
+    let branch: Branch;
 
     try {
-      project = await NeonProject(`${testId}-project`, {
+      project = await Project(`${testId}-project`, {
         name: `Test Project ${testId}`,
         regionId: "aws-us-east-1",
         pgVersion: 15,
       });
 
       const branchName = generateBranchName();
-      branch = await NeonBranch(testId, {
+      branch = await Branch(testId, {
         project: project.id,
         name: branchName,
       });
@@ -54,7 +54,7 @@ describe("NeonBranch Resource", () => {
       expect(branch.currentState).toEqual("ready");
 
       const updatedName = `${generateBranchName()}-updated`;
-      branch = await NeonBranch(testId, {
+      branch = await Branch(testId, {
         project: project.id,
         name: updatedName,
       });
@@ -82,11 +82,11 @@ describe("NeonBranch Resource", () => {
   });
 
   test("adopt existing branch", async (scope) => {
-    let project: NeonProject;
-    let branch: NeonBranch;
+    let project: Project;
+    let branch: Branch;
 
     try {
-      project = await NeonProject(`${testId}-project-adopt`, {
+      project = await Project(`${testId}-project-adopt`, {
         name: `Test Project Adopt ${testId}`,
         regionId: "aws-us-east-1",
         pgVersion: 15,
@@ -102,7 +102,7 @@ describe("NeonBranch Resource", () => {
       expect(createResponse.status).toEqual(201);
       const createdBranch = await createResponse.json();
 
-      branch = await NeonBranch(`${testId}-adopt`, {
+      branch = await Branch(`${testId}-adopt`, {
         project: project.id,
         name: branchName,
         adopt: true,

@@ -3,22 +3,22 @@ import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
 import { handleApiError } from "./api-error.ts";
 import { createNeonApi, type NeonApiOptions, type NeonApi } from "./api.ts";
-import type { NeonProject } from "./project.ts";
-import type { NeonBranch } from "./branch.ts";
+import type { Project } from "./project.ts";
+import type { Branch } from "./branch.ts";
 
 /**
  * Properties for creating or updating a Neon role
  */
-export interface NeonRoleProps extends NeonApiOptions {
+export interface RoleProps extends NeonApiOptions {
   /**
    * The project containing the branch
    */
-  project: string | NeonProject;
+  project: string | Project;
 
   /**
    * The branch where the role will be created
    */
-  branch: string | NeonBranch;
+  branch: string | Branch;
 
   /**
    * Name of the role
@@ -35,18 +35,18 @@ export interface NeonRoleProps extends NeonApiOptions {
 /**
  * A Neon database role with permissions
  */
-export interface NeonRole
+export interface Role
   extends Resource<"neon::Role">,
-    Omit<NeonRoleProps, "apiKey"> {
+    Omit<RoleProps, "apiKey"> {
   /**
    * The project containing this role
    */
-  project: string | NeonProject;
+  project: string | Project;
 
   /**
    * The branch containing this role
    */
-  branch: string | NeonBranch;
+  branch: string | Branch;
 
   /**
    * Name of the role
@@ -79,7 +79,7 @@ export interface NeonRole
  *
  * @example
  * // Create a basic role for application access:
- * const role = await NeonRole("app-user", {
+ * const role = await Role("app-user", {
  *   project: project,
  *   branch: branch,
  *   name: "app_user"
@@ -87,7 +87,7 @@ export interface NeonRole
  *
  * @example
  * // Create a role for read-only access:
- * const role = await NeonRole("readonly-user", {
+ * const role = await Role("readonly-user", {
  *   project: project,
  *   branch: branch,
  *   name: "readonly_user"
@@ -95,20 +95,20 @@ export interface NeonRole
  *
  * @example
  * // Adopt an existing role if it already exists:
- * const role = await NeonRole("existing-role", {
+ * const role = await Role("existing-role", {
  *   project: project,
  *   branch: branch,
  *   name: "legacy_user",
  *   adopt: true
  * });
  */
-export const NeonRole = Resource(
+export const Role = Resource(
   "neon::Role",
   async function (
-    this: Context<NeonRole>,
+    this: Context<Role>,
     _id: string,
-    props: NeonRoleProps,
-  ): Promise<NeonRole> {
+    props: RoleProps,
+  ): Promise<Role> {
     const api = createNeonApi(props);
     const roleName = this.output?.name;
     const projectId =
