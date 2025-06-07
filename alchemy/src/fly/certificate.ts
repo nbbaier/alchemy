@@ -45,7 +45,7 @@ export interface Certificate
   /**
    * Whether certificate validation checks have passed
    */
-  check_passed: boolean;
+  checkPassed: boolean;
 
   /**
    * Certificate source
@@ -55,7 +55,7 @@ export interface Certificate
   /**
    * Time at which the certificate was created
    */
-  created_at: string;
+  createdAt: string;
 
   /**
    * Whether the certificate is configured
@@ -65,7 +65,7 @@ export interface Certificate
   /**
    * ACME error message, if any
    */
-  acme_error?: string;
+  acmeError?: string;
 
   /**
    * Whether the certificate is verified
@@ -75,17 +75,17 @@ export interface Certificate
   /**
    * Certificate authority that issued the certificate
    */
-  certificate_authority: string;
+  certificateAuthority: string;
 
   /**
    * DNS validation target (for verification)
    */
-  dns_validation_target?: string;
+  dnsValidationTarget?: string;
 
   /**
    * DNS validation hostname (for verification)
    */
-  dns_validation_hostname?: string;
+  dnsValidationHostname?: string;
 }
 
 /**
@@ -207,15 +207,15 @@ export const Certificate = Resource(
       return this({
         id: certificateData.id,
         hostname: certificateData.hostname,
-        check_passed: certificateData.check_passed || false,
+        checkPassed: certificateData.check_passed || false,
         source: certificateData.source || "unknown",
-        created_at: certificateData.created_at,
+        createdAt: certificateData.created_at,
         configured: certificateData.configured || false,
-        acme_error: certificateData.acme_error,
+        acmeError: certificateData.acme_error,
         verified: certificateData.verified || false,
-        certificate_authority: certificateData.certificate_authority || "Let's Encrypt",
-        dns_validation_target: certificateData.dns_validation_target,
-        dns_validation_hostname: certificateData.dns_validation_hostname,
+        certificateAuthority: certificateData.certificate_authority || "Let's Encrypt",
+        dnsValidationTarget: certificateData.dns_validation_target,
+        dnsValidationHostname: certificateData.dns_validation_hostname,
         // Pass through props
         app: props.app,
         type: props.type,

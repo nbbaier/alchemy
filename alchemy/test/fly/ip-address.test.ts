@@ -25,7 +25,7 @@ describe("Fly IpAddress Resource", () => {
     
     try {
       // First create an app for the IP address
-      const appName = `${testId}-app-${Date.now()}`;
+      const appName = `${testId}-app`;
       app = await App(`${testId}-app`, {
         name: appName,
         primaryRegion: "iad",

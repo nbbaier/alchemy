@@ -25,7 +25,7 @@ describe("Fly Volume Resource", () => {
     
     try {
       // First create an app for the volume
-      const appName = `${testId}-app-${Date.now()}`;
+      const appName = `${testId}-app`;
       app = await App(`${testId}-app`, {
         name: appName,
         primaryRegion: "iad",

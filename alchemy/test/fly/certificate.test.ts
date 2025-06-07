@@ -25,7 +25,7 @@ describe("Fly Certificate Resource", () => {
     
     try {
       // First create an app for the certificate
-      const appName = `${testId}-app-${Date.now()}`;
+      const appName = `${testId}-app`;
       app = await App(`${testId}-app`, {
         name: appName,
         primaryRegion: "iad",
@@ -33,7 +33,7 @@ describe("Fly Certificate Resource", () => {
 
       // Create a test certificate for a test domain
       // Note: Using a test domain that won't actually verify
-      const testHostname = `${testId}-${Date.now()}.example.com`;
+      const testHostname = `${testId}.example.com`;
       certificate = await Certificate(testId, {
         app: app,
         hostname: testHostname,

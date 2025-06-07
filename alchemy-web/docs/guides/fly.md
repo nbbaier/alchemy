@@ -48,15 +48,15 @@ Create a new Node.js project with a simple web server:
 ```sh [bun]
 mkdir my-fly-app && cd my-fly-app
 bun init -y
-bun add express
-bun add -D alchemy @types/express typescript
+bun add typescript
+bun add -D alchemy @types/node
 ```
 
 ```sh [npm]
 mkdir my-fly-app && cd my-fly-app
 npm init -y
-npm install express
-npm install --save-dev alchemy @types/express typescript
+npm install typescript
+npm install --save-dev alchemy @types/node
 ```
 
 ```sh [pnpm]

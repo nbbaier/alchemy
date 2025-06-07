@@ -28,17 +28,17 @@ export interface VolumeProps extends FlyApiOptions {
   /**
    * Size of the volume in GB
    */
-  size_gb: number;
+  sizeGb: number;
 
   /**
    * Source volume ID to clone from
    */
-  source_volume_id?: string;
+  sourceVolumeId?: string;
 
   /**
    * Snapshot ID to restore from
    */
-  snapshot_id?: string;
+  snapshotId?: string;
 
   /**
    * Whether the volume should be encrypted
@@ -50,7 +50,7 @@ export interface VolumeProps extends FlyApiOptions {
    * Whether to require unique zone placement
    * @default false
    */
-  require_unique_zone?: boolean;
+  requireUniqueZone?: boolean;
 }
 
 /**
@@ -72,7 +72,7 @@ export interface Volume
   /**
    * Size of the volume in GB
    */
-  size_gb: number;
+  sizeGb: number;
 
   /**
    * Region where the volume is located
@@ -97,27 +97,27 @@ export interface Volume
   /**
    * Attached allocation ID (if attached to a machine)
    */
-  attached_alloc_id?: string;
+  attachedAllocId?: string;
 
   /**
    * Attached machine ID (if attached to a machine)
    */
-  attached_machine_id?: string;
+  attachedMachineId?: string;
 
   /**
    * Time at which the volume was created
    */
-  created_at: string;
+  createdAt: string;
 
   /**
    * Host dedication for the volume
    */
-  host_dedication?: string;
+  hostDedication?: string;
 
   /**
    * Host dedication ID
    */
-  host_dedication_id?: string;
+  hostDedicationId?: string;
 }
 
 /**
@@ -222,17 +222,17 @@ export const Volume = Resource(
         const createPayload: any = {
           name: volumeName,
           region: props.region || "iad",
-          size_gb: props.size_gb,
+          size_gb: props.sizeGb,
           encrypted: props.encrypted ?? true,
-          require_unique_zone: props.require_unique_zone || false,
+          require_unique_zone: props.requireUniqueZone || false,
         };
 
-        if (props.source_volume_id) {
-          createPayload.source_volume_id = props.source_volume_id;
+        if (props.sourceVolumeId) {
+          createPayload.source_volume_id = props.sourceVolumeId;
         }
 
-        if (props.snapshot_id) {
-          createPayload.snapshot_id = props.snapshot_id;
+        if (props.snapshotId) {
+          createPayload.snapshot_id = props.snapshotId;
         }
 
         const createResponse = await api.post(
@@ -261,22 +261,22 @@ export const Volume = Resource(
       return this({
         id: volumeData.id,
         name: volumeData.name,
-        size_gb: volumeData.size_gb,
+        sizeGb: volumeData.size_gb,
         region: volumeData.region,
         zone: volumeData.zone,
         state: volumeData.state,
         encrypted: volumeData.encrypted,
-        attached_alloc_id: volumeData.attached_alloc_id,
-        attached_machine_id: volumeData.attached_machine_id,
-        created_at: volumeData.created_at,
-        host_dedication: volumeData.host_dedication,
-        host_dedication_id: volumeData.host_dedication_id,
+        attachedAllocId: volumeData.attached_alloc_id,
+        attachedMachineId: volumeData.attached_machine_id,
+        createdAt: volumeData.created_at,
+        hostDedication: volumeData.host_dedication,
+        hostDedicationId: volumeData.host_dedication_id,
         // Pass through props (excluding sensitive data)
         app: props.app,
         baseUrl: props.baseUrl,
-        source_volume_id: props.source_volume_id,
-        snapshot_id: props.snapshot_id,
-        require_unique_zone: props.require_unique_zone,
+        sourceVolumeId: props.sourceVolumeId,
+        snapshotId: props.snapshotId,
+        requireUniqueZone: props.requireUniqueZone,
       });
     } catch (error) {
       console.error(`Error ${this.phase} Fly.io volume '${volumeName}':`, error);

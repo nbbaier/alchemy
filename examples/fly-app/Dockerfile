@@ -1,34 +1,34 @@
-# Use Node.js Alpine image for smaller size
-FROM node:18-alpine
+# Use Bun Alpine image for smaller size and better performance
+FROM oven/bun:1-alpine
 
 # Set working directory
 WORKDIR /app
 
 # Create app user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+RUN addgroup -g 1001 -S bunjs
+RUN adduser -S bunjs -u 1001
 
 # Copy package files
-COPY package*.json ./
+COPY package.json bun.lockb* ./
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN bun install --frozen-lockfile --production
 
 # Copy application source
 COPY src/ ./src/
 
 # Create data directory and set permissions
-RUN mkdir -p /data && chown -R nodejs:nodejs /data && chown -R nodejs:nodejs /app
+RUN mkdir -p /data && chown -R bunjs:bunjs /data && chown -R bunjs:bunjs /app
 
 # Switch to non-root user
-USER nodejs
+USER bunjs
 
 # Expose port
 EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+  CMD bun -e "fetch('http://localhost:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
 # Start the application
-CMD ["node", "src/index.js"]
+CMD ["bun", "run", "src/index.ts"]

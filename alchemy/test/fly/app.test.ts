@@ -22,7 +22,7 @@ describe("Fly App Resource", () => {
     let app: App | undefined;
     try {
       // Create a test Fly app with basic settings
-      const appName = `${testId}-${Date.now()}`;
+      const appName = `${testId}-app`;
       app = await App(testId, {
         name: appName,
         primaryRegion: "iad",

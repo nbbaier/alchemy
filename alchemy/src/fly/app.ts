@@ -67,12 +67,12 @@ export interface App
   /**
    * Time at which the app was created
    */
-  created_at: string;
+  createdAt: string;
 
   /**
    * Time at which the app was last updated
    */
-  updated_at?: string;
+  updatedAt?: string;
 
   /**
    * App configuration
@@ -235,8 +235,8 @@ export const App = Resource(
           name: appData.organization?.name,
         },
         status: appData.status || "pending",
-        created_at: appData.created_at,
-        updated_at: appData.updated_at,
+        createdAt: appData.created_at,
+        updatedAt: appData.updated_at,
         config: appData.config,
         // Pass through props (excluding sensitive data)
         orgSlug: props.orgSlug,
