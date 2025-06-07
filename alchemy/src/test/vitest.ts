@@ -1,7 +1,7 @@
-import { afterAll, beforeAll, it } from "vitest";
 import path from "node:path";
+import { afterAll, beforeAll, it } from "vitest";
 import { alchemy } from "../alchemy.ts";
-import { R2RestStateStore } from "../cloudflare/r2-rest-state-store.ts";
+import { DOStateStore } from "../cloudflare/index.ts";
 import { Scope } from "../scope.ts";
 import type { StateStoreType } from "../state.ts";
 
@@ -119,15 +119,15 @@ export function test(meta: ImportMeta, defaultOptions?: TestOptions): test {
     defaultOptions.stateStore === undefined &&
     process.env.ALCHEMY_STATE_STORE === "cloudflare"
   ) {
-    defaultOptions.stateStore = (scope) =>
-      new R2RestStateStore(scope, {
-        apiKey: alchemy.secret(process.env.CLOUDFLARE_API_KEY),
-        email: process.env.CLOUDFLARE_EMAIL,
-        bucketName: process.env.CLOUDFLARE_BUCKET_NAME!,
-      });
+    defaultOptions.stateStore = (scope) => new DOStateStore(scope);
   }
 
-  test.skipIf = it.skipIf.bind(it);
+  test.skipIf = (condition: boolean) => {
+    if (condition) {
+      return (..._args: any[]) => {};
+    }
+    return test;
+  };
 
   const scope = new Scope({
     scopeName: `${defaultOptions.prefix ? `${defaultOptions.prefix}-` : ""}${path.basename(meta.filename)}`,
@@ -143,9 +143,7 @@ export function test(meta: ImportMeta, defaultOptions?: TestOptions): test {
     return afterAll(() => scope.run(() => fn(scope)));
   };
 
-  test.scope = scope;
-
-  return test as unknown as test;
+  return test as test;
 
   function test(
     ...args:
@@ -182,9 +180,15 @@ export function test(meta: ImportMeta, defaultOptions?: TestOptions): test {
 
     return it(
       testName,
-      (_ctx) => {
+      (ctx) => {
+        // Get the current describe block name from the test context
+        let describeBlockName = "";
+        if (ctx?.task?.suite?.name) {
+          describeBlockName = `${ctx.task.suite.name}/`;
+        }
+
         return alchemy.run(
-          testName,
+          `${describeBlockName}${testName}`,
           {
             ...options,
             parent: scope,

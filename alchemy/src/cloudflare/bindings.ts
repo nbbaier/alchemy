@@ -19,10 +19,10 @@ import type { KVNamespaceResource } from "./kv-namespace.ts";
 import type { PipelineResource } from "./pipeline.ts";
 import type { QueueResource } from "./queue.ts";
 import type { VectorizeIndexResource } from "./vectorize-index.ts";
-import type { WorkerStub } from "./worker-stub.ts";
-import type { Worker } from "./worker.ts";
-import type { Workflow } from "./workflow.ts";
 import type { VersionMetadata } from "./version-metadata.ts";
+import type { WorkerStub } from "./worker-stub.ts";
+import type { Worker, WorkerRef } from "./worker.ts";
+import type { Workflow } from "./workflow.ts";
 
 export type Bindings = {
   [bindingName: string]: Binding;
@@ -59,6 +59,7 @@ export type Binding =
   | VectorizeIndexResource
   | Worker
   | WorkerStub
+  | WorkerRef
   | Workflow
   | BrowserRendering
   | VersionMetadata

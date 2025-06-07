@@ -23,6 +23,7 @@ import {
   type Binding,
   type Bindings,
   Json,
+  type WorkerBindingService,
   type WorkerBindingSpec,
 } from "./bindings.ts";
 import type { Bound } from "./bound.ts";
@@ -46,7 +47,7 @@ import { isPipeline } from "./pipeline.ts";
 import {
   QueueConsumer,
   deleteQueueConsumer,
-  listQueueConsumers,
+  listQueueConsumersForWorker,
 } from "./queue-consumer.ts";
 import { type QueueResource, isQueue } from "./queue.ts";
 
@@ -384,6 +385,56 @@ export type Worker<
      */
     compatibilityFlags: string[];
   };
+
+/**
+ * Represents a reference to a Cloudflare Worker service.
+ *
+ * @template RPC - The type of the worker's RPC entrypoint, defaults to Rpc.WorkerEntrypointBranded.
+ *
+ * This interface extends all properties of WorkerBindingService except for "name".
+ * It also includes an optional __rpc__ property for type branding.
+ */
+export type WorkerRef<
+  RPC extends Rpc.WorkerEntrypointBranded = Rpc.WorkerEntrypointBranded,
+> = Omit<WorkerBindingService, "name"> & {
+  /**
+   * Optional type branding for the worker's RPC entrypoint.
+   */
+  __rpc__?: RPC;
+};
+
+/**
+ * Creates a reference to a Cloudflare Worker service.
+ *
+ * @example
+ * // Create a reference to a Cloudflare Worker service:
+ * const ref = WorkerRef({
+ *   service: "my-worker",
+ *   environment: "production",
+ *   namespace: "main"
+ * });
+ *
+ * // Optionally, you can specify only the service:
+ * const ref2 = WorkerRef({ service: "my-worker" });
+ *
+ * // You can also specify the RPC type for stronger typing:
+ * interface MyWorkerRPC extends Rpc.WorkerEntrypointBranded {
+ *   myMethod(arg: string): Promise<number>;
+ * }
+ * const typedRef = WorkerRef<MyWorkerRPC>({ service: "my-worker" });
+ */
+export function WorkerRef<
+  RPC extends Rpc.WorkerEntrypointBranded = Rpc.WorkerEntrypointBranded,
+>(options?: {
+  service: string;
+  environment?: string;
+  namespace?: string;
+}): WorkerRef<RPC> {
+  return {
+    ...options,
+    type: "service",
+  } as WorkerRef<RPC>;
+}
 
 /**
  * A Cloudflare Worker is a serverless function that can be deployed to the Cloudflare network.
@@ -870,7 +921,7 @@ export const _Worker = Resource(
 
     if (this.phase === "delete") {
       // Delete any queue consumers attached to this worker first
-      await deleteQueueConsumers(this, api, workerName);
+      await deleteQueueConsumers(api, workerName);
 
       // @ts-ignore
       await uploadWorkerScript({
@@ -880,7 +931,7 @@ export const _Worker = Resource(
         script:
           props.format === "cjs"
             ? "addEventListener('fetch', event => { event.respondWith(new Response('hello world')); });"
-            : "export default { fetch(request) { return new Response('hello world'); } }",
+            : "export default { fetch(request) { return new Response('hello world'); }, queue: () => {} }",
         bindings: {} as B,
         // we are writing a stub worker (to remove binding/event source dependencies)
         // queue consumers will no longer exist by this point
@@ -1075,7 +1126,14 @@ export async function putWorker(
 
       return formData;
     },
-    (err) => err.status === 404 || err.status === 500 || err.status === 503,
+    (err) =>
+      err.status === 404 ||
+      err.status === 500 ||
+      err.status === 503 ||
+      // this is a tranient error that cloudflare throws randomly
+      (err instanceof CloudflareApiError &&
+        err.status === 400 &&
+        err.message.match(/binding.*failed to generate/)),
     10,
     100,
   );
@@ -1249,53 +1307,15 @@ async function getWorkerBindings(api: CloudflareApi, workerName: string) {
  * @param api CloudflareApi instance
  * @param workerName Name of the worker script
  */
-async function deleteQueueConsumers<B extends Bindings>(
-  ctx: Context<Worker<B>>,
+async function deleteQueueConsumers(
   api: CloudflareApi,
   workerName: string,
 ): Promise<void> {
-  const eventSources = ctx.output?.eventSources || [];
+  const consumers = await listQueueConsumersForWorker(api, workerName);
 
-  // Extract queue IDs from event sources
-  const queueIds = eventSources.flatMap((eventSource) => {
-    if (isQueue(eventSource)) {
-      return [eventSource.id];
-    }
-    if (isQueueEventSource(eventSource)) {
-      return [eventSource.queue.id];
-    }
-    return [];
-  });
-
-  // Process each queue associated with this worker
   await Promise.all(
-    queueIds.map(async (queueId) => {
-      try {
-        // List all consumers for this queue
-        const consumers = await listQueueConsumers(api, queueId);
-
-        // Filter consumers by worker name
-        const workerConsumers = consumers.filter(
-          (consumer) => consumer.scriptName === workerName,
-        );
-
-        // Delete all consumers for this worker in parallel
-        await Promise.all(
-          workerConsumers.map(async (consumer) => {
-            console.log(
-              `Deleting queue consumer ${consumer.id} for worker ${workerName}`,
-            );
-            // Use the deleteQueueConsumer function from queue-consumer.ts
-            await deleteQueueConsumer(api, consumer.queueId, consumer.id);
-          }),
-        );
-      } catch (err) {
-        if (err instanceof CloudflareApiError && err.status === 404) {
-          // this is OK
-        } else {
-          throw err;
-        }
-      }
+    consumers.map(async (consumer) => {
+      await deleteQueueConsumer(api, consumer.queueId, consumer.consumerId);
     }),
   );
 }

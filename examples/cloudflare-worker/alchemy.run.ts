@@ -1,9 +1,9 @@
 import alchemy, { type } from "alchemy";
 import {
+  DOStateStore,
   DurableObjectNamespace,
   Queue,
   R2Bucket,
-  R2RestStateStore,
   Secret,
   SecretsStore,
   Worker,
@@ -19,7 +19,7 @@ const app = await alchemy("cloudflare-worker", {
   phase: process.argv.includes("--destroy") ? "destroy" : "up",
   stateStore:
     process.env.ALCHEMY_STATE_STORE === "cloudflare"
-      ? (scope) => new R2RestStateStore(scope)
+      ? (scope) => new DOStateStore(scope)
       : undefined,
 });
 
@@ -31,14 +31,17 @@ export const queue = await Queue<{
   adopt: true,
 });
 
-export const secretsStore = await SecretsStore(`cloudflare-worker-secrets${BRANCH_PREFIX}`, {
-  name: `cloudflare-worker-secrets${BRANCH_PREFIX}`,
-  secrets: {
-    API_KEY: alchemy.secret("example-api-key-value"),
-    DATABASE_URL: alchemy.secret("example-database-url"),
+export const secretsStore = await SecretsStore(
+  `cloudflare-worker-secrets${BRANCH_PREFIX}`,
+  {
+    name: `cloudflare-worker-secrets${BRANCH_PREFIX}`,
+    secrets: {
+      API_KEY: alchemy.secret("example-api-key-value"),
+      DATABASE_URL: alchemy.secret("example-database-url"),
+    },
+    adopt: true,
   },
-  adopt: true,
-});
+);
 
 // Example of adding individual secrets to the store
 await Secret("OAUTH_SECRET", {
