@@ -1,7 +1,7 @@
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
-import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import { createRailwayApi, handleRailwayDeleteError, type RailwayApi } from "./api.ts";
 import type { Project } from "./project.ts";
 
 export interface ServiceProps {
@@ -155,26 +155,50 @@ export const Service = Resource(
   },
 );
 
-export async function createService(api: any, props: ServiceProps) {
+const SERVICE_CREATE_MUTATION = `
+  mutation ServiceCreate($input: ServiceCreateInput!) {
+    serviceCreate(input: $input) {
+      id
+      name
+      projectId
+      sourceRepo
+      sourceRepoBranch
+      rootDirectory
+      configPath
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const SERVICE_UPDATE_MUTATION = `
+  mutation ServiceUpdate($id: String!, $input: ServiceUpdateInput!) {
+    serviceUpdate(id: $id, input: $input) {
+      id
+      name
+      projectId
+      sourceRepo
+      sourceRepoBranch
+      rootDirectory
+      configPath
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const SERVICE_DELETE_MUTATION = `
+  mutation ServiceDelete($id: String!) {
+    serviceDelete(id: $id)
+  }
+`;
+
+export async function createService(api: RailwayApi, props: ServiceProps) {
   const projectId =
     typeof props.project === "string" ? props.project : props.project.id;
 
   const response = await api.mutate(
-    `
-    mutation ServiceCreate($input: ServiceCreateInput!) {
-      serviceCreate(input: $input) {
-        id
-        name
-        projectId
-        sourceRepo
-        sourceRepoBranch
-        rootDirectory
-        configPath
-        createdAt
-        updatedAt
-      }
-    }
-    `,
+    SERVICE_CREATE_MUTATION,
     {
       input: {
         name: props.name,
@@ -195,23 +219,9 @@ export async function createService(api: any, props: ServiceProps) {
   return service;
 }
 
-export async function updateService(api: any, id: string, props: ServiceProps) {
+export async function updateService(api: RailwayApi, id: string, props: ServiceProps) {
   const response = await api.mutate(
-    `
-    mutation ServiceUpdate($id: String!, $input: ServiceUpdateInput!) {
-      serviceUpdate(id: $id, input: $input) {
-        id
-        name
-        projectId
-        sourceRepo
-        sourceRepoBranch
-        rootDirectory
-        configPath
-        createdAt
-        updatedAt
-      }
-    }
-    `,
+    SERVICE_UPDATE_MUTATION,
     {
       id,
       input: {
@@ -232,13 +242,9 @@ export async function updateService(api: any, id: string, props: ServiceProps) {
   return service;
 }
 
-export async function deleteService(api: any, id: string) {
+export async function deleteService(api: RailwayApi, id: string) {
   await api.mutate(
-    `
-    mutation ServiceDelete($id: String!) {
-      serviceDelete(id: $id)
-    }
-    `,
+    SERVICE_DELETE_MUTATION,
     { id },
   );
 }

@@ -1,7 +1,7 @@
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
-import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import { createRailwayApi, handleRailwayDeleteError, type RailwayApi } from "./api.ts";
 
 export interface ProjectProps {
   /**
@@ -51,6 +51,47 @@ export interface Project extends Resource<"railway::Project">, ProjectProps {
    */
   updatedAt: string;
 }
+
+// GraphQL operations
+const PROJECT_CREATE_MUTATION = `
+  mutation ProjectCreate($input: ProjectCreateInput!) {
+    projectCreate(input: $input) {
+      id
+      name
+      description
+      isPublic
+      teamId
+      defaultEnvironment {
+        id
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const PROJECT_UPDATE_MUTATION = `
+  mutation ProjectUpdate($id: String!, $input: ProjectUpdateInput!) {
+    projectUpdate(id: $id, input: $input) {
+      id
+      name
+      description
+      isPublic
+      teamId
+      defaultEnvironment {
+        id
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const PROJECT_DELETE_MUTATION = `
+  mutation ProjectDelete($id: String!) {
+    projectDelete(id: $id)
+  }
+`;
 
 /**
  * Create and manage Railway projects
@@ -136,33 +177,15 @@ export const Project = Resource(
   },
 );
 
-export async function createProject(api: any, props: ProjectProps) {
-  const response = await api.mutate(
-    `
-    mutation ProjectCreate($input: ProjectCreateInput!) {
-      projectCreate(input: $input) {
-        id
-        name
-        description
-        isPublic
-        teamId
-        defaultEnvironment {
-          id
-        }
-        createdAt
-        updatedAt
-      }
-    }
-    `,
-    {
-      input: {
-        name: props.name,
-        description: props.description,
-        isPublic: props.isPublic,
-        teamId: props.teamId,
-      },
+export async function createProject(api: RailwayApi, props: ProjectProps) {
+  const response = await api.mutate(PROJECT_CREATE_MUTATION, {
+    input: {
+      name: props.name,
+      description: props.description,
+      isPublic: props.isPublic,
+      teamId: props.teamId,
     },
-  );
+  });
 
   const project = response.data?.projectCreate;
   if (!project) {
@@ -172,33 +195,15 @@ export async function createProject(api: any, props: ProjectProps) {
   return project;
 }
 
-export async function updateProject(api: any, id: string, props: ProjectProps) {
-  const response = await api.mutate(
-    `
-    mutation ProjectUpdate($id: String!, $input: ProjectUpdateInput!) {
-      projectUpdate(id: $id, input: $input) {
-        id
-        name
-        description
-        isPublic
-        teamId
-        defaultEnvironment {
-          id
-        }
-        createdAt
-        updatedAt
-      }
-    }
-    `,
-    {
-      id,
-      input: {
-        name: props.name,
-        description: props.description,
-        isPublic: props.isPublic,
-      },
+export async function updateProject(api: RailwayApi, id: string, props: ProjectProps) {
+  const response = await api.mutate(PROJECT_UPDATE_MUTATION, {
+    id,
+    input: {
+      name: props.name,
+      description: props.description,
+      isPublic: props.isPublic,
     },
-  );
+  });
 
   const project = response.data?.projectUpdate;
   if (!project) {
@@ -208,13 +213,6 @@ export async function updateProject(api: any, id: string, props: ProjectProps) {
   return project;
 }
 
-export async function deleteProject(api: any, id: string) {
-  await api.mutate(
-    `
-    mutation ProjectDelete($id: String!) {
-      projectDelete(id: $id)
-    }
-    `,
-    { id },
-  );
+export async function deleteProject(api: RailwayApi, id: string) {
+  await api.mutate(PROJECT_DELETE_MUTATION, { id });
 }

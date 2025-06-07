@@ -1,7 +1,7 @@
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
-import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import { createRailwayApi, handleRailwayDeleteError, type RailwayApi } from "./api.ts";
 import type { Service } from "./service.ts";
 import type { Environment } from "./environment.ts";
 
@@ -148,7 +148,55 @@ export const ServiceDomain = Resource(
   },
 );
 
-export async function createServiceDomain(api: any, props: ServiceDomainProps) {
+const SERVICE_DOMAIN_CREATE_MUTATION = `
+  mutation ServiceDomainCreate($input: ServiceDomainCreateInput!) {
+    serviceDomainCreate(input: $input) {
+      id
+      domain
+      serviceId
+      environmentId
+      url
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const SERVICE_DOMAIN_UPDATE_MUTATION = `
+  mutation ServiceDomainUpdate($id: String!, $input: ServiceDomainUpdateInput!) {
+    serviceDomainUpdate(id: $id, input: $input) {
+      id
+      domain
+      serviceId
+      environmentId
+      url
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const SERVICE_DOMAIN_QUERY = `
+  query ServiceDomain($id: String!) {
+    serviceDomain(id: $id) {
+      id
+      domain
+      serviceId
+      environmentId
+      url
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const SERVICE_DOMAIN_DELETE_MUTATION = `
+  mutation ServiceDomainDelete($id: String!) {
+    serviceDomainDelete(id: $id)
+  }
+`;
+
+export async function createServiceDomain(api: RailwayApi, props: ServiceDomainProps) {
   const serviceId =
     typeof props.service === "string" ? props.service : props.service.id;
   const environmentId =
@@ -157,19 +205,7 @@ export async function createServiceDomain(api: any, props: ServiceDomainProps) {
       : props.environment.id;
 
   const response = await api.mutate(
-    `
-    mutation ServiceDomainCreate($input: ServiceDomainCreateInput!) {
-      serviceDomainCreate(input: $input) {
-        id
-        domain
-        serviceId
-        environmentId
-        url
-        createdAt
-        updatedAt
-      }
-    }
-    `,
+    SERVICE_DOMAIN_CREATE_MUTATION,
     {
       input: {
         domain: props.domain,
@@ -188,24 +224,12 @@ export async function createServiceDomain(api: any, props: ServiceDomainProps) {
 }
 
 export async function updateServiceDomain(
-  api: any,
+  api: RailwayApi,
   id: string,
   props: ServiceDomainProps,
 ) {
   const response = await api.mutate(
-    `
-    mutation ServiceDomainUpdate($id: String!, $input: ServiceDomainUpdateInput!) {
-      serviceDomainUpdate(id: $id, input: $input) {
-        id
-        domain
-        serviceId
-        environmentId
-        url
-        createdAt
-        updatedAt
-      }
-    }
-    `,
+    SERVICE_DOMAIN_UPDATE_MUTATION,
     {
       id,
       input: {
@@ -222,21 +246,9 @@ export async function updateServiceDomain(
   return serviceDomain;
 }
 
-export async function getServiceDomain(api: any, id: string) {
+export async function getServiceDomain(api: RailwayApi, id: string) {
   const response = await api.query(
-    `
-    query ServiceDomain($id: String!) {
-      serviceDomain(id: $id) {
-        id
-        domain
-        serviceId
-        environmentId
-        url
-        createdAt
-        updatedAt
-      }
-    }
-    `,
+    SERVICE_DOMAIN_QUERY,
     { id },
   );
 
@@ -248,13 +260,9 @@ export async function getServiceDomain(api: any, id: string) {
   return serviceDomain;
 }
 
-export async function deleteServiceDomain(api: any, id: string) {
+export async function deleteServiceDomain(api: RailwayApi, id: string) {
   await api.mutate(
-    `
-    mutation ServiceDomainDelete($id: String!) {
-      serviceDomainDelete(id: $id)
-    }
-    `,
+    SERVICE_DOMAIN_DELETE_MUTATION,
     { id },
   );
 }

@@ -1,7 +1,7 @@
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { type Secret, secret } from "../secret.ts";
-import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import { createRailwayApi, handleRailwayDeleteError, type RailwayApi } from "./api.ts";
 import type { Environment } from "./environment.ts";
 import type { Service } from "./service.ts";
 
@@ -151,7 +151,41 @@ export const Variable = Resource(
   },
 );
 
-export async function createVariable(api: any, props: VariableProps) {
+const VARIABLE_CREATE_MUTATION = `
+  mutation VariableCreate($input: VariableCreateInput!) {
+    variableCreate(input: $input) {
+      id
+      name
+      value
+      environmentId
+      serviceId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const VARIABLE_UPDATE_MUTATION = `
+  mutation VariableUpdate($id: String!, $input: VariableUpdateInput!) {
+    variableUpdate(id: $id, input: $input) {
+      id
+      name
+      value
+      environmentId
+      serviceId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const VARIABLE_DELETE_MUTATION = `
+  mutation VariableDelete($id: String!) {
+    variableDelete(id: $id)
+  }
+`;
+
+export async function createVariable(api: RailwayApi, props: VariableProps) {
   const environmentId =
     typeof props.environment === "string"
       ? props.environment
@@ -160,19 +194,7 @@ export async function createVariable(api: any, props: VariableProps) {
     typeof props.service === "string" ? props.service : props.service.id;
 
   const response = await api.mutate(
-    `
-    mutation VariableCreate($input: VariableCreateInput!) {
-      variableCreate(input: $input) {
-        id
-        name
-        value
-        environmentId
-        serviceId
-        createdAt
-        updatedAt
-      }
-    }
-    `,
+    VARIABLE_CREATE_MUTATION,
     {
       input: {
         name: props.name,
@@ -195,24 +217,12 @@ export async function createVariable(api: any, props: VariableProps) {
 }
 
 export async function updateVariable(
-  api: any,
+  api: RailwayApi,
   id: string,
   props: VariableProps,
 ) {
   const response = await api.mutate(
-    `
-    mutation VariableUpdate($id: String!, $input: VariableUpdateInput!) {
-      variableUpdate(id: $id, input: $input) {
-        id
-        name
-        value
-        environmentId
-        serviceId
-        createdAt
-        updatedAt
-      }
-    }
-    `,
+    VARIABLE_UPDATE_MUTATION,
     {
       id,
       input: {
@@ -233,13 +243,9 @@ export async function updateVariable(
   return variable;
 }
 
-export async function deleteVariable(api: any, id: string) {
+export async function deleteVariable(api: RailwayApi, id: string) {
   await api.mutate(
-    `
-    mutation VariableDelete($id: String!) {
-      variableDelete(id: $id)
-    }
-    `,
+    VARIABLE_DELETE_MUTATION,
     { id },
   );
 }

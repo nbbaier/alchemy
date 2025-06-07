@@ -1,7 +1,7 @@
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
-import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import { createRailwayApi, handleRailwayDeleteError, type RailwayApi } from "./api.ts";
 import type { Service } from "./service.ts";
 import type { Environment } from "./environment.ts";
 
@@ -152,7 +152,43 @@ export const TcpProxy = Resource(
   },
 );
 
-export async function createTcpProxy(api: any, props: TcpProxyProps) {
+const TCP_PROXY_CREATE_MUTATION = `
+  mutation TcpProxyCreate($input: TcpProxyCreateInput!) {
+    tcpProxyCreate(input: $input) {
+      id
+      applicationPort
+      proxyPort
+      serviceId
+      environmentId
+      domain
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const TCP_PROXY_QUERY = `
+  query TcpProxy($id: String!) {
+    tcpProxy(id: $id) {
+      id
+      applicationPort
+      proxyPort
+      serviceId
+      environmentId
+      domain
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const TCP_PROXY_DELETE_MUTATION = `
+  mutation TcpProxyDelete($id: String!) {
+    tcpProxyDelete(id: $id)
+  }
+`;
+
+export async function createTcpProxy(api: RailwayApi, props: TcpProxyProps) {
   const serviceId =
     typeof props.service === "string" ? props.service : props.service.id;
   const environmentId =
@@ -161,20 +197,7 @@ export async function createTcpProxy(api: any, props: TcpProxyProps) {
       : props.environment.id;
 
   const response = await api.mutate(
-    `
-    mutation TcpProxyCreate($input: TcpProxyCreateInput!) {
-      tcpProxyCreate(input: $input) {
-        id
-        applicationPort
-        proxyPort
-        serviceId
-        environmentId
-        domain
-        createdAt
-        updatedAt
-      }
-    }
-    `,
+    TCP_PROXY_CREATE_MUTATION,
     {
       input: {
         applicationPort: props.applicationPort,
@@ -193,22 +216,9 @@ export async function createTcpProxy(api: any, props: TcpProxyProps) {
   return tcpProxy;
 }
 
-export async function getTcpProxy(api: any, id: string) {
+export async function getTcpProxy(api: RailwayApi, id: string) {
   const response = await api.query(
-    `
-    query TcpProxy($id: String!) {
-      tcpProxy(id: $id) {
-        id
-        applicationPort
-        proxyPort
-        serviceId
-        environmentId
-        domain
-        createdAt
-        updatedAt
-      }
-    }
-    `,
+    TCP_PROXY_QUERY,
     { id },
   );
 
@@ -220,13 +230,9 @@ export async function getTcpProxy(api: any, id: string) {
   return tcpProxy;
 }
 
-export async function deleteTcpProxy(api: any, id: string) {
+export async function deleteTcpProxy(api: RailwayApi, id: string) {
   await api.mutate(
-    `
-    mutation TcpProxyDelete($id: String!) {
-      tcpProxyDelete(id: $id)
-    }
-    `,
+    TCP_PROXY_DELETE_MUTATION,
     { id },
   );
 }

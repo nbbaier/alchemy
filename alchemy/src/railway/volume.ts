@@ -1,7 +1,7 @@
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
-import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import { createRailwayApi, handleRailwayDeleteError, type RailwayApi } from "./api.ts";
 import type { Project } from "./project.ts";
 import type { Environment } from "./environment.ts";
 
@@ -66,6 +66,82 @@ export interface Volume
   updatedAt: string;
 }
 
+// GraphQL operations
+const VOLUME_CREATE_MUTATION = `
+  mutation VolumeCreate($input: VolumeCreateInput!) {
+    volumeCreate(input: $input) {
+      id
+      name
+      projectId
+      environmentId
+      mountPath
+      size
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const VOLUME_UPDATE_MUTATION = `
+  mutation VolumeUpdate($id: String!, $input: VolumeUpdateInput!) {
+    volumeUpdate(id: $id, input: $input) {
+      id
+      name
+      projectId
+      environmentId
+      mountPath
+      size
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const VOLUME_DELETE_MUTATION = `
+  mutation VolumeDelete($id: String!) {
+    volumeDelete(id: $id)
+  }
+`;
+
+/**
+ * Create and manage Railway persistent volumes for data storage
+ *
+ * @example
+ * ```typescript
+ * // Create a basic volume for application data storage
+ * const dataVolume = await Volume("app-data", {
+ *   name: "application-data",
+ *   project: project,
+ *   environment: environment,
+ *   mountPath: "/var/lib/app/data",
+ *   size: 10, // 10 GB
+ * });
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Create a large volume for database storage
+ * const dbVolume = await Volume("database-storage", {
+ *   name: "postgres-data",
+ *   project: project,
+ *   environment: environment,
+ *   mountPath: "/var/lib/postgresql/data",
+ *   size: 100, // 100 GB for production database
+ * });
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Create a volume with project and environment ID strings
+ * const logsVolume = await Volume("logs-storage", {
+ *   name: "application-logs",
+ *   project: "project-id-string",
+ *   environment: "environment-id-string",
+ *   mountPath: "/var/log/app",
+ *   size: 20, // 20 GB for log retention
+ * });
+ * ```
+ */
 export const Volume = Resource(
   "railway::Volume",
   async function (
@@ -117,7 +193,7 @@ export const Volume = Resource(
   },
 );
 
-export async function createVolume(api: any, props: VolumeProps) {
+export async function createVolume(api: RailwayApi, props: VolumeProps) {
   const projectId =
     typeof props.project === "string" ? props.project : props.project.id;
   const environmentId =
@@ -125,31 +201,15 @@ export async function createVolume(api: any, props: VolumeProps) {
       ? props.environment
       : props.environment.id;
 
-  const response = await api.mutate(
-    `
-    mutation VolumeCreate($input: VolumeCreateInput!) {
-      volumeCreate(input: $input) {
-        id
-        name
-        projectId
-        environmentId
-        mountPath
-        size
-        createdAt
-        updatedAt
-      }
-    }
-    `,
-    {
-      input: {
-        name: props.name,
-        projectId: projectId,
-        environmentId: environmentId,
-        mountPath: props.mountPath,
-        size: props.size,
-      },
+  const response = await api.mutate(VOLUME_CREATE_MUTATION, {
+    input: {
+      name: props.name,
+      projectId: projectId,
+      environmentId: environmentId,
+      mountPath: props.mountPath,
+      size: props.size,
     },
-  );
+  });
 
   const volume = response.data?.volumeCreate;
   if (!volume) {
@@ -159,31 +219,15 @@ export async function createVolume(api: any, props: VolumeProps) {
   return volume;
 }
 
-export async function updateVolume(api: any, id: string, props: VolumeProps) {
-  const response = await api.mutate(
-    `
-    mutation VolumeUpdate($id: String!, $input: VolumeUpdateInput!) {
-      volumeUpdate(id: $id, input: $input) {
-        id
-        name
-        projectId
-        environmentId
-        mountPath
-        size
-        createdAt
-        updatedAt
-      }
-    }
-    `,
-    {
-      id,
-      input: {
-        name: props.name,
-        mountPath: props.mountPath,
-        size: props.size,
-      },
+export async function updateVolume(api: RailwayApi, id: string, props: VolumeProps) {
+  const response = await api.mutate(VOLUME_UPDATE_MUTATION, {
+    id,
+    input: {
+      name: props.name,
+      mountPath: props.mountPath,
+      size: props.size,
     },
-  );
+  });
 
   const volume = response.data?.volumeUpdate;
   if (!volume) {
@@ -193,13 +237,6 @@ export async function updateVolume(api: any, id: string, props: VolumeProps) {
   return volume;
 }
 
-export async function deleteVolume(api: any, id: string) {
-  await api.mutate(
-    `
-    mutation VolumeDelete($id: String!) {
-      volumeDelete(id: $id)
-    }
-    `,
-    { id },
-  );
+export async function deleteVolume(api: RailwayApi, id: string) {
+  await api.mutate(VOLUME_DELETE_MUTATION, { id });
 }

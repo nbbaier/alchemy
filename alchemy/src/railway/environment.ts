@@ -1,7 +1,7 @@
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
-import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import { createRailwayApi, handleRailwayDeleteError, type RailwayApi } from "./api.ts";
 import type { Project } from "./project.ts";
 
 export interface EnvironmentProps {
@@ -44,6 +44,37 @@ export interface Environment
    */
   updatedAt: string;
 }
+
+// GraphQL operations
+const ENVIRONMENT_CREATE_MUTATION = `
+  mutation EnvironmentCreate($input: EnvironmentCreateInput!) {
+    environmentCreate(input: $input) {
+      id
+      name
+      projectId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const ENVIRONMENT_UPDATE_MUTATION = `
+  mutation EnvironmentUpdate($id: String!, $input: EnvironmentUpdateInput!) {
+    environmentUpdate(id: $id, input: $input) {
+      id
+      name
+      projectId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const ENVIRONMENT_DELETE_MUTATION = `
+  mutation EnvironmentDelete($id: String!) {
+    environmentDelete(id: $id)
+  }
+`;
 
 /**
  * Create and manage Railway environments
@@ -121,29 +152,16 @@ export const Environment = Resource(
   },
 );
 
-export async function createEnvironment(api: any, props: EnvironmentProps) {
+export async function createEnvironment(api: RailwayApi, props: EnvironmentProps) {
   const projectId =
     typeof props.project === "string" ? props.project : props.project.id;
 
-  const response = await api.mutate(
-    `
-    mutation EnvironmentCreate($input: EnvironmentCreateInput!) {
-      environmentCreate(input: $input) {
-        id
-        name
-        projectId
-        createdAt
-        updatedAt
-      }
-    }
-    `,
-    {
-      input: {
-        name: props.name,
-        projectId: projectId,
-      },
+  const response = await api.mutate(ENVIRONMENT_CREATE_MUTATION, {
+    input: {
+      name: props.name,
+      projectId: projectId,
     },
-  );
+  });
 
   const environment = response.data?.environmentCreate;
   if (!environment) {
@@ -154,29 +172,16 @@ export async function createEnvironment(api: any, props: EnvironmentProps) {
 }
 
 export async function updateEnvironment(
-  api: any,
+  api: RailwayApi,
   id: string,
   props: EnvironmentProps,
 ) {
-  const response = await api.mutate(
-    `
-    mutation EnvironmentUpdate($id: String!, $input: EnvironmentUpdateInput!) {
-      environmentUpdate(id: $id, input: $input) {
-        id
-        name
-        projectId
-        createdAt
-        updatedAt
-      }
-    }
-    `,
-    {
-      id,
-      input: {
-        name: props.name,
-      },
+  const response = await api.mutate(ENVIRONMENT_UPDATE_MUTATION, {
+    id,
+    input: {
+      name: props.name,
     },
-  );
+  });
 
   const environment = response.data?.environmentUpdate;
   if (!environment) {
@@ -186,13 +191,6 @@ export async function updateEnvironment(
   return environment;
 }
 
-export async function deleteEnvironment(api: any, id: string) {
-  await api.mutate(
-    `
-    mutation EnvironmentDelete($id: String!) {
-      environmentDelete(id: $id)
-    }
-    `,
-    { id },
-  );
+export async function deleteEnvironment(api: RailwayApi, id: string) {
+  await api.mutate(ENVIRONMENT_DELETE_MUTATION, { id });
 }

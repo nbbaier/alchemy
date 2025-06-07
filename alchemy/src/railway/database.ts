@@ -1,7 +1,7 @@
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { type Secret, secret } from "../secret.ts";
-import { createRailwayApi, handleRailwayDeleteError } from "./api.ts";
+import { createRailwayApi, handleRailwayDeleteError, type RailwayApi } from "./api.ts";
 import type { Project } from "./project.ts";
 import type { Environment } from "./environment.ts";
 
@@ -90,6 +90,53 @@ export interface Database
    */
   updatedAt: string;
 }
+
+// GraphQL operations
+const DATABASE_CREATE_MUTATION = `
+  mutation DatabaseCreate($input: DatabaseCreateInput!) {
+    databaseCreate(input: $input) {
+      id
+      name
+      projectId
+      environmentId
+      type
+      connectionString
+      host
+      port
+      username
+      password
+      databaseName
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const DATABASE_QUERY = `
+  query Database($id: String!) {
+    database(id: $id) {
+      id
+      name
+      projectId
+      environmentId
+      type
+      connectionString
+      host
+      port
+      username
+      password
+      databaseName
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const DATABASE_DELETE_MUTATION = `
+  mutation DatabaseDelete($id: String!) {
+    databaseDelete(id: $id)
+  }
+`;
 
 /**
  * Create and manage Railway databases
@@ -188,7 +235,7 @@ export const Database = Resource(
   },
 );
 
-export async function createDatabase(api: any, props: DatabaseProps) {
+export async function createDatabase(api: RailwayApi, props: DatabaseProps) {
   const projectId =
     typeof props.project === "string" ? props.project : props.project.id;
   const environmentId =
@@ -196,35 +243,14 @@ export async function createDatabase(api: any, props: DatabaseProps) {
       ? props.environment
       : props.environment.id;
 
-  const response = await api.mutate(
-    `
-    mutation DatabaseCreate($input: DatabaseCreateInput!) {
-      databaseCreate(input: $input) {
-        id
-        name
-        projectId
-        environmentId
-        type
-        connectionString
-        host
-        port
-        username
-        password
-        databaseName
-        createdAt
-        updatedAt
-      }
-    }
-    `,
-    {
-      input: {
-        name: props.name,
-        projectId: projectId,
-        environmentId: environmentId,
-        type: props.type,
-      },
+  const response = await api.mutate(DATABASE_CREATE_MUTATION, {
+    input: {
+      name: props.name,
+      projectId: projectId,
+      environmentId: environmentId,
+      type: props.type,
     },
-  );
+  });
 
   const database = response.data?.databaseCreate;
   if (!database) {
@@ -234,29 +260,8 @@ export async function createDatabase(api: any, props: DatabaseProps) {
   return database;
 }
 
-export async function getDatabase(api: any, id: string) {
-  const response = await api.query(
-    `
-    query Database($id: String!) {
-      database(id: $id) {
-        id
-        name
-        projectId
-        environmentId
-        type
-        connectionString
-        host
-        port
-        username
-        password
-        databaseName
-        createdAt
-        updatedAt
-      }
-    }
-    `,
-    { id },
-  );
+export async function getDatabase(api: RailwayApi, id: string) {
+  const response = await api.query(DATABASE_QUERY, { id });
 
   const database = response.data?.database;
   if (!database) {
@@ -266,13 +271,6 @@ export async function getDatabase(api: any, id: string) {
   return database;
 }
 
-export async function deleteDatabase(api: any, id: string) {
-  await api.mutate(
-    `
-    mutation DatabaseDelete($id: String!) {
-      databaseDelete(id: $id)
-    }
-    `,
-    { id },
-  );
+export async function deleteDatabase(api: RailwayApi, id: string) {
+  await api.mutate(DATABASE_DELETE_MUTATION, { id });
 }
