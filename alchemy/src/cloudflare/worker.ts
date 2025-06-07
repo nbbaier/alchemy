@@ -32,6 +32,7 @@ import {
   type NoBundleResult,
   bundleWorkerScript,
 } from "./bundle/bundle-worker.ts";
+import { createWorkerDevContext } from "./bundle/bundle-worker-dev.ts";
 import { isD1Database } from "./d1-database.ts";
 import {
   DurableObjectNamespace,
@@ -806,13 +807,45 @@ export const _Worker = Resource(
     const now = Date.now();
 
     if (props.dev || this.scope.dev) {
-      const scriptContent =
-        props.script ??
-        (await bundleWorkerScript({
-          ...props,
-          compatibilityDate,
-          compatibilityFlags,
-        }));
+      let scriptContent: string | NoBundleResult;
+      let devDispose: (() => Promise<void>) | undefined;
+
+      // If entrypoint is provided, set up hot reloading with esbuild context
+      if (props.entrypoint) {
+        const devContext = await createWorkerDevContext(
+          workerName,
+          {
+            ...props,
+            entrypoint: props.entrypoint,
+            compatibilityDate,
+            compatibilityFlags,
+          },
+          async (newScript: string) => {
+            // Hot reload callback - update the miniflare worker
+            console.log(`🔥 Hot reloading worker: ${workerName}`);
+            await miniflareWorker({
+              ...rest,
+              script: newScript,
+              scriptPath: props.entrypoint!,
+              compatibilityDate,
+              compatibilityFlags,
+              workerName,
+            });
+          }
+        );
+        
+        scriptContent = devContext.initialScript;
+        devDispose = devContext.dispose;
+      } else {
+        // Fallback to one-time bundling for inline scripts
+        scriptContent =
+          props.script ??
+          (await bundleWorkerScript({
+            ...props,
+            compatibilityDate,
+            compatibilityFlags,
+          }));
+      }
 
       const { entrypoint, ...rest } = props;
 
@@ -824,6 +857,11 @@ export const _Worker = Resource(
         compatibilityFlags,
         workerName,
       });
+
+      // Store dispose function for cleanup
+      if (devDispose) {
+        this.scope.defer(devDispose);
+      }
 
       return this({
         type: "service",
