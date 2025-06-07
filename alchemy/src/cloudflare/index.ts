@@ -31,6 +31,7 @@ export * from "./react-router.ts";
 export * from "./secrets-store.ts";
 export * from "./redwood.ts";
 export * from "./route.ts";
+export * from "./secret.ts";
 export * from "./tanstack-start.ts";
 export * from "./vectorize-index.ts";
 export * from "./vectorize-metadata-index.ts";
