@@ -43,12 +43,12 @@ export POLAR_API_KEY="your_polar_api_key_here"
 Or pass it explicitly to any resource:
 
 ```ts
-import { Secret } from "alchemy";
+import alchemy from "alchemy";
 import { Customer } from "alchemy/polar";
 
 const customer = await Customer("my-customer", {
   email: "customer@example.com",
-  apiKey: Secret("POLAR_API_KEY")
+  apiKey: alchemy.secret("POLAR_API_KEY")
 });
 ```
 
@@ -219,14 +219,14 @@ const organization = await Organization("my-org", {
 
 | Resource | Description | Use Case |
 |----------|-------------|----------|
-| [Customer](../../../providers/polar/customer.md) | Customer account management | Track billing relationships |
-| [Product](../../../providers/polar/product.md) | Product catalog management | Define subscription plans and one-time products |
-| [Subscription](../../../providers/polar/subscription.md) | Recurring billing management | Handle subscription lifecycles |
-| [Order](../../../providers/polar/order.md) | One-time purchase processing | Process individual sales |
-| [Meter](../../../providers/polar/meter.md) | Usage tracking and metering | Bill based on API usage or consumption |
-| [Benefit](../../../providers/polar/benefit.md) | Customer perks and rewards | Manage Discord, GitHub, and custom benefits |
-| [Discount](../../../providers/polar/discount.md) | Promotional pricing | Create coupon codes and discounts |
-| [Organization](../../../providers/polar/organization.md) | Account settings | Configure organization-level settings |
+| [Customer](./customer.md) | Customer account management | Track billing relationships |
+| [Product](./product.md) | Product catalog management | Define subscription plans and one-time products |
+| [Subscription](./subscription.md) | Recurring billing management | Handle subscription lifecycles |
+| [Order](./order.md) | One-time purchase processing | Process individual sales |
+| [Meter](./meter.md) | Usage tracking and metering | Bill based on API usage or consumption |
+| [Benefit](./benefit.md) | Customer perks and rewards | Manage Discord, GitHub, and custom benefits |
+| [Discount](./discount.md) | Promotional pricing | Create coupon codes and discounts |
+| [Organization](./organization.md) | Account settings | Configure organization-level settings |
 
 ## Learn More
 
