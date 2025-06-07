@@ -22,7 +22,7 @@ const test = alchemy.test(import.meta, {
 
 describe("NeonProject Resource", () => {
   // Use BRANCH_PREFIX for deterministic, non-colliding resource names
-  const testId = `${BRANCH_PREFIX}-test-neon-project`;
+  const testId = `${BRANCH_PREFIX}-neon-project`;
 
   // Helper function to generate a unique project name
   const generateProjectName = () => `Test Project ${testId}}`;
@@ -35,13 +35,13 @@ describe("NeonProject Resource", () => {
       project = await NeonProject(testId, {
         name: projectName,
         regionId: "aws-us-east-1",
-        pg_version: 15,
+        pgVersion: 15,
       });
 
       expect(project.id).toBeTruthy();
       expect(project.name).toEqual(projectName);
       expect(project.regionId).toEqual("aws-us-east-1");
-      expect(project.pg_version).toEqual(15);
+      expect(project.pgVersion).toEqual(15);
       expect(project.createdAt).toBeTruthy();
       expect(project.updatedAt).toBeTruthy();
 

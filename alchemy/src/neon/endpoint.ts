@@ -4,11 +4,7 @@ import { handleApiError } from "./api-error.ts";
 import { createNeonApi, type NeonApiOptions, type NeonApi } from "./api.ts";
 import type { NeonProject } from "./project.ts";
 import type { NeonBranch } from "./branch.ts";
-
-export type EndpointType = "read_write" | "read_only";
-export type EndpointState = "init" | "active" | "idle";
-export type PoolerMode = "session" | "transaction";
-export type ComputeProvisioner = "k8s-pod" | "k8s-neonvm";
+import type { NeonRegion, EndpointType, EndpointState, PoolerMode, ComputeProvisioner, NeonOperation } from "./types.ts";
 
 /**
  * Properties for creating or updating a Neon endpoint

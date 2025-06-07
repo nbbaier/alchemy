@@ -15,20 +15,20 @@ const test = alchemy.test(import.meta, {
 });
 
 describe("NeonRole Resource", () => {
-  const testId = `${BRANCH_PREFIX}-test-neon-role`;
+  const testId = `${BRANCH_PREFIX}-neon-role`;
 
   const generateRoleName = () => `test_role_${testId}`.replace(/-/g, "_");
 
   test("create and delete neon role", async (scope) => {
-    let project: any;
-    let branch: any;
-    let role: any;
+    let project: NeonProject;
+    let branch: NeonBranch;
+    let role: NeonRole;
 
     try {
       project = await NeonProject(`${testId}-project`, {
         name: `Test Project ${testId}`,
         regionId: "aws-us-east-1",
-        pg_version: 15,
+        pgVersion: 15,
       });
 
       branch = await NeonBranch(`${testId}-branch`, {
@@ -79,7 +79,7 @@ describe("NeonRole Resource", () => {
       project = await NeonProject(`${testId}-project-adopt`, {
         name: `Test Project Adopt ${testId}`,
         regionId: "aws-us-east-1",
-        pg_version: 15,
+        pgVersion: 15,
       });
 
       branch = await NeonBranch(`${testId}-branch-adopt`, {

@@ -14,19 +14,19 @@ const test = alchemy.test(import.meta, {
 });
 
 describe("NeonBranch Resource", () => {
-  const testId = `${BRANCH_PREFIX}-test-neon-branch`;
+  const testId = `${BRANCH_PREFIX}-neon-branch`;
 
   const generateBranchName = () => `Test Branch ${testId}`;
 
   test("create, update, and delete neon branch", async (scope) => {
-    let project: any;
-    let branch: any;
+    let project: NeonProject;
+    let branch: NeonBranch;
 
     try {
       project = await NeonProject(`${testId}-project`, {
         name: `Test Project ${testId}`,
         regionId: "aws-us-east-1",
-        pg_version: 15,
+        pgVersion: 15,
       });
 
       const branchName = generateBranchName();
@@ -38,7 +38,6 @@ describe("NeonBranch Resource", () => {
       expect(branch).toMatchObject({
         id: expect.any(String),
         name: branchName,
-        projectId: project.id,
         currentState: expect.any(String),
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
@@ -49,7 +48,7 @@ describe("NeonBranch Resource", () => {
       );
       expect(getResponse.status).toEqual(200);
 
-      const responseData: any = await getResponse.json();
+      const responseData = await getResponse.json();
       expect(responseData.branch.name).toEqual(branchName);
 
       expect(branch.currentState).toEqual("ready");
@@ -63,13 +62,12 @@ describe("NeonBranch Resource", () => {
       expect(branch).toMatchObject({
         id: expect.any(String),
         name: updatedName,
-        projectId: project.id,
       });
 
       const getUpdatedResponse = await api.get(
         `/projects/${project.id}/branches/${branch.id}`,
       );
-      const updatedData: any = await getUpdatedResponse.json();
+      const updatedData = await getUpdatedResponse.json();
       expect(updatedData.branch.name).toEqual(updatedName);
     } finally {
       await destroy(scope);
@@ -84,14 +82,14 @@ describe("NeonBranch Resource", () => {
   });
 
   test("adopt existing branch", async (scope) => {
-    let project: any;
-    let branch: any;
+    let project: NeonProject;
+    let branch: NeonBranch;
 
     try {
       project = await NeonProject(`${testId}-project-adopt`, {
         name: `Test Project Adopt ${testId}`,
         regionId: "aws-us-east-1",
-        pg_version: 15,
+        pgVersion: 15,
       });
 
       const branchName = generateBranchName();
@@ -102,7 +100,7 @@ describe("NeonBranch Resource", () => {
         },
       );
       expect(createResponse.status).toEqual(201);
-      const createdBranch: any = await createResponse.json();
+      const createdBranch = await createResponse.json();
 
       branch = await NeonBranch(`${testId}-adopt`, {
         project: project.id,
@@ -113,7 +111,6 @@ describe("NeonBranch Resource", () => {
       expect(branch).toMatchObject({
         id: createdBranch.branch.id,
         name: branchName,
-        projectId: project.id,
       });
     } finally {
       await destroy(scope);

@@ -20,6 +20,6 @@ const devBranch = await NeonBranch("dev-branch", {
 const featureBranch = await NeonBranch("feature-branch", {
   project: project,
   name: "feature-xyz",
-  parentId: devBranch.id,
+  parent: devBranch,
 });
 ```

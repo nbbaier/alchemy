@@ -4,22 +4,13 @@ import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
 import { handleApiError } from "./api-error.ts";
 import { createNeonApi, type NeonApiOptions, type NeonApi } from "./api.ts";
+import type { NeonRegion, NeonPgVersion, NeonOperation } from "./types.ts";
 
-/**
- * A Neon region where projects can be provisioned
- */
-export type NeonRegion =
-  | "aws-us-east-1"
-  | "aws-us-east-2"
-  | "aws-us-west-2"
-  | "aws-eu-central-1"
-  | "aws-eu-west-2"
-  | "aws-ap-southeast-1"
-  | "aws-ap-southeast-2"
-  | "aws-sa-east-1"
-  | "azure-eastus2"
-  | "azure-westus3"
-  | "azure-gwc";
+// Forward declarations for interfaces that will be imported from their respective files
+import type { NeonBranch } from "./branch.ts";
+import type { NeonDatabase } from "./database.ts";
+import type { NeonEndpoint } from "./endpoint.ts";
+import type { NeonRole } from "./role.ts";
 
 /**
  * Properties for creating or updating a Neon project
@@ -40,19 +31,19 @@ export interface NeonProjectProps extends NeonApiOptions {
    * PostgreSQL version to use
    * @default 16
    */
-  pg_version?: 14 | 15 | 16 | 17;
+  pgVersion?: NeonPgVersion;
 
   /**
    * Whether to create a default branch and endpoint
    * @default true
    */
-  default_endpoint?: boolean;
+  defaultEndpoint?: boolean;
 
   /**
    * Default branch name
    * @default "main"
    */
-  default_branch_name?: string;
+  defaultBranchName?: string;
 
   /**
    * Existing project ID to update
@@ -62,215 +53,6 @@ export interface NeonProjectProps extends NeonApiOptions {
   existingProjectId?: string;
 }
 
-/**
- * A Neon database
- */
-export interface NeonDatabase {
-  /**
-   * Database ID
-   */
-  id: number;
-
-  /**
-   * ID of the branch this database belongs to
-   */
-  branchId: string;
-
-  /**
-   * Database name
-   */
-  name: string;
-
-  /**
-   * Name of the database owner role
-   */
-  ownerName: string;
-
-  /**
-   * Time at which the database was created
-   */
-  createdAt: string;
-
-  /**
-   * Time at which the database was last updated
-   */
-  updatedAt: string;
-}
-
-/**
- * A Neon database role
- */
-export interface NeonRole {
-  /**
-   * ID of the branch this role belongs to
-   */
-  branchId: string;
-
-  /**
-   * Role name
-   */
-  name: string;
-
-  /**
-   * Role password (only included during creation)
-   */
-  password?: string;
-
-  /**
-   * Whether this role is protected from deletion
-   */
-  protected: boolean;
-
-  /**
-   * Time at which the role was created
-   */
-  createdAt: string;
-
-  /**
-   * Time at which the role was last updated
-   */
-  updatedAt: string;
-}
-
-/**
- * A Neon branch
- */
-export interface NeonBranch {
-  /**
-   * Branch ID
-   */
-  id: string;
-
-  /**
-   * ID of the project this branch belongs to
-   */
-  projectId: string;
-
-  /**
-   * Branch name
-   */
-  name: string;
-
-  /**
-   * Current state of the branch
-   */
-  currentState: string;
-
-  /**
-   * Pending state of the branch
-   */
-  pendingState: string;
-
-  /**
-   * Time at which the branch was created
-   */
-  createdAt: string;
-
-  /**
-   * Time at which the branch was last updated
-   */
-  updatedAt: string;
-}
-
-/**
- * A Neon compute endpoint
- */
-export interface NeonEndpoint {
-  /**
-   * Endpoint ID
-   */
-  id: string;
-
-  /**
-   * Host for connecting to this endpoint
-   */
-  host: string;
-
-  /**
-   * ID of the project this endpoint belongs to
-   */
-  projectId: string;
-
-  /**
-   * ID of the branch this endpoint belongs to
-   */
-  branchId: string;
-
-  /**
-   * Endpoint type (read_write, read_only)
-   */
-  type: string;
-
-  /**
-   * Current state of the endpoint
-   */
-  currentState: string;
-
-  /**
-   * Pending state of the endpoint
-   */
-  pending_state: string;
-
-  /**
-   * Region ID where this endpoint is provisioned
-   */
-  regionId: string;
-
-  /**
-   * Minimum compute units for autoscaling
-   */
-  autoscalingLimitMinCu: number;
-
-  /**
-   * Maximum compute units for autoscaling
-   */
-  autoscalingLimitMaxCu: number;
-
-  /**
-   * Whether connection pooler is enabled
-   */
-  poolerEnabled: boolean;
-
-  /**
-   * Connection pooler mode
-   */
-  poolerMode: string;
-
-  /**
-   * Whether this endpoint is disabled
-   */
-  disabled: boolean;
-
-  /**
-   * Whether passwordless access is enabled
-   */
-  passwordlessAccess: boolean;
-
-  /**
-   * Time at which the endpoint was created
-   */
-  createdAt: string;
-
-  /**
-   * Time at which the endpoint was last updated
-   */
-  updatedAt: string;
-
-  /**
-   * Proxy host for this endpoint
-   */
-  proxyHost: string;
-
-  /**
-   * Endpoint settings
-   */
-  settings: {
-    /**
-     * PostgreSQL settings
-     */
-    pgSettings: Record<string, string>;
-  };
-}
 
 /**
  * A Neon connection URI
@@ -279,12 +61,12 @@ export interface NeonConnectionUri {
   /**
    * Connection URI string
    */
-  connection_uri: Secret;
+  connectionUri: Secret;
 
   /**
    * Connection parameters
    */
-  connection_parameters: {
+  connectionParameters: {
     database: string;
     host: string;
     port: number;
@@ -461,7 +243,7 @@ export interface NeonProject
   /**
    * Connection URIs for the databases
    */
-  connection_uris: [NeonConnectionUri, ...NeonConnectionUri[]];
+  connectionUris: [NeonConnectionUri, ...NeonConnectionUri[]];
 
   /**
    * Database roles created with the project
@@ -506,7 +288,7 @@ export interface NeonProject
  * // Create a Neon project with a custom default branch name:
  * const devProject = await NeonProject("dev-project", {
  *   name: "Development Project",
- *   default_branch_name: "development"
+ *   defaultBranchName: "development"
  * });
  */
 export const NeonProject = Resource(
@@ -611,17 +393,17 @@ export const NeonProject = Resource(
         id: response.project.id,
         name: response.project.name,
         regionId: response.project.region_id as NeonRegion,
-        pgVersion: response.project.pg_version as 14 | 15 | 16 | 17,
+        pgVersion: response.project.pg_version as NeonPgVersion,
         createdAt: response.project.createdAt,
         updatedAt: response.project.updatedAt,
         proxyHost: response.project.proxy_host,
         // Pass through the provided props except apiKey (which is sensitive)
-        default_endpoint: props.default_endpoint,
-        default_branch_name: props.default_branch_name,
+        defaultEndpoint: props.defaultEndpoint,
+        defaultBranchName: props.defaultBranchName,
         baseUrl: props.baseUrl,
         // Add all available data
         // @ts-ignore - api ensures they're non-empty
-        connection_uris: response.connection_uris,
+        connectionUris: response.connection_uris,
         // @ts-ignore
         roles: response.roles,
         // @ts-ignore
@@ -645,15 +427,15 @@ async function createNewProject(
   api: NeonApi,
   props: NeonProjectProps,
 ): Promise<NeonApiResponse> {
-  const defaultEndpoint = props.default_endpoint ?? true;
+  const defaultEndpoint = props.defaultEndpoint ?? true;
   const projectResponse = await api.post("/projects", {
     project: {
       name: props.name,
       region_id: props.regionId || "aws-us-east-1",
-      pg_version: props.pg_version || 16,
+      pg_version: props.pgVersion || 16,
       default_endpoint: defaultEndpoint,
       branch: defaultEndpoint
-        ? { name: props.default_branch_name || "main" }
+        ? { name: props.defaultBranchName || "main" }
         : undefined,
     },
   });
@@ -735,8 +517,8 @@ async function getProject(
     connection_uris: (
       updatedData.connection_uris || responseData.connection_uris
     )?.map((uri) => ({
-      connection_uri: alchemy.secret(uri.connection_uri),
-      connection_parameters: {
+      connectionUri: alchemy.secret(uri.connection_uri),
+      connectionParameters: {
         database: uri.connection_parameters.database,
         host: uri.connection_parameters.host,
         port: uri.connection_parameters.port ?? 5432,

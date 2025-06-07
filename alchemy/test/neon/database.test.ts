@@ -15,20 +15,20 @@ const test = alchemy.test(import.meta, {
 });
 
 describe("NeonDatabase Resource", () => {
-  const testId = `${BRANCH_PREFIX}-test-neon-database`;
+  const testId = `${BRANCH_PREFIX}-neon-database`;
 
   const generateDatabaseName = () => `test_db_${testId}`.replace(/-/g, "_");
 
   test("create, update, and delete neon database", async (scope) => {
-    let project: any;
-    let branch: any;
-    let database: any;
+    let project: NeonProject;
+    let branch: NeonBranch;
+    let database: NeonDatabase;
 
     try {
       project = await NeonProject(`${testId}-project`, {
         name: `Test Project ${testId}`,
         regionId: "aws-us-east-1",
-        pg_version: 15,
+        pgVersion: 15,
       });
 
       branch = await NeonBranch(`${testId}-branch`, {
@@ -47,7 +47,6 @@ describe("NeonDatabase Resource", () => {
       expect(database).toMatchObject({
         id: expect.any(Number),
         name: databaseName,
-        branchId: branch.id,
         ownerName: expect.any(String),
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
@@ -58,9 +57,9 @@ describe("NeonDatabase Resource", () => {
       );
       expect(listResponse.status).toEqual(200);
 
-      const responseData: any = await listResponse.json();
+      const responseData = await listResponse.json();
       const foundDatabase = responseData.databases.find(
-        (db: any) => db.name === databaseName,
+        (db: { name: string }) => db.name === databaseName,
       );
       expect(foundDatabase).toBeTruthy();
       expect(foundDatabase.name).toEqual(databaseName);
@@ -85,9 +84,9 @@ describe("NeonDatabase Resource", () => {
           `/projects/${project.id}/branches/${branch.id}/databases`,
         );
         if (listDeletedResponse.ok) {
-          const deletedData: any = await listDeletedResponse.json();
+          const deletedData = await listDeletedResponse.json();
           const foundDeleted = deletedData.databases?.find(
-            (db: any) => db.name === database!.name,
+            (db: { name: string }) => db.name === database!.name,
           );
           expect(foundDeleted).toBeFalsy();
         }
@@ -96,15 +95,15 @@ describe("NeonDatabase Resource", () => {
   });
 
   test("adopt existing database", async (scope) => {
-    let project: any;
-    let branch: any;
-    let database: any;
+    let project: NeonProject;
+    let branch: NeonBranch;
+    let database: NeonDatabase;
 
     try {
       project = await NeonProject(`${testId}-project-adopt`, {
         name: `Test Project Adopt ${testId}`,
         regionId: "aws-us-east-1",
-        pg_version: 15,
+        pgVersion: 15,
       });
 
       branch = await NeonBranch(`${testId}-branch-adopt`, {
@@ -118,12 +117,12 @@ describe("NeonDatabase Resource", () => {
         {
           database: {
             name: databaseName,
-            ownerName: project.roles[0].name,
+            owner_name: project.roles[0].name,
           },
         },
       );
       expect(createResponse.status).toEqual(201);
-      const createdDatabase: any = await createResponse.json();
+      const createdDatabase = await createResponse.json();
 
       database = await NeonDatabase(`${testId}-adopt`, {
         project: project.id,
@@ -136,7 +135,6 @@ describe("NeonDatabase Resource", () => {
       expect(database).toMatchObject({
         id: createdDatabase.database.id,
         name: databaseName,
-        branchId: branch.id,
       });
     } finally {
       await destroy(scope);

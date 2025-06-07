@@ -3,6 +3,7 @@ import { Resource } from "../resource.ts";
 import { handleApiError } from "./api-error.ts";
 import { createNeonApi, type NeonApiOptions, type NeonApi } from "./api.ts";
 import type { NeonProject } from "./project.ts";
+import type { BranchState, NeonOperation } from "./types.ts";
 
 /**
  * Properties for creating or updating a Neon branch
@@ -40,7 +41,6 @@ export interface NeonBranchProps extends NeonApiOptions {
   adopt?: boolean;
 }
 
-export type BranchState = "init" | "ready";
 
 /**
  * A Neon branch for copy-on-write database clones
@@ -149,21 +149,6 @@ export interface NeonBranch
   dataTransferBytes?: number;
 }
 
-/**
- * Operation details for async branch operations
- */
-interface NeonOperation {
-  id: string;
-  projectId: string;
-  branchId?: string;
-  endpointId?: string;
-  action: string;
-  status: "running" | "finished" | "failed" | "scheduling";
-  error?: string;
-  failuresCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
 
 /**
  * Creates a Neon branch for copy-on-write database clones.

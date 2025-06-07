@@ -15,18 +15,18 @@ const test = alchemy.test(import.meta, {
 });
 
 describe("NeonEndpoint Resource", () => {
-  const testId = `${BRANCH_PREFIX}-test-neon-endpoint`;
+  const testId = `${BRANCH_PREFIX}-neon-endpoint`;
 
   test("create, update, and delete neon endpoint", async (scope) => {
-    let project: any;
-    let branch: any;
-    let endpoint: any;
+    let project: NeonProject;
+    let branch: NeonBranch;
+    let endpoint: NeonEndpoint;
 
     try {
       project = await NeonProject(`${testId}-project`, {
         name: `Test Project ${testId}`,
         regionId: "aws-us-east-1",
-        pg_version: 15,
+        pgVersion: 15,
       });
 
       branch = await NeonBranch(`${testId}-branch`, {
