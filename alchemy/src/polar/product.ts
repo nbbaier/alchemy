@@ -9,29 +9,73 @@ import {
 import type { Organization } from "./organization.ts";
 
 /**
- * Properties for creating or updating a Polar Product.
+ * Properties for creating or updating a Polar Product
  */
 export interface ProductProps {
-  /** Product name (required) */
+  /** 
+   * Product name (required)
+   */
   name: string;
-  /** Product description */
+  /** 
+   * Product description shown to customers
+   */
   description?: string;
-  /** Whether this is a recurring subscription product */
+  /** 
+   * Whether this is a recurring subscription product or a one-time purchase
+   * @defaultValue false
+   */
   isRecurring?: boolean;
-  /** Whether the product is archived */
+  /** 
+   * Whether the product is archived (hidden from customers)
+   * @defaultValue false
+   */
   isArchived?: boolean;
-  /** Organization ID or Organization resource */
+  /** 
+   * Organization that owns this product. Can be an organization ID string or Organization resource.
+   */
   organization?: string | Organization;
-  /** Key-value pairs for storing additional information */
+  /** 
+   * Key-value pairs for storing additional information about the product
+   */
   metadata?: Record<string, string>;
-  /** Polar API key (overrides environment variable) */
+  /** 
+   * Polar API key (overrides environment variable)
+   */
   apiKey?: Secret;
-  /** If true, adopt existing resource if creation fails due to conflict */
+  /** 
+   * If true, adopt existing resource if creation fails due to conflict
+   */
   adopt?: boolean;
 }
 
 /**
- * Manages Polar Products for your organization.
+ * Output from the Polar Product resource
+ */
+export interface Product extends Resource<"polar::Product">, ProductProps {
+  /**
+   * The ID of the product
+   */
+  id: string;
+  /**
+   * Time at which the product was created
+   */
+  createdAt: string;
+  /**
+   * Time at which the product was last modified
+   */
+  modifiedAt: string;
+  /**
+   * ID of the organization that owns this product
+   */
+  organization: string;
+  /**
+   * Associated pricing information for the product
+   */
+  prices?: any[];
+}
+
+/**
+ * Create and manage Polar Products for your organization
  *
  * Products represent items that customers can purchase, either as one-time
  * purchases or recurring subscriptions. Products can have multiple pricing
@@ -42,31 +86,57 @@ export interface ProductProps {
  * const ebook = await Product("programming-ebook", {
  *   name: "Advanced Programming Guide",
  *   description: "Comprehensive guide to advanced programming concepts",
- *   isRecurring: false
+ *   isRecurring: false,
+ *   metadata: {
+ *     category: "education",
+ *     format: "pdf",
+ *     pages: "150"
+ *   }
  * });
  *
  * @example
  * // Create a recurring subscription product
  * const subscription = await Product("premium-plan", {
  *   name: "Premium Plan",
- *   description: "Access to premium features and content",
+ *   description: "Access to premium features and exclusive content",
  *   isRecurring: true,
  *   metadata: {
  *     tier: "premium",
- *     features: "advanced_analytics,priority_support"
+ *     features: "advanced_analytics,priority_support,api_access",
+ *     billing_cycle: "monthly"
+ *   }
+ * });
+ *
+ * @example
+ * // Create a digital course product
+ * const course = await Product("web-development-course", {
+ *   name: "Complete Web Development Course",
+ *   description: "Learn full-stack web development from scratch",
+ *   isRecurring: false,
+ *   metadata: {
+ *     category: "course",
+ *     duration: "40_hours",
+ *     level: "beginner_to_advanced",
+ *     includes: "videos,exercises,certificate"
+ *   }
+ * });
+ *
+ * @example
+ * // Create a SaaS subscription product
+ * const saasProduct = await Product("pro-saas-plan", {
+ *   name: "Professional SaaS Plan",
+ *   description: "Professional tier with advanced features and integrations",
+ *   isRecurring: true,
+ *   metadata: {
+ *     tier: "professional",
+ *     user_limit: "50",
+ *     storage: "100gb",
+ *     integrations: "unlimited"
  *   }
  * });
  *
  * @see https://docs.polar.sh/api-reference/products
  */
-export interface Product extends Resource<"polar::Product">, ProductProps {
-  id: string;
-  createdAt: string;
-  modifiedAt: string;
-  organization: string;
-  prices?: any[];
-}
-
 export const Product = Resource(
   "polar::Product",
   async function (

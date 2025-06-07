@@ -8,12 +8,15 @@ import {
   type BenefitProps,
 } from "../../src/polar/benefit.ts";
 import "../../src/test/vitest.ts";
+import { createPolarTestHelper } from "./test-helpers.ts";
 
 const BRANCH_PREFIX = process.env.BRANCH_PREFIX || "local";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
 });
+
+const { testPolarResource } = createPolarTestHelper();
 
 describe("Polar Benefit Resource", () => {
   const testRunSuffix = "test1";
@@ -22,123 +25,69 @@ describe("Polar Benefit Resource", () => {
   test.skipIf(!!process.env.CI)(
     "create, update, and delete benefit",
     async (scope) => {
-      const apiKey = process.env.POLAR_API_KEY;
-      if (!apiKey) {
-        throw new Error(
-          "POLAR_API_KEY environment variable is required for Polar integration tests.",
-        );
-      }
-      const polarClient = createPolarClient({ apiKey });
-      const logicalId = `${baseLogicalId}-${testRunSuffix}`;
-      let benefitOutput: BenefitOutput | undefined;
-
-      try {
-        const createProps: BenefitProps = {
-          type: "custom",
-          description: "Test custom benefit",
-          selectable: true,
-          deletable: true,
-          metadata: { test: "true" },
-        };
-        benefitOutput = await Benefit(logicalId, createProps);
-
-        expect(benefitOutput.id).toBeTruthy();
-        expect(benefitOutput.type).toEqual("custom");
-        expect(benefitOutput.description).toEqual("Test custom benefit");
-        expect(benefitOutput.selectable).toEqual(true);
-        expect(benefitOutput.metadata?.test).toEqual("true");
-
-        const fetchedBenefitCreate = await polarClient.get(
-          `/benefits/${benefitOutput.id}`,
-        );
-        expect(fetchedBenefitCreate.id).toEqual(benefitOutput.id);
-        expect(fetchedBenefitCreate.description).toEqual("Test custom benefit");
-
-        const updateProps: BenefitProps = {
-          ...createProps,
-          description: "Updated test benefit",
-          metadata: { test: "true", updated: "yes" },
-        };
-        benefitOutput = await Benefit(logicalId, updateProps);
-
-        expect(benefitOutput.id).toEqual(fetchedBenefitCreate.id);
-        expect(benefitOutput.description).toEqual("Updated test benefit");
-        expect(benefitOutput.metadata?.updated).toEqual("yes");
-
-        const fetchedBenefitUpdated = await polarClient.get(
-          `/benefits/${benefitOutput.id}`,
-        );
-        expect(fetchedBenefitUpdated.description).toEqual(
-          "Updated test benefit",
-        );
-      } finally {
-        await destroy(scope);
-        if (benefitOutput?.id) {
-          try {
-            await polarClient.get(`/benefits/${benefitOutput.id}`);
-            throw new Error(
-              `Benefit ${benefitOutput.id} was not deleted after destroy.`,
-            );
-          } catch (error: any) {
-            if (error.status === 404) {
-              console.log("Benefit successfully deleted");
-            } else {
-              throw error;
-            }
-          }
-        }
-      }
+      await testPolarResource(
+        scope,
+        {
+          logicalId: `${baseLogicalId}-${testRunSuffix}`,
+          resourceFn: Benefit,
+          endpoint: "benefits",
+          createProps: {
+            type: "custom",
+            description: "Test custom benefit",
+            selectable: true,
+            deletable: true,
+            metadata: { test: "true" },
+          } as BenefitProps,
+          updateProps: {
+            type: "custom",
+            description: "Updated test benefit",
+            selectable: true,
+            deletable: true,
+            metadata: { test: "true", updated: "yes" },
+          } as BenefitProps,
+          createAssertions: (output, fetched) => {
+            expect(output.id).toBeTruthy();
+            expect(output.type).toEqual("custom");
+            expect(output.description).toEqual("Test custom benefit");
+            expect(output.selectable).toEqual(true);
+            expect(output.metadata?.test).toEqual("true");
+            expect(fetched.id).toEqual(output.id);
+            expect(fetched.description).toEqual("Test custom benefit");
+          },
+          updateAssertions: (output, fetchedCreate) => {
+            expect(output.id).toEqual(fetchedCreate.id);
+            expect(output.description).toEqual("Updated test benefit");
+            expect(output.metadata?.updated).toEqual("yes");
+          },
+        },
+      );
     },
   );
 
   test.skipIf(!!process.env.CI)("create discord benefit", async (scope) => {
-    const apiKey = process.env.POLAR_API_KEY;
-    if (!apiKey) {
-      throw new Error(
-        "POLAR_API_KEY environment variable is required for Polar integration tests.",
-      );
-    }
-    const polarClient = createPolarClient({ apiKey });
     const discordSuffix = `discord-${testRunSuffix}`;
-    const logicalId = `${baseLogicalId}-${discordSuffix}`;
-    let benefitOutput: BenefitOutput | undefined;
-
-    try {
-      const createProps: BenefitProps = {
-        type: "discord",
-        description: "Discord server access",
-        properties: {
-          guild_id: "123456789",
-          role_id: "987654321",
+    await testPolarResource(
+      scope,
+      {
+        logicalId: `${baseLogicalId}-${discordSuffix}`,
+        resourceFn: Benefit,
+        endpoint: "benefits",
+        createProps: {
+          type: "discord",
+          description: "Discord server access",
+          properties: {
+            guild_id: "123456789",
+            role_id: "987654321",
+          },
+        } as BenefitProps,
+        createAssertions: (output, fetched) => {
+          expect(output.id).toBeTruthy();
+          expect(output.type).toEqual("discord");
+          expect(output.description).toEqual("Discord server access");
+          expect(output.properties?.guild_id).toEqual("123456789");
+          expect(fetched.type).toEqual("discord");
         },
-      };
-      benefitOutput = await Benefit(logicalId, createProps);
-
-      expect(benefitOutput.id).toBeTruthy();
-      expect(benefitOutput.type).toEqual("discord");
-      expect(benefitOutput.description).toEqual("Discord server access");
-      expect(benefitOutput.properties?.guild_id).toEqual("123456789");
-
-      const fetchedBenefit = await polarClient.get(
-        `/benefits/${benefitOutput.id}`,
-      );
-      expect(fetchedBenefit.type).toEqual("discord");
-    } finally {
-      await destroy(scope);
-      if (benefitOutput?.id) {
-        try {
-          await polarClient.get(`/benefits/${benefitOutput.id}`);
-          throw new Error(
-            `Benefit ${benefitOutput.id} was not deleted after destroy.`,
-          );
-        } catch (error: any) {
-          if (error.status === 404) {
-            console.log("Benefit successfully deleted");
-          } else {
-            throw error;
-          }
-        }
-      }
-    }
+      },
+    );
   });
 });

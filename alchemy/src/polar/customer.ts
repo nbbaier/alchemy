@@ -8,26 +8,59 @@ import {
 } from "./client.ts";
 
 /**
- * Properties for creating or updating a Polar Customer.
+ * Properties for creating or updating a Polar Customer
  */
 export interface CustomerProps {
-  /** Customer's email address (required) */
+  /** 
+   * Customer's email address (required for customer creation)
+   */
   email: string;
-  /** Customer's display name */
+  /** 
+   * Customer's display name or full name
+   */
   name?: string;
-  /** Key-value pairs for storing additional information */
+  /** 
+   * Key-value pairs for storing additional information about the customer
+   */
   metadata?: Record<string, string>;
-  /** Polar API key (overrides environment variable) */
+  /** 
+   * Polar API key (overrides environment variable)
+   */
   apiKey?: Secret;
-  /** If true, adopt existing resource if creation fails due to conflict */
+  /** 
+   * If true, adopt existing resource if creation fails due to conflict
+   */
   adopt?: boolean;
 }
 
 /**
- * Manages Polar Customers for your organization.
+ * Output from the Polar Customer resource
+ */
+export interface Customer extends Resource<"polar::Customer">, CustomerProps {
+  /**
+   * The ID of the customer
+   */
+  id: string;
+  /**
+   * Time at which the customer was created
+   */
+  createdAt: string;
+  /**
+   * Time at which the customer was last modified
+   */
+  modifiedAt: string;
+  /**
+   * ID of the organization that owns this customer
+   */
+  organization: string;
+}
+
+/**
+ * Create and manage Polar Customers for your organization
  *
  * Customers represent individuals or entities that can purchase products,
  * subscribe to services, and receive benefits in your Polar organization.
+ * Each customer is uniquely identified by their email address.
  *
  * @example
  * // Create a basic customer
@@ -37,25 +70,46 @@ export interface CustomerProps {
  * });
  *
  * @example
- * // Create a customer with metadata
- * const customerWithMetadata = await Customer("premium-customer", {
- *   email: "premium@example.com",
- *   name: "Premium User",
+ * // Create a customer with comprehensive metadata
+ * const enterpriseCustomer = await Customer("enterprise-client", {
+ *   email: "billing@acmecorp.com",
+ *   name: "Acme Corporation",
  *   metadata: {
- *     source: "website",
- *     plan: "premium"
+ *     company: "Acme Corporation",
+ *     industry: "Technology",
+ *     plan: "enterprise",
+ *     source: "sales_team",
+ *     account_manager: "jane_smith"
+ *   }
+ * });
+ *
+ * @example
+ * // Create a customer for tracking trial users
+ * const trialCustomer = await Customer("trial-user", {
+ *   email: "trial@startup.com",
+ *   name: "Trial User",
+ *   metadata: {
+ *     status: "trial",
+ *     trial_start: "2024-01-15",
+ *     trial_end: "2024-01-29",
+ *     conversion_target: "premium_plan"
+ *   }
+ * });
+ *
+ * @example
+ * // Create a customer with adoption enabled (will find existing if email matches)
+ * const adoptableCustomer = await Customer("existing-customer", {
+ *   email: "existing@customer.com",
+ *   name: "Existing Customer",
+ *   adopt: true,
+ *   metadata: {
+ *     updated_via: "api",
+ *     import_source: "legacy_system"
  *   }
  * });
  *
  * @see https://docs.polar.sh/api-reference/customers
  */
-export interface Customer extends Resource<"polar::Customer">, CustomerProps {
-  id: string;
-  createdAt: string;
-  modifiedAt: string;
-  organization: string;
-}
-
 export const Customer = Resource(
   "polar::Customer",
   async function (
