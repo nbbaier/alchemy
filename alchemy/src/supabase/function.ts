@@ -14,7 +14,7 @@ import {
   type SupabaseApi,
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
-import type { ProjectResource } from "./project.ts";
+import type { Project } from "./project.ts";
 import { Bundle, type BundleProps } from "../esbuild/bundle.ts";
 import fs from "node:fs/promises";
 
@@ -25,7 +25,7 @@ export interface FunctionProps extends SupabaseApiOptions {
   /**
    * Reference to the project (string ID or Project resource)
    */
-  project: string | ProjectResource;
+  project: string | Project;
 
   /**
    * Name of the function (optional, defaults to resource ID)
@@ -99,7 +99,7 @@ export interface FunctionProps extends SupabaseApiOptions {
 /**
  * Supabase Edge Function resource
  */
-export interface FunctionResource extends Resource<"supabase::Function"> {
+export interface Function extends Resource<"supabase::Function"> {
   /**
    * Unique identifier of the function
    */
@@ -139,22 +139,31 @@ export interface FunctionResource extends Resource<"supabase::Function"> {
 /**
  * Type guard to check if a resource is a Function
  */
-export function isFunction(resource: Resource): resource is FunctionResource {
+export function isFunction(resource: Resource): resource is Function {
   return resource[ResourceKind] === "supabase::Function";
 }
 
 /**
- * Create and manage Supabase Edge Functions
+ * A Supabase Edge Function is a serverless TypeScript function that runs on the edge,
+ * close to your users for minimal latency.
  *
  * @example
  * // Create a function with file-based entrypoint (recommended):
+ * import { Function, Project } from "alchemy/supabase";
+ *
+ * const project = Project("my-project", {
+ *   organization: "org-123",
+ *   region: "us-east-1",
+ *   dbPass: secret("secure-password")
+ * });
+ *
  * const func = Function("api-handler", {
- *   project: myProject,
+ *   project,
  *   main: "./functions/api-handler.ts"
  * });
  *
  * @example
- * // Create a function with bundle configuration:
+ * // Create a function with bundle configuration for optimization:
  * const func = Function("optimized-api", {
  *   project: "proj-123",
  *   main: "./src/api.ts",
@@ -165,7 +174,7 @@ export function isFunction(resource: Resource): resource is FunctionResource {
  * });
  *
  * @example
- * // Create a function with inline script:
+ * // Create a function with inline script for simple cases:
  * const func = Function("simple-function", {
  *   project: "proj-123",
  *   script: `export default async function handler(req) {
@@ -176,10 +185,10 @@ export function isFunction(resource: Resource): resource is FunctionResource {
 export const Function = Resource(
   "supabase::Function",
   async function (
-    this: Context<FunctionResource>,
+    this: Context<Function>,
     id: string,
     props: FunctionProps,
-  ): Promise<FunctionResource> {
+  ): Promise<Function> {
     const api = await createSupabaseApi(props);
     const name = props.name ?? id;
     const projectRef =
@@ -244,7 +253,7 @@ async function createFunction(
   api: SupabaseApi,
   projectRef: string,
   params: any,
-): Promise<FunctionResource> {
+): Promise<Function> {
   const response = await api.post(`/projects/${projectRef}/functions`, params);
   if (!response.ok) {
     await handleApiError(response, "creating", "function", params.name);
@@ -257,7 +266,7 @@ async function getFunction(
   api: SupabaseApi,
   projectRef: string,
   slug: string,
-): Promise<FunctionResource> {
+): Promise<Function> {
   const response = await api.get(`/projects/${projectRef}/functions/${slug}`);
   if (!response.ok) {
     await handleApiError(response, "getting", "function", slug);
@@ -298,7 +307,7 @@ async function findFunctionByName(
   api: SupabaseApi,
   projectRef: string,
   name: string,
-): Promise<FunctionResource | null> {
+): Promise<Function | null> {
   const response = await api.get(`/projects/${projectRef}/functions`);
   if (!response.ok) {
     await handleApiError(response, "listing", "functions");
@@ -348,7 +357,7 @@ async function bundleSupabaseFunction(
   }
 }
 
-function mapFunctionResponse(data: any): FunctionResource {
+function mapFunctionResponse(data: any): Function {
   return {
     [ResourceKind]: "supabase::Function",
     [ResourceID]: data.id,

@@ -8,13 +8,14 @@ import {
   ResourceSeq,
 } from "../resource.ts";
 import { Scope } from "../scope.ts";
-
+import { Secret } from "../secret.ts";
 import {
   createSupabaseApi,
   type SupabaseApiOptions,
   type SupabaseApi,
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
+import type { Organization } from "./organization.ts";
 
 /**
  * Properties for creating or updating a Supabase Project
@@ -26,9 +27,9 @@ export interface ProjectProps extends SupabaseApiOptions {
   name?: string;
 
   /**
-   * ID of the organization that will own this project
+   * Organization that will own this project (string ID or Organization resource)
    */
-  organizationId: string;
+  organization: string | Organization;
 
   /**
    * Region where the project will be hosted
@@ -36,9 +37,9 @@ export interface ProjectProps extends SupabaseApiOptions {
   region: string;
 
   /**
-   * Database password for the project
+   * Database password for the project (sensitive value)
    */
-  dbPass: string;
+  dbPass: Secret;
 
   /**
    * Desired instance size for the project
@@ -64,7 +65,7 @@ export interface ProjectProps extends SupabaseApiOptions {
 /**
  * Supabase Project resource
  */
-export interface ProjectResource extends Resource<"supabase::Project"> {
+export interface Project extends Resource<"supabase::Project"> {
   /**
    * Unique identifier of the project
    */
@@ -121,25 +122,35 @@ export interface ProjectResource extends Resource<"supabase::Project"> {
   };
 }
 
-export function isProject(resource: Resource): resource is ProjectResource {
+export function isProject(resource: Resource): resource is Project {
   return resource[ResourceKind] === "supabase::Project";
 }
 
 /**
- * Create and manage Supabase Projects
+ * A Supabase Project provides a backend environment for your application with PostgreSQL database,
+ * authentication, storage, and edge functions.
  *
  * @example
  * // Create a basic project:
+ * import { Project } from "alchemy/supabase";
+ * import { secret } from "alchemy";
+ *
  * const project = Project("my-project", {
- *   organizationId: "org-123",
+ *   organization: "org-123",
  *   region: "us-east-1",
  *   dbPass: secret("secure-password")
  * });
  *
  * @example
- * // Create a project with custom configuration:
+ * // Create a project with an Organization resource:
+ * import { Project, Organization } from "alchemy/supabase";
+ *
+ * const org = Organization("my-org", {
+ *   name: "My Organization"
+ * });
+ *
  * const project = Project("my-project", {
- *   organizationId: myOrg.id,
+ *   organization: org,
  *   name: "My Custom Project",
  *   region: "us-west-2",
  *   dbPass: secret("secure-password"),
@@ -149,12 +160,13 @@ export function isProject(resource: Resource): resource is ProjectResource {
 export const Project = Resource(
   "supabase::Project",
   async function (
-    this: Context<ProjectResource>,
+    this: Context<Project>,
     id: string,
     props: ProjectProps,
-  ): Promise<ProjectResource> {
+  ): Promise<Project> {
     const api = await createSupabaseApi(props);
     const name = props.name ?? id;
+    const organizationId = typeof props.organization === "string" ? props.organization : props.organization.id;
 
     if (this.phase === "delete") {
       const projectId = this.output?.id;
@@ -172,9 +184,9 @@ export const Project = Resource(
     try {
       const project = await createProject(api, {
         name,
-        organization_id: props.organizationId,
+        organization_id: organizationId,
         region: props.region,
-        db_pass: props.dbPass,
+        db_pass: props.dbPass.unencrypted,
         desired_instance_size: props.desiredInstanceSize,
         template_url: props.templateUrl,
       });
@@ -201,7 +213,7 @@ export const Project = Resource(
 async function createProject(
   api: SupabaseApi,
   params: any,
-): Promise<ProjectResource> {
+): Promise<Project> {
   const response = await api.post("/projects", params);
   if (!response.ok) {
     await handleApiError(response, "creating", "project", params.name);
@@ -225,7 +237,7 @@ async function createProject(
 async function getProject(
   api: SupabaseApi,
   ref: string,
-): Promise<ProjectResource> {
+): Promise<Project> {
   const response = await api.get(`/projects/${ref}`);
   if (!response.ok) {
     await handleApiError(response, "getting", "project", ref);
@@ -257,7 +269,7 @@ async function deleteProject(api: SupabaseApi, ref: string): Promise<void> {
 async function findProjectByName(
   api: SupabaseApi,
   name: string,
-): Promise<ProjectResource | null> {
+): Promise<Project | null> {
   const response = await api.get("/projects");
   if (!response.ok) {
     await handleApiError(response, "listing", "projects");

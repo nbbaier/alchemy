@@ -1,101 +1,66 @@
-# Supabase Project Resource
+# Project
 
-The `Project` resource manages Supabase projects, which are the main workspaces containing all Supabase services.
+A [Supabase Project](https://supabase.com/docs/guides/platform/projects) provides a backend environment for your application with PostgreSQL database, authentication, storage, and edge functions.
 
-## Usage
+## Minimal Example
 
-```typescript
+Create a basic project:
+
+```ts
+import { Project, Organization } from "alchemy/supabase";
+import { secret } from "alchemy";
+
+const org = Organization("my-org", {
+  name: "My Organization"
+});
+
+const project = Project("my-project", {
+  organization: org,
+  region: "us-east-1",
+  dbPass: secret("secure-password")
+});
+```
+
+## With Organization ID
+
+You can also reference an organization by its string ID:
+
+```ts
 import { Project } from "alchemy/supabase";
 
-// Create a new project
-const project = Project("my-app", {
-  organizationId: "org-123",
-  region: "us-east-1", 
-  dbPass: secret("secure-database-password"),
+const project = Project("my-project", {
+  organization: "org-123",
+  region: "us-east-1",
+  dbPass: secret("secure-password")
 });
+```
 
-// Create project with custom instance size
+## With Custom Instance Size
+
+Configure the compute resources for your project:
+
+```ts
+import { Project } from "alchemy/supabase";
+
 const project = Project("large-app", {
-  organizationId: "org-123",
+  organization: "org-123",
   region: "us-west-2",
   dbPass: secret("secure-password"),
-  desiredInstanceSize: "large",
+  desiredInstanceSize: "large"
 });
 ```
 
-## Properties
+## With Template
 
-### Required Properties
+Initialize your project from a template repository:
 
-- **`organizationId`** (`string`): ID of the organization that will own this project
-- **`region`** (`string`): AWS region where the project will be deployed (e.g., "us-east-1", "eu-west-1")
-- **`dbPass`** (`string`): Password for the project's PostgreSQL database
+```ts
+import { Project } from "alchemy/supabase";
 
-### Optional Properties
-
-- **`name`** (`string`): The name of the project. Defaults to the resource ID if not provided.
-- **`desiredInstanceSize`** (`string`): Desired compute instance size (e.g., "micro", "small", "medium", "large")
-- **`templateUrl`** (`string`): URL to a template repository to initialize the project with
-- **`adopt`** (`boolean`): Whether to adopt an existing project if creation fails due to name conflict. Default: `false`.
-- **`delete`** (`boolean`): Whether to delete the project when the resource is destroyed. Default: `true`.
-- **`accessToken`** (`Secret`): Supabase access token. Falls back to `SUPABASE_ACCESS_TOKEN` environment variable.
-- **`baseUrl`** (`string`): Base URL for Supabase API. Default: `https://api.supabase.com/v1`.
-
-## Resource Properties
-
-The project resource exposes the following properties:
-
-- **`id`** (`string`): Unique identifier for the project
-- **`organizationId`** (`string`): ID of the owning organization
-- **`name`** (`string`): Project name
-- **`region`** (`string`): AWS region where the project is deployed
-- **`createdAt`** (`string`): ISO timestamp when the project was created
-- **`status`** (`string`): Current project status (e.g., "ACTIVE", "PAUSED", "INACTIVE")
-- **`database`** (`object`, optional): Database configuration details including host, version, and engine
-
-## Examples
-
-### Basic Project
-
-```typescript
-const project = Project("my-app", {
-  organizationId: "org-abc123",
-  region: "us-east-1",
-  dbPass: secret("super-secure-password-123"),
-});
-```
-
-### Project with Template
-
-```typescript
 const project = Project("blog-app", {
-  organizationId: "org-abc123", 
+  organization: "org-123",
   region: "eu-west-1",
   dbPass: secret("secure-password"),
-  templateUrl: "https://github.com/supabase/supabase/tree/master/examples/nextjs-blog",
-  desiredInstanceSize: "small",
-});
-```
-
-### Project with Adoption
-
-```typescript
-// This will adopt an existing project if one with the same name already exists
-const project = Project("existing-app", {
-  organizationId: "org-abc123",
-  region: "us-west-2", 
-  dbPass: secret("password"),
-  adopt: true,
-});
-```
-
-### Project that Won't be Deleted
-
-```typescript
-const project = Project("persistent-app", {
-  organizationId: "org-abc123",
-  region: "us-east-1",
-  dbPass: secret("password"),
-  delete: false, // Project will not be deleted when resource is destroyed
+  templateUrl: "https://github.com/supabase/supabase/tree/master/examples/nextjs-blog"
 });
 ```

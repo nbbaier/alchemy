@@ -14,7 +14,8 @@ import {
   type SupabaseApi,
 } from "./api.ts";
 import { handleApiError } from "./api-error.ts";
-import type { ProjectResource } from "./project.ts";
+import type { Project } from "./project.ts";
+import { Secret as AlchemySecret } from "../secret.ts";
 
 /**
  * Properties for creating or updating Supabase Secrets
@@ -23,12 +24,12 @@ export interface SecretProps extends SupabaseApiOptions {
   /**
    * Reference to the project (string ID or Project resource)
    */
-  project: string | ProjectResource;
+  project: string | Project;
 
   /**
-   * Key-value pairs of secrets to create/update
+   * Key-value pairs of secrets to create/update (values must be Secret type for security)
    */
-  secrets: Record<string, string>;
+  secrets: Record<string, AlchemySecret>;
 
   /**
    * Whether to adopt existing secrets instead of failing on conflict
@@ -39,7 +40,7 @@ export interface SecretProps extends SupabaseApiOptions {
 /**
  * Supabase Secrets resource
  */
-export interface SecretResource extends Resource<"supabase::Secret"> {
+export interface Secret extends Resource<"supabase::Secret"> {
   /**
    * Reference to the project
    */
@@ -61,40 +62,49 @@ export interface SecretResource extends Resource<"supabase::Secret"> {
   }>;
 }
 
-export function isSecret(resource: Resource): resource is SecretResource {
+export function isSecret(resource: Resource): resource is Secret {
   return resource[ResourceKind] === "supabase::Secret";
 }
 
 /**
- * Create and manage Supabase Secrets
+ * Create and manage Supabase Secrets (environment variables) for your project.
  *
  * @example
  * // Create basic secrets:
+ * import { Secret, Project } from "alchemy/supabase";
+ * import { secret } from "alchemy";
+ *
+ * const project = Project("my-project", {
+ *   organization: "org-123",
+ *   region: "us-east-1",
+ *   dbPass: secret("secure-password")
+ * });
+ *
  * const secrets = Secret("api-keys", {
- *   project: "proj-123",
+ *   project,
  *   secrets: {
- *     "API_KEY": "secret-value",
- *     "DATABASE_URL": "postgres://..."
+ *     "API_KEY": secret("secret-value"),
+ *     "DATABASE_URL": secret("postgres://...")
  *   }
  * });
  *
  * @example
- * // Create secrets with Project resource:
+ * // Create secrets with string project ID:
  * const secrets = Secret("config", {
- *   project: myProject,
+ *   project: "proj-123",
  *   secrets: {
- *     "STRIPE_SECRET": "sk_test_...",
- *     "JWT_SECRET": "super-secret-key"
+ *     "STRIPE_SECRET": secret("sk_test_..."),
+ *     "JWT_SECRET": secret("super-secret-key")
  *   }
  * });
  */
 export const Secret = Resource(
   "supabase::Secret",
   async function (
-    this: Context<SecretResource>,
+    this: Context<Secret>,
     _id: string,
     props: SecretProps,
-  ): Promise<SecretResource> {
+  ): Promise<Secret> {
     const api = await createSupabaseApi(props);
     const projectRef =
       typeof props.project === "string" ? props.project : props.project.id;
@@ -121,7 +131,7 @@ export const Secret = Resource(
         [ResourceSeq]: 0,
         project: projectRef,
         secrets: filteredSecrets,
-      } as SecretResource);
+      } as Secret);
     }
 
     try {
@@ -138,7 +148,7 @@ export const Secret = Resource(
         [ResourceSeq]: 0,
         project: projectRef,
         secrets: filteredSecrets,
-      } as SecretResource);
+      } as Secret);
     } catch (error) {
       if (
         props.adopt &&
@@ -157,7 +167,7 @@ export const Secret = Resource(
           [ResourceSeq]: 0,
           project: projectRef,
           secrets: matchingSecrets,
-        } as SecretResource);
+        } as Secret);
       }
       throw error;
     }
@@ -167,11 +177,11 @@ export const Secret = Resource(
 async function createSecrets(
   api: SupabaseApi,
   projectRef: string,
-  secrets: Record<string, string>,
+  secrets: Record<string, AlchemySecret>,
 ): Promise<void> {
-  const secretsArray = Object.entries(secrets).map(([name, value]) => ({
+  const secretsArray = Object.entries(secrets).map(([name, secret]) => ({
     name,
-    value,
+    value: secret.unencrypted,
   }));
 
   const response = await api.post(

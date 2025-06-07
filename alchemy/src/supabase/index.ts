@@ -1,43 +1,43 @@
 export {
   Organization,
   type OrganizationProps,
-  type OrganizationResource,
+  type Organization as OrganizationResource,
   isOrganization,
 } from "./organization.ts";
 export {
   Project,
   type ProjectProps,
-  type ProjectResource,
+  type Project as ProjectResource,
   isProject,
 } from "./project.ts";
 export {
   Function,
   type FunctionProps,
-  type FunctionResource,
+  type Function as FunctionResource,
   isFunction,
 } from "./function.ts";
 export {
   Bucket,
   type BucketProps,
-  type BucketResource,
+  type Bucket as BucketResource,
   isBucket,
 } from "./bucket.ts";
 export {
   Secret,
   type SecretProps,
-  type SecretResource,
+  type Secret as SecretResource,
   isSecret,
 } from "./secret.ts";
 export {
   SSOProvider,
   type SSOProviderProps,
-  type SSOProviderResource,
+  type SSOProvider as SSOProviderResource,
   isSSOProvider,
 } from "./sso-provider.ts";
 export {
   Branch,
   type BranchProps,
-  type BranchResource,
+  type Branch as BranchResource,
   isBranch,
 } from "./branch.ts";
 export {
