@@ -567,7 +567,9 @@ export async function getZoneByDomain(
 ): Promise<Zone | null> {
   const api = await createCloudflareApi(options);
 
-  const response = await api.get(`/zones?name=${encodeURIComponent(domainName)}`);
+  const response = await api.get(
+    `/zones?name=${encodeURIComponent(domainName)}`,
+  );
 
   if (!response.ok) {
     throw new Error(
@@ -575,7 +577,8 @@ export async function getZoneByDomain(
     );
   }
 
-  const zones = ((await response.json()) as { result: CloudflareZone[] }).result;
+  const zones = ((await response.json()) as { result: CloudflareZone[] })
+    .result;
 
   if (zones.length === 0) {
     return null;
@@ -587,7 +590,6 @@ export async function getZoneByDomain(
   const settings = await getZoneSettings(api, zoneData.id);
 
   return {
-    type: "cloudflare::Zone",
     id: zoneData.id,
     name: zoneData.name,
     type: zoneData.type,
