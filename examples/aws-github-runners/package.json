@@ -1,0 +1,18 @@
+{
+  "name": "aws-github-runners",
+  "version": "1.0.0",
+  "description": "Example of setting up GitHub Actions runners on AWS EC2",
+  "main": "alchemy.run.ts",
+  "scripts": {
+    "deploy": "tsx alchemy.run.ts",
+    "destroy": "tsx alchemy.run.ts --destroy",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "alchemy": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}
