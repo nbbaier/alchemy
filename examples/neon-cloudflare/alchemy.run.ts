@@ -6,6 +6,7 @@ import { Worker, Hyperdrive } from "alchemy/cloudflare";
 
 const app = await alchemy("neon-cloudflare-example", {
   phase: process.argv.includes("--destroy") ? "destroy" : "up",
+  password: process.env.ALCHEMY_PASSWORD,
 });
 
 // Create a Neon PostgreSQL project
@@ -44,11 +45,14 @@ export const hyperdrive = await Hyperdrive("neon-hyperdrive", {
 
 // Deploy a Cloudflare Worker that uses the Neon database via Hyperdrive
 export const worker = await Worker("neon-api", {
-  main: "./src/index.ts",
+  entrypoint: "./src/index.ts",
   bindings: {
     HYPERDRIVE: hyperdrive,
   },
-  command: "bun run build",
+  bundle: {
+    format: "esm",
+    target: "es2020",
+  },
 });
 
 console.log({

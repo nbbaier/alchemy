@@ -225,15 +225,6 @@ It should log out the URL of your deployed API and database information:
 
 Visit the URL to see your API working with the Neon database!
 
-## Key Features
-
-This setup demonstrates several powerful Neon features:
-
-- **Instant Branching**: The development branch is created instantly as a copy-on-write clone
-- **Serverless Scaling**: Your database automatically scales compute and storage
-- **Global Performance**: Hyperdrive provides connection pooling and caching
-- **Type Safety**: Full TypeScript support with the Neon serverless driver
-
 ## Tear Down
 
 That's it! You can now tear down the infrastructure (if you want to):

@@ -7,7 +7,6 @@
     "dev": "wrangler dev",
     "deploy": "bun alchemy.run.ts",
     "destroy": "bun alchemy.run.ts --destroy",
-    "build": "esbuild src/index.ts --bundle --format=esm --outfile=dist/index.js --platform=node",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

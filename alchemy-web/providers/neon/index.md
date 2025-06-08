@@ -6,7 +6,7 @@ Official documentation: [neon.tech/docs](https://neon.tech/docs)
 
 ## Resources
 
-- [Project](../../../docs/providers/neon/project.md) - A Neon serverless PostgreSQL project
+- [Project](./project.md) - A Neon serverless PostgreSQL project
 - [Branch](./branch.md) - Copy-on-write database clones for isolated environments
 - [Database](./database.md) - PostgreSQL databases within branches
 - [Role](./role.md) - Database user roles with permissions

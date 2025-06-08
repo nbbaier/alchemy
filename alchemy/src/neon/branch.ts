@@ -165,7 +165,7 @@ export interface Branch
  * const branch = await Branch("dev-branch", {
  *   project: project,
  *   name: "development",
- *   parentId: "br_main_456"
+ *   parent: "br_main_456"
  * });
  *
  * @example
