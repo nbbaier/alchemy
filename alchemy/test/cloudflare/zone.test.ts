@@ -155,7 +155,7 @@ describe("Zone Resource", () => {
   test("getZoneByDomain lookup function", async (scope) => {
     const lookupTestDomain = `${BRANCH_PREFIX}-lookup-test.dev`;
     let zone: Zone | undefined;
-    
+
     try {
       // Create a test zone
       zone = await Zone(lookupTestDomain, {
@@ -185,9 +185,10 @@ describe("Zone Resource", () => {
       expect(foundZone!.settings.alwaysUseHttps).toEqual("on");
 
       // Test lookup of non-existent domain
-      const nonExistentZone = await getZoneByDomain(`${BRANCH_PREFIX}-non-existent.dev`);
+      const nonExistentZone = await getZoneByDomain(
+        `${BRANCH_PREFIX}-non-existent.dev`,
+      );
       expect(nonExistentZone).toBeNull();
-
     } finally {
       // Always clean up
       await destroy(scope);

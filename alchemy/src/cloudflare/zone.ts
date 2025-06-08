@@ -165,9 +165,9 @@ export interface ZoneProps extends CloudflareApiOptions {
 }
 
 /**
- * Output returned after Zone creation/update
+ * Zone data structure (used for lookup functions)
  */
-export interface Zone extends Resource<"cloudflare::Zone"> {
+export interface ZoneData {
   /**
    * The ID of the zone
    */
@@ -245,6 +245,11 @@ export interface Zone extends Resource<"cloudflare::Zone"> {
     minTlsVersion: MinTLSVersionValue;
   };
 }
+
+/**
+ * Output returned after Zone creation/update
+ */
+export interface Zone extends Resource<"cloudflare::Zone">, ZoneData {}
 
 /**
  * A Cloudflare Zone represents a domain and its configuration settings on Cloudflare.
@@ -564,7 +569,7 @@ async function getZoneSettings(
 export async function getZoneByDomain(
   domainName: string,
   options: Partial<CloudflareApiOptions> = {},
-): Promise<Zone | null> {
+): Promise<ZoneData | null> {
   const api = await createCloudflareApi(options);
 
   const response = await api.get(
