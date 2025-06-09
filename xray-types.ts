@@ -57,6 +57,10 @@ export interface GroupProps {
   Tags?: Tag[];
 }
 
+export interface GroupOutput extends GroupProps {
+  readonly GroupARN: string;
+}
+
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-resourcepolicy.html */
 export interface ResourcePolicyProps {
   /** A flag to indicate whether to bypass the resource-based policy lockout safety check. */
@@ -67,6 +71,8 @@ export interface ResourcePolicyProps {
   PolicyDocument: string;
 }
 
+export interface ResourcePolicyOutput extends ResourcePolicyProps {}
+
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-samplingrule.html */
 export interface SamplingRuleProps {
   /** The sampling rule to be created or updated. */
@@ -75,17 +81,25 @@ export interface SamplingRuleProps {
   Tags?: Tag[];
 }
 
+export interface SamplingRuleOutput extends SamplingRuleProps {
+  readonly RuleARN: string;
+}
+
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-transactionsearchconfig.html */
 export interface TransactionSearchConfigProps {
   /** Specifies the percentage of requests to index. This value must be between 0 and 100. @pattern "^[0-9]{1,3}$" */
   IndexingPercentage?: number;
 }
 
+export interface TransactionSearchConfigOutput extends TransactionSearchConfigProps {
+  readonly AccountId: string;
+}
+
 interface XRay {
-  Group: GroupProps;
-  ResourcePolicy: ResourcePolicyProps;
-  SamplingRule: SamplingRuleProps;
-  TransactionSearchConfig: TransactionSearchConfigProps;
+  Group: (props: GroupProps) => GroupOutput;
+  ResourcePolicy: (props: ResourcePolicyProps) => ResourcePolicyOutput;
+  SamplingRule: (props: SamplingRuleProps) => SamplingRuleOutput;
+  TransactionSearchConfig: (props: TransactionSearchConfigProps) => TransactionSearchConfigOutput;
 }
 
 export default XRay;

@@ -143,7 +143,7 @@ async function getEnhancedDocumentation(
   return { docstring: prop.Documentation };
 }
 
-async function generatePropsInterface(
+async function generateInputPropsInterface(
   resourceType: ResourceType,
   resourceName: string,
 ): Promise<string> {
@@ -179,6 +179,67 @@ async function generatePropsInterface(
     const propType = convertPropertyToTypeScript(prop, propertyInfo);
     const required = prop.Required ? "" : "?";
     lines.push(`  ${propName}${required}: ${propType};`);
+  }
+
+  lines.push("}");
+  return lines.join("\n");
+}
+
+function convertAttributeToTypeScript(attr: any): string {
+  // Handle primitive types
+  if (attr.PrimitiveType) {
+    let type = attr.PrimitiveType.toLowerCase();
+    if (type === "integer" || type === "double" || type === "long") {
+      type = "number";
+    } else if (type === "json") {
+      type = "any";
+    } else if (type === "timestamp") {
+      type = "string";
+    }
+    return type;
+  }
+  
+  // Handle array/list types
+  if (attr.Type === "List") {
+    if (attr.PrimitiveItemType) {
+      let itemType = attr.PrimitiveItemType.toLowerCase();
+      if (itemType === "integer" || itemType === "double" || itemType === "long") {
+        itemType = "number";
+      } else if (itemType === "json") {
+        itemType = "any";
+      } else if (itemType === "timestamp") {
+        itemType = "string";
+      }
+      return `${itemType}[]`;
+    } else if (attr.ItemType) {
+      return `${sanitizeTypeName(attr.ItemType)}[]`;
+    } else {
+      return "any[]";
+    }
+  }
+  
+  // Handle references to other types
+  if (attr.Type && attr.Type !== "List") {
+    return sanitizeTypeName(attr.Type);
+  }
+
+  return "any";
+}
+
+async function generateOutputPropsInterface(
+  resourceType: ResourceType,
+  resourceName: string,
+): Promise<string> {
+  const lines: string[] = [];
+
+  lines.push(`export interface ${resourceName}Output extends ${resourceName}Props {`);
+
+  // Add attributes if they exist
+  if (resourceType.Attributes) {
+    for (const [attrName, attr] of Object.entries(resourceType.Attributes)) {
+      const attrType = convertAttributeToTypeScript(attr);
+      lines.push(`  readonly ${attrName}: ${attrType};`);
+    }
   }
 
   lines.push("}");
@@ -341,17 +402,25 @@ async function generateTypesForService(
 
   // Generate resource props interfaces
   for (const [resourceName, resourceType] of Object.entries(serviceResourceTypes)) {
-    const propsInterface = await generatePropsInterface(resourceType, resourceName);
-    declarations.push(propsInterface);
+    const inputPropsInterface = await generateInputPropsInterface(resourceType, resourceName);
+    declarations.push(inputPropsInterface);
+    
+    const outputPropsInterface = await generateOutputPropsInterface(resourceType, resourceName);
+    declarations.push(outputPropsInterface);
+  }
+
+  // Generate resource types with function signatures
+  const resourceTypes: string[] = [];
+  for (const resourceName of Object.keys(serviceResourceTypes)) {
+    resourceTypes.push(`  ${resourceName}: (props: ${resourceName}Props) => ${resourceName}Output;`);
   }
 
   // Generate service type export as the default export
   if (Object.keys(serviceResourceTypes).length > 0) {
     const serviceTypeName = serviceInfo.servicePart.replace(/[^a-zA-Z0-9]/g, "");
-    const resourceKeys = Object.keys(serviceResourceTypes).map(name => `  ${name}: ${name}Props;`).join("\n");
     
     const serviceTypeDeclaration = `interface ${serviceTypeName} {
-${resourceKeys}
+${resourceTypes.join("\n")}
 }
 
 export default ${serviceTypeName};`;
