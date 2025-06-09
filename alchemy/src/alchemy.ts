@@ -117,11 +117,11 @@ async function _alchemy(
     const phase = isRuntime ? "read" : (options?.phase ?? "up");
     const telemetryClient =
       options?.parent?.telemetryClient ??
-      TelemetryClient.create({
+      (await TelemetryClient.create({
         phase,
         enabled: options?.telemetry ?? true,
         quiet: options?.quiet ?? false,
-      });
+      }));
     const root = new Scope({
       ...options,
       appName,
@@ -356,11 +356,11 @@ async function run<T>(
         ]);
   const telemetryClient =
     options?.parent?.telemetryClient ??
-    TelemetryClient.create({
+    (await TelemetryClient.create({
       phase: isRuntime ? "read" : (options?.phase ?? "up"),
       enabled: options?.telemetry ?? true,
       quiet: options?.quiet ?? false,
-    });
+    }));
   const _scope = new Scope({
     ...options,
     scopeName: id,

@@ -1,11 +1,5 @@
-import {
-  type WriteStream,
-  createWriteStream,
-  readFileSync,
-  writeFileSync,
-  mkdirSync,
-} from "node:fs";
-import { mkdir, readdir, readFile, unlink } from "node:fs/promises";
+import { type WriteStream, createWriteStream } from "node:fs";
+import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import os from "node:os";
 import { join } from "node:path";
@@ -21,7 +15,7 @@ let _sessionId: string | undefined;
  * Generate or retrieve a session ID that persists across application runs.
  * The session ID is stored in the XDG application state directory and cached in memory.
  */
-function getSessionId(): string {
+async function getSessionId(): Promise<string> {
   if (_sessionId) {
     return _sessionId;
   }
@@ -30,10 +24,10 @@ function getSessionId(): string {
 
   try {
     // Try to read existing session ID
-    const sessionData = JSON.parse(readFileSync(sessionPath, "utf-8"));
+    const sessionData = JSON.parse(await readFile(sessionPath, "utf-8"));
     if (sessionData && typeof sessionData.sessionId === "string") {
       _sessionId = sessionData.sessionId;
-      return _sessionId;
+      return sessionData.sessionId;
     }
   } catch {
     // File doesn't exist or is invalid, continue to create new session
@@ -44,9 +38,9 @@ function getSessionId(): string {
 
   try {
     // Ensure the state directory exists
-    mkdirSync(STATE_DIR, { recursive: true });
+    await mkdir(STATE_DIR, { recursive: true });
     // Save the session ID
-    writeFileSync(sessionPath, JSON.stringify({ sessionId: _sessionId }));
+    await writeFile(sessionPath, JSON.stringify({ sessionId: _sessionId }));
   } catch (error) {
     // If we can't save the session ID, continue with the generated one
     // This ensures the application doesn't fail due to file system issues
@@ -228,11 +222,11 @@ export class TelemetryClient implements ITelemetryClient {
     }
   }
 
-  static create({
+  static async create({
     phase,
     enabled,
     quiet,
-  }: Omit<TelemetryClientOptions, "sessionId">): ITelemetryClient {
+  }: Omit<TelemetryClientOptions, "sessionId">): Promise<ITelemetryClient> {
     if (!enabled || TELEMETRY_DISABLED) {
       if (!quiet) {
         console.warn("[Alchemy] Telemetry is disabled.");
@@ -240,7 +234,7 @@ export class TelemetryClient implements ITelemetryClient {
       return new NoopTelemetryClient();
     }
     return new TelemetryClient({
-      sessionId: getSessionId(),
+      sessionId: await getSessionId(),
       phase,
       enabled,
       quiet,
