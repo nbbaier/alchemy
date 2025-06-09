@@ -1,8 +1,19 @@
+import { writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { Assets } from "./assets.ts";
+import { alchemy } from "../alchemy.ts";
+import { Exec } from "../os/exec.ts";
+import { Scope } from "../scope.ts";
+import { Assets } from "./assets.ts";
 import type { Bindings } from "./bindings.ts";
-import { Website, type WebsiteProps } from "./website.ts";
-import type { Worker } from "./worker.ts";
+import { R2Bucket } from "./bucket.ts";
+import { KVNamespace } from "./kv-namespace.ts";
+import type { Website, WebsiteProps } from "./website.ts";
+import {
+  DEFAULT_COMPATIBILITY_DATE,
+  Worker,
+  type WorkerProps,
+} from "./worker.ts";
+import { WranglerJson } from "./wrangler.json.ts";
 
 /**
  * Properties for creating an Astro resource.
@@ -64,18 +75,116 @@ export async function Astro<B extends Bindings>(
   id: string,
   props?: Partial<AstroProps<B>>,
 ): Promise<Astro<B>> {
-  // Call the underlying Website resource with Astro defaults
-  return Website(id, {
-    ...props,
-    // Default build command, can be overridden by props.command
-    command: props?.command ?? "bun run build",
-    // Default entry point for @astrojs/cloudflare adapter
-    main: props?.main ?? path.join("dist", "_worker.js/index.js"),
-    // Default static assets directory for @astrojs/cloudflare adapter
-    assets: props?.assets ?? "dist",
-    // Enable nodejs_compat flag for Astro compatibility
-    compatibilityFlags: ["nodejs_compat", ...(props?.compatibilityFlags ?? [])],
-    // Enable wrangler by default, common for Astro/Cloudflare deployments
-    wrangler: props?.wrangler ?? true,
-  });
+  if (props?.bindings?.ASSETS) {
+    throw new Error("ASSETS binding is reserved for internal use");
+  }
+  const wrangler = props?.wrangler ?? true;
+  const main = props?.main ?? path.join("dist", "_worker.js/index.js");
+  const assetsDir =
+    typeof props?.assets === "string"
+      ? props?.assets
+      : (props?.assets?.dist ?? "dist");
+
+  return alchemy.run(
+    id,
+    {
+      parent: Scope.current,
+    },
+    async () => {
+      const cwd = path.resolve(props?.cwd || process.cwd());
+      const fileName =
+        typeof wrangler === "boolean"
+          ? "wrangler.jsonc"
+          : typeof wrangler === "string"
+            ? wrangler
+            : (wrangler?.path ?? "wrangler.jsonc");
+      const wranglerPath =
+        fileName && path.relative(cwd, path.join(cwd, fileName));
+      const wranglerMain =
+        typeof wrangler === "object"
+          ? (wrangler.main ?? props?.main)
+          : props?.main;
+
+      const workerName = props?.name ?? id;
+
+      const workerProps = {
+        ...props,
+        compatibilityDate:
+          props?.compatibilityDate ?? DEFAULT_COMPATIBILITY_DATE,
+        compatibilityFlags: [
+          "nodejs_compat",
+          ...(props?.compatibilityFlags ?? []),
+        ],
+        name: workerName,
+        entrypoint: main,
+        assets: {
+          html_handling: "auto-trailing-slash",
+          not_found_handling: "single-page-application",
+          run_worker_first: false,
+          ...(typeof props?.assets === "string" ? {} : props?.assets),
+        },
+        script: props?.main
+          ? undefined
+          : `
+export default {
+  async fetch(request, env) {
+    return new Response("Not Found", { status: 404 });
+  },
+};`,
+        url: true,
+        adopt: true,
+      } as WorkerProps<any> & { name: string };
+
+      if (wrangler) {
+        await WranglerJson("wrangler.jsonc", {
+          path: wranglerPath,
+          worker: workerProps,
+          main: wranglerMain,
+          // hard-code the assets directory because we haven't yet included the assets binding
+          assets: {
+            binding: "ASSETS",
+            directory: assetsDir,
+          },
+        });
+      }
+
+      if (props?.command) {
+        await Exec("build", {
+          cwd,
+          command: props?.command,
+          env: props?.env,
+          memoize: props?.memoize,
+        });
+      }
+
+      await writeFile(
+        path.join(assetsDir, ".assetsignore"),
+        ["_worker.js", "_routes.json"].join("\n"),
+      );
+
+      const [assets, cache, storage] = await Promise.all([
+        Assets("assets", {
+          path: assetsDir,
+        }),
+        R2Bucket(`${id}-storage`, {
+          allowPublicAccess: false,
+        }),
+        KVNamespace(`${id}-cache`, {
+          title: `${id}-cache`,
+        }),
+      ]);
+
+      return (await Worker("worker", {
+        ...workerProps,
+        bindings: {
+          ...workerProps.bindings,
+          // we don't include the Assets binding until after build to make sure the asset manifest is correct
+          // we generate the wrangler.json using all the bind
+          ASSETS: assets,
+          CACHE: cache,
+          STORAGE: storage,
+        },
+      } as WorkerProps<any> & { name: string })) as Website<B>;
+    },
+  );
 }
