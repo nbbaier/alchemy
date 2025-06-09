@@ -1,11 +1,29 @@
 import { type WriteStream, createWriteStream } from "node:fs";
 import { mkdir, readdir, readFile, unlink } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import os from "node:os";
 import { join } from "node:path";
 import type { Phase } from "../../alchemy.ts";
 import { INGEST_URL, STATE_DIR, TELEMETRY_DISABLED } from "./constants.ts";
 import { context } from "./context.ts";
 import type { Telemetry } from "./types.ts";
+
+// Cache session ID in memory to ensure it's consistent within a single application run
+let _sessionId: string | undefined;
+
+/**
+ * Generate or retrieve a session ID that is unique per application run.
+ * The session ID is cached in memory to ensure consistency within the same process.
+ */
+function getSessionId(): string {
+  if (_sessionId) {
+    return _sessionId;
+  }
+
+  // Generate a UUID once per process and cache it
+  _sessionId = randomUUID();
+  return _sessionId;
+}
 
 export interface TelemetryClientOptions {
   sessionId: string;
@@ -191,7 +209,7 @@ export class TelemetryClient implements ITelemetryClient {
       return new NoopTelemetryClient();
     }
     return new TelemetryClient({
-      sessionId: crypto.randomUUID(),
+      sessionId: getSessionId(),
       phase,
       enabled,
       quiet,
