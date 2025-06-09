@@ -1,4 +1,10 @@
-import { type WriteStream, createWriteStream } from "node:fs";
+import {
+  type WriteStream,
+  createWriteStream,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+} from "node:fs";
 import { mkdir, readdir, readFile, unlink } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import os from "node:os";
@@ -12,16 +18,41 @@ import type { Telemetry } from "./types.ts";
 let _sessionId: string | undefined;
 
 /**
- * Generate or retrieve a session ID that is unique per application run.
- * The session ID is cached in memory to ensure consistency within the same process.
+ * Generate or retrieve a session ID that persists across application runs.
+ * The session ID is stored in the XDG application state directory and cached in memory.
  */
 function getSessionId(): string {
   if (_sessionId) {
     return _sessionId;
   }
 
-  // Generate a UUID once per process and cache it
+  const sessionPath = join(STATE_DIR, "session.jsonl");
+
+  try {
+    // Try to read existing session ID
+    const sessionData = JSON.parse(readFileSync(sessionPath, "utf-8"));
+    if (sessionData && typeof sessionData.sessionId === "string") {
+      _sessionId = sessionData.sessionId;
+      return _sessionId;
+    }
+  } catch {
+    // File doesn't exist or is invalid, continue to create new session
+  }
+
+  // Generate a new session ID and save it
   _sessionId = randomUUID();
+
+  try {
+    // Ensure the state directory exists
+    mkdirSync(STATE_DIR, { recursive: true });
+    // Save the session ID
+    writeFileSync(sessionPath, JSON.stringify({ sessionId: _sessionId }));
+  } catch (error) {
+    // If we can't save the session ID, continue with the generated one
+    // This ensures the application doesn't fail due to file system issues
+    console.warn("Warning: Could not save session ID to disk:", error);
+  }
+
   return _sessionId;
 }
 
