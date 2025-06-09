@@ -14,9 +14,25 @@ Scaleway is a European cloud provider offering Infrastructure-as-a-Service (IaaS
 
 ## Resources
 
+### Core Infrastructure
 - [**Instance**](./instance.ts) - Virtual compute instances (VMs) with configurable CPU, RAM, and storage
-- [**Bucket**](./bucket.ts) - S3-compatible object storage for files, backups, and static assets
+- [**InstanceVolume**](./instance-volume.ts) - Persistent block storage volumes for instances
 - [**SecurityGroup**](./security-group.ts) - Firewall rules for controlling network access to instances
+
+### Networking
+- [**Vpc**](./vpc.ts) - Virtual Private Cloud for isolated network environments
+- [**VpcPrivateNetwork**](./vpc-private-network.ts) - Private networks within VPCs for secure communication
+- [**LoadBalancer**](./load-balancer.ts) - Application load balancers for distributing traffic
+
+### Storage
+- [**Bucket**](./bucket.ts) - S3-compatible object storage for files, backups, and static assets
+
+### Databases
+- [**RdbInstance**](./rdb-instance.ts) - Managed relational database instances (PostgreSQL, MySQL, Redis)
+- [**RdbDatabase**](./rdb-database.ts) - Logical databases within RDB instances
+
+### Serverless
+- [**FunctionNamespace**](./function-namespace.ts) - Namespaces for organizing serverless functions
 
 ## Design Principles
 
@@ -88,10 +104,29 @@ Each resource includes comprehensive test coverage:
 - **Error Scenarios**: API error handling and recovery
 - **Cleanup Verification**: Ensures resources are properly deleted
 
-## Future Extensions
+## Implementation Status
 
-Planned additional resources:
-- **Database** (managed PostgreSQL/MySQL)
-- **PrivateNetwork** (VPC networking)
-- **LoadBalancer** (application load balancing)
-- **ContainerRegistry** (Docker image storage)
+### Implemented Resources (10 total)
+- ✅ **Instance** - Virtual compute instances
+- ✅ **InstanceVolume** - Block storage volumes  
+- ✅ **SecurityGroup** - Network security rules
+- ✅ **Bucket** - Object storage
+- ✅ **Vpc** - Virtual Private Cloud
+- ✅ **VpcPrivateNetwork** - Private networks
+- ✅ **LoadBalancer** - Application load balancing
+- ✅ **RdbInstance** - Managed databases
+- ✅ **RdbDatabase** - Database schemas
+- ✅ **FunctionNamespace** - Serverless function organization
+
+### Planned Additional Resources (~60 remaining)
+Priority resources for future implementation:
+- **LoadBalancerBackend** - Backend server pools
+- **LoadBalancerFrontend** - Frontend listeners
+- **Function** - Serverless functions
+- **ContainerNamespace** - Container organization
+- **Container** - Serverless containers
+- **K8sCluster** - Kubernetes clusters
+- **IamApiKey** - API access keys
+- **IamSshKey** - SSH public keys
+- **RegistryNamespace** - Container registries
+- **DomainRecord** - DNS records
