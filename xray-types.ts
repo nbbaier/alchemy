@@ -58,6 +58,7 @@ export interface GroupProps {
 }
 
 export interface GroupOutput extends GroupProps {
+  /** The group ARN that was created or updated. */
   readonly GroupARN: string;
 }
 
@@ -82,6 +83,7 @@ export interface SamplingRuleProps {
 }
 
 export interface SamplingRuleOutput extends SamplingRuleProps {
+  /** The sampling rule ARN that was created or updated. */
   readonly RuleARN: string;
 }
 
@@ -92,6 +94,7 @@ export interface TransactionSearchConfigProps {
 }
 
 export interface TransactionSearchConfigOutput extends TransactionSearchConfigProps {
+  /** The AWS account ID associated with the resource. */
   readonly AccountId: string;
 }
 

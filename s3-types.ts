@@ -15,9 +15,9 @@ export interface AccessGrantsLocationConfiguration {
 }
 
 export interface Grantee {
-  /** The type of the grantee to which access has been granted. It can be one of the following values: IAM, DIRECTORY_USER, or DIRECTORY_GROUP. */
+  /** The type of the grantee to which access has been granted. It can be one of the following values: IAM - An IAM user or role; DIRECTORY_USER - Your corporate directory user; DIRECTORY_GROUP - Your corporate directory group. You can use this option if you have added your corporate identity directory to IAM Identity Center and associated the IAM Identity Center instance with your S3 Access Grants instance. */
   GranteeType: "IAM" | "DIRECTORY_USER" | "DIRECTORY_GROUP";
-  /** The unique identifier of the Grantee. If the grantee type is IAM, the identifier is the IAM Amazon Resource Name (ARN) of the user or role. If the grantee type is a directory user or group, the identifier is a 128-bit universally unique identifier (UUID). */
+  /** The unique identifier of the Grantee. If the grantee type is IAM, the identifier is the IAM Amazon Resource Name (ARN) of the user or role. If the grantee type is a directory user or group, the identifier is 128-bit universally unique identifier (UUID) in the format a1b2c3d4-5678-90ab-cdef-EXAMPLE11111. You can obtain this UUID from your AWSIAM Identity Center instance. */
   GranteeIdentifier: string;
 }
 
@@ -38,7 +38,7 @@ export interface VpcConfiguration {
 }
 
 export interface AbortIncompleteMultipartUpload {
-  /** Specifies the number of days after which Amazon S3 stops an incomplete multipart upload. */
+  /** Specifies the number of days after which Amazon S3 stops an incomplete multipart upload. @pattern "^[0-9]+$" */
   DaysAfterInitiation: number;
 }
 
@@ -82,7 +82,7 @@ export interface CorsRule {
   AllowedOrigins: string[];
   /** Headers that are specified in the Access-Control-Request-Headers header. These headers are allowed in a preflight OPTIONS request. In response to any preflight OPTIONS request, Amazon S3 returns any requested headers that are allowed. */
   AllowedHeaders?: string[];
-  /** The time in seconds that your browser is to cache the preflight response for the specified resource. @pattern "^[0-9]+$" */
+  /** The time in seconds that your browser is to cache the preflight response for the specified resource. */
   MaxAge?: number;
   /** A unique identifier for this rule. The value must be no more than 255 characters. */
   Id?: string;
@@ -418,9 +418,9 @@ export interface RoutingRule {
 }
 
 export interface RoutingRuleCondition {
-  /** The object key name prefix when the redirect is applied. For example, to redirect requests for ExamplePage.html, the key prefix will be ExamplePage.html. To redirect request for all pages with the prefix docs/, the key prefix will be docs/, which identifies all objects in the docs/ folder. Required when the parent element Condition is specified and sibling HttpErrorCodeReturnedEquals is not specified. If both conditions are specified, both must be true for the redirect to be applied. */
+  /** The object key name prefix when the redirect is applied. For example, to redirect requests for ExamplePage.html, the key prefix will be ExamplePage.html. Required when the parent element Condition is specified and sibling HttpErrorCodeReturnedEquals is not specified. */
   KeyPrefixEquals?: string;
-  /** The HTTP error code when the redirect is applied. In the event of an error, if the error code equals this value, then the specified redirect is applied. Required when parent element Condition is specified and sibling KeyPrefixEquals is not specified. If both are specified, then both must be true for the redirect to be applied. */
+  /** The HTTP error code when the redirect is applied. In the event of an error, if the error code equals this value, then the specified redirect is applied. Required when parent element Condition is specified and sibling KeyPrefixEquals is not specified. */
   HttpErrorCodeReturnedEquals?: string;
 }
 
@@ -460,7 +460,7 @@ export interface Rule {
 }
 
 export interface S3KeyFilter {
-  /** A list of containers for the key-value pair that defines the criteria for the filter rule. */
+  /** A list of containers for the key-value pair that defines the criteria for the filter rule. Required: Yes. Type: Array of FilterRule. */
   Rules: FilterRule[];
 }
 
@@ -560,7 +560,7 @@ export interface VersioningConfiguration {
 export interface WebsiteConfiguration {
   /** The name of the index document for the website. */
   IndexDocument?: string;
-  /** The redirect behavior for every request to this bucket's website endpoint. */
+  /** The redirect behavior for every request to this bucket's website endpoint. If you specify this property, you can't specify any other property. */
   RedirectAllRequestsTo?: RedirectAllRequestsTo;
   /** Rules that define when a redirect is applied and the redirect behavior. */
   RoutingRules?: RoutingRule[];
@@ -680,7 +680,7 @@ export interface S3BucketDestination {
 }
 
 export interface SSEKMS {
-  /** Specifies the Amazon Resource Name (ARN) of the customer managed AWS KMS key to use for encrypting the S3 Storage Lens metrics export file. Amazon S3 only supports symmetric encryption keys. For more information, see Special-purpose keys in the AWS Key Management Service Developer Guide. */
+  /** Specifies the Amazon Resource Name (ARN) of the customer managed AWS KMS key to use for encrypting the S3 Storage Lens metrics export file. Amazon S3 only supports symmetric encryption keys. */
   KeyId: string;
 }
 
@@ -783,28 +783,44 @@ export interface Or {
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-accessgrant.html */
 export interface AccessGrantProps {
-  /** The user, group, or role to which you are granting access. You can grant access to an IAM user or role. If you have added your corporate directory to AWSIAM Identity Center and associated your Identity Center instance with your S3 Access Grants instance, the grantee can also be a corporate directory user or group. */
+  /** The user, group, or role to which you are granting access. You can grant access to an IAM user or role. If you have added your corporate directory to AWS IAM Identity Center and associated your Identity Center instance with your S3 Access Grants instance, the grantee can also be a corporate directory user or group. */
   Grantee: Grantee;
   /** The configuration options of the grant location. The grant location is the S3 path to the data to which you are granting access. It contains the S3SubPrefix field. */
   AccessGrantsLocationConfiguration?: AccessGrantsLocationConfiguration;
-  /** The Amazon Resource Name (ARN) of an AWSIAM Identity Center application associated with your Identity Center instance. If the grant includes an application ARN, the grantee can only access the S3 data through this application. */
+  /** The Amazon Resource Name (ARN) of an AWS IAM Identity Center application associated with your Identity Center instance. If the grant includes an application ARN, the grantee can only access the S3 data through this application. */
   ApplicationArn?: string;
-  /** The type of access that you are granting to your S3 data, which can be set to one of the following values: READ – Grant read-only access to the S3 data. WRITE – Grant write-only access to the S3 data. READWRITE – Grant both read and write access to the S3 data. */
+  /** The type of access that you are granting to your S3 data, which can be set to one of the following values: READ – Grant read-only access to the S3 data, WRITE – Grant write-only access to the S3 data, READWRITE – Grant both read and write access to the S3 data. */
   Permission: "READ" | "WRITE" | "READWRITE";
   /** The type of S3SubPrefix. The only possible value is Object. Pass this value if the access grant scope is an object. Do not pass this value if the access grant scope is a bucket or a bucket and a prefix. */
   S3PrefixType?: "Object";
   /** The AWS resource tags that you are adding to the access grant. Each tag is a label consisting of a user-defined key and value. Tags can help you manage, identify, organize, search for, and filter resources. */
   Tags?: Tag[];
-  /** The ID of the registered location to which you are granting access. S3 Access Grants assigns this ID when you register the location. S3 Access Grants assigns the ID default to the default location s3:// and assigns an auto-generated ID to other locations that you register. */
+  /** The ID of the registered location to which you are granting access. S3 Access Grants assigns this ID when you register the location. S3 Access Grants assigns the ID 'default' to the default location 's3://' and assigns an auto-generated ID to other locations that you register. */
   AccessGrantsLocationId: string;
+}
+
+export interface AccessGrantOutput extends AccessGrantProps {
+  /** The S3 path of the data to which you are granting access. It is the result of appending the Subprefix to the location scope. */
+  readonly GrantScope: string;
+  /** The ID of the access grant. S3 Access Grants auto-generates this ID when you create the access grant. */
+  readonly AccessGrantId: string;
+  /** The ARN of the access grant. */
+  readonly AccessGrantArn: string;
 }
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-accessgrantsinstance.html */
 export interface AccessGrantsInstanceProps {
-  /** If you would like to associate your S3 Access Grants instance with an AWS IAM Identity Center instance, use this field to pass the Amazon Resource Name (ARN) of the AWS IAM Identity Center instance that you are associating with your S3 Access Grants instance. An IAM Identity Center instance is your corporate identity directory that you added to the IAM Identity Center. */
+  /** If you would like to associate your S3 Access Grants instance with an AWSIAM Identity Center instance, use this field to pass the Amazon Resource Name (ARN) of the AWSIAM Identity Center instance that you are associating with your S3 Access Grants instance. */
   IdentityCenterArn?: string;
   /** The AWS resource tags that you are adding to the S3 Access Grants instance. Each tag is a label consisting of a user-defined key and value. Tags can help you manage, identify, organize, search for, and filter resources. */
   Tags?: Tag[];
+}
+
+export interface AccessGrantsInstanceOutput extends AccessGrantsInstanceProps {
+  /** The ARN of the S3 Access Grants instance. */
+  readonly AccessGrantsInstanceArn: string;
+  /** The ID of the S3 Access Grants instance. The ID is default. You can have one S3 Access Grants instance per Region per account. */
+  readonly AccessGrantsInstanceId: string;
 }
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-accessgrantslocation.html */
@@ -815,6 +831,13 @@ export interface AccessGrantsLocationProps {
   IamRoleArn?: string;
   /** The AWS resource tags that you are adding to the S3 Access Grants location. Each tag is a label consisting of a user-defined key and value. */
   Tags?: Tag[];
+}
+
+export interface AccessGrantsLocationOutput extends AccessGrantsLocationProps {
+  /** The ARN of the location you are registering. */
+  readonly AccessGrantsLocationArn: string;
+  /** The ID of the registered location to which you are granting access. S3 Access Grants assigns this ID when you register the location. */
+  readonly AccessGrantsLocationId: string;
 }
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-accesspoint.html */
@@ -831,6 +854,17 @@ export interface AccessPointProps {
   VpcConfiguration?: VpcConfiguration;
   /** The name of this access point. If you don't specify a name, AWS CloudFormation generates a unique ID and uses that ID for the access point name. @pattern "^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$" */
   Name?: string;
+}
+
+export interface AccessPointOutput extends AccessPointProps {
+  /** The alias for this access point. */
+  readonly Alias: string;
+  /** This property contains the details of the ARN for the access point. */
+  readonly Arn: string;
+  /** Indicates whether this access point allows access from the internet. If VpcConfiguration is specified for this access point, then NetworkOrigin is VPC, and the access point doesn't allow access from the internet. Otherwise, NetworkOrigin is Internet, and the access point allows access from the internet, subject to the access point and bucket access policies. */
+  readonly NetworkOrigin: string;
+  /** The name of this access point. */
+  readonly Name: string;
 }
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-bucket.html */
@@ -887,6 +921,23 @@ export interface BucketProps {
   Tags?: Tag[];
 }
 
+export interface BucketOutput extends BucketProps {
+  /** The Amazon Resource Name (ARN) for the metadata table in the metadata table configuration. */
+  readonly MetadataTableConfiguration_S3TablesDestination_TableArn: string;
+  /** Returns the regional domain name of the specified bucket. */
+  readonly RegionalDomainName: string;
+  /** Returns the IPv4 DNS name of the specified bucket. */
+  readonly DomainName: string;
+  /** Returns the Amazon S3 website endpoint for the specified bucket. */
+  readonly WebsiteURL: string;
+  /** Returns the IPv6 DNS name of the specified bucket. */
+  readonly DualStackDomainName: string;
+  /** Returns the Amazon Resource Name (ARN) of the specified bucket. */
+  readonly Arn: string;
+  /** The table bucket namespace for the metadata table in the specified bucket's metadata table configuration. */
+  readonly MetadataTableConfiguration_S3TablesDestination_TableNamespace: string;
+}
+
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-bucketpolicy.html */
 export interface BucketPolicyProps {
   /** The name of the Amazon S3 bucket to which the policy applies. */
@@ -894,6 +945,8 @@ export interface BucketPolicyProps {
   /** A policy document containing permissions to add to the specified bucket. In IAM, you must provide policy documents in JSON format. However, in CloudFormation you can provide the policy in JSON or YAML format because CloudFormation converts YAML to JSON before submitting it to IAM. */
   PolicyDocument: any;
 }
+
+export interface BucketPolicyOutput extends BucketPolicyProps {}
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-multiregionaccesspoint.html */
 export interface MultiRegionAccessPointProps {
@@ -905,6 +958,13 @@ export interface MultiRegionAccessPointProps {
   Name?: string;
 }
 
+export interface MultiRegionAccessPointOutput extends MultiRegionAccessPointProps {
+  /** The alias for the Multi-Region Access Point. For more information about the distinction between the name and the alias of an Multi-Region Access Point, see Managing Multi-Region Access Points in the Amazon S3 User Guide. */
+  readonly Alias: string;
+  /** The timestamp of when the Multi-Region Access Point is created. */
+  readonly CreatedAt: string;
+}
+
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-multiregionaccesspointpolicy.html */
 export interface MultiRegionAccessPointPolicyProps {
   /** The access policy associated with the Multi-Region Access Point. */
@@ -913,12 +973,22 @@ export interface MultiRegionAccessPointPolicyProps {
   MrapName: string;
 }
 
+export interface MultiRegionAccessPointPolicyOutput extends MultiRegionAccessPointPolicyProps {
+  readonly PolicyStatus_IsPublic: string;
+  readonly PolicyStatus: PolicyStatus;
+}
+
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-storagelens.html */
 export interface StorageLensProps {
   /** This resource contains the details Amazon S3 Storage Lens configuration. */
   StorageLensConfiguration: StorageLensConfiguration;
   /** A set of tags (key–value pairs) to associate with the Storage Lens configuration. */
   Tags?: Tag[];
+}
+
+export interface StorageLensOutput extends StorageLensProps {
+  /** This property contains the details of the ARN of the S3 Storage Lens configuration. This property is read-only. */
+  readonly StorageLensConfiguration_StorageLensArn: string;
 }
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-s3-storagelensgroup.html */
@@ -930,3 +1000,25 @@ export interface StorageLensGroupProps {
   /** This property contains the Storage Lens group name. @pattern "^[a-zA-Z0-9\-_]+$" */
   Name: string;
 }
+
+export interface StorageLensGroupOutput extends StorageLensGroupProps {
+  /** The Amazon Resource Name (ARN) of the Storage Lens group. */
+  readonly StorageLensGroupArn: string;
+}
+
+interface S3 {
+  AccessGrant: (props: AccessGrantProps) => AccessGrantOutput;
+  AccessGrantsInstance: (props: AccessGrantsInstanceProps) => AccessGrantsInstanceOutput;
+  AccessGrantsLocation: (props: AccessGrantsLocationProps) => AccessGrantsLocationOutput;
+  AccessPoint: (props: AccessPointProps) => AccessPointOutput;
+  Bucket: (props: BucketProps) => BucketOutput;
+  BucketPolicy: (props: BucketPolicyProps) => BucketPolicyOutput;
+  MultiRegionAccessPoint: (props: MultiRegionAccessPointProps) => MultiRegionAccessPointOutput;
+  MultiRegionAccessPointPolicy: (
+    props: MultiRegionAccessPointPolicyProps
+  ) => MultiRegionAccessPointPolicyOutput;
+  StorageLens: (props: StorageLensProps) => StorageLensOutput;
+  StorageLensGroup: (props: StorageLensGroupProps) => StorageLensGroupOutput;
+}
+
+export default S3;

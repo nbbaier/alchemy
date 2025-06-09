@@ -3,7 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import prettier from "prettier";
 import { validateCloudFormationSpec, type CloudFormationResourceSpecification, type ResourceType, type PropertyType, type Property } from "./cfn-spec-schema.js";
-import { getPropertyDocumentation, getCacheInfo, type PropertyInfo } from "./doc-parser.js";
+import { getPropertyDocumentation, getAttributeDocumentation, getCacheInfo, type PropertyInfo, type AttributeInfo } from "./doc-parser.js";
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
@@ -143,6 +143,39 @@ async function getEnhancedDocumentation(
   return { docstring: prop.Documentation };
 }
 
+/**
+ * Enhanced function to get documentation for an attribute
+ * Falls back to empty documentation if AI parsing fails
+ */
+async function getEnhancedAttributeDocumentation(
+  resourceDocumentationUrl: string,
+  attributeName: string,
+  allAttributeNames: string[]
+): Promise<AttributeInfo> {
+  // If there's no resource documentation URL, return empty
+  if (!resourceDocumentationUrl) {
+    return { docstring: "" };
+  }
+
+  // Try to get enhanced documentation from AI parsing
+  try {
+    const enhancedDoc = await getAttributeDocumentation(
+      resourceDocumentationUrl,
+      attributeName,
+      allAttributeNames
+    );
+    
+    if (enhancedDoc) {
+      return enhancedDoc;
+    }
+  } catch (error) {
+    console.warn(`Failed to get enhanced attribute documentation for ${attributeName}:`, error);
+  }
+
+  // Fall back to empty documentation
+  return { docstring: "" };
+}
+
 async function generateInputPropsInterface(
   resourceType: ResourceType,
   resourceName: string,
@@ -236,9 +269,25 @@ async function generateOutputPropsInterface(
 
   // Add attributes if they exist
   if (resourceType.Attributes) {
+    // Get all attribute names for validation
+    const allAttributeNames = Object.keys(resourceType.Attributes);
+
     for (const [attrName, attr] of Object.entries(resourceType.Attributes)) {
+      // Get enhanced documentation for the attribute
+      const attributeInfo = await getEnhancedAttributeDocumentation(
+        resourceType.Documentation, // Use the resource documentation URL
+        attrName,
+        allAttributeNames
+      );
+
+      // Add documentation comment if available
+      if (attributeInfo.docstring) {
+        lines.push(`  /** ${attributeInfo.docstring} */`);
+      }
+
       const attrType = convertAttributeToTypeScript(attr);
-      lines.push(`  readonly ${attrName}: ${attrType};`);
+      const sanitizedAttrName = sanitizeTypeName(attrName);
+      lines.push(`  readonly ${sanitizedAttrName}: ${attrType};`);
     }
   }
 
@@ -449,7 +498,7 @@ export default ${serviceTypeName};`;
   console.log(`  - Property types: ${Object.keys(servicePropertyTypes).length}`);
   console.log(`  - Resource types: ${Object.keys(serviceResourceTypes).length}`);
   console.log(`  - Output file: ${outputFile}`);
-  console.log(`  - Documentation cache: ${cacheInfo.urls} URLs, ${cacheInfo.totalProperties} properties`);
+  console.log(`  - Documentation cache: ${cacheInfo.urls} URLs, ${cacheInfo.totalProperties} properties, ${cacheInfo.totalAttributes} attributes`);
 }
 
 try {

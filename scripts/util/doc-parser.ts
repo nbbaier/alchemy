@@ -13,6 +13,14 @@ const DocumentationSchema = z.object({
   }))
 });
 
+// Schema for return values/attributes documentation
+const AttributeDocumentationSchema = z.object({
+  attributes: z.array(z.object({
+    attributeName: z.string(),
+    docstring: z.string()
+  }))
+});
+
 // Enhanced property info interface
 export interface PropertyInfo {
   docstring: string;
@@ -20,8 +28,14 @@ export interface PropertyInfo {
   pattern?: string | null;
 }
 
+// Attribute info interface (simpler - just docstring)
+export interface AttributeInfo {
+  docstring: string;
+}
+
 // Cache for parsed documentation
 const documentationCache = new Map<string, Map<string, PropertyInfo>>();
+const attributeDocumentationCache = new Map<string, Map<string, AttributeInfo>>();
 
 /**
  * Extracts the base URL from a CloudFormation documentation link
@@ -33,6 +47,65 @@ function extractBaseUrl(documentationUrl: string): string {
     return `${url.protocol}//${url.host}${url.pathname}${url.search}`;
   } catch (error) {
     throw new Error(`Invalid documentation URL: ${documentationUrl}`);
+  }
+}
+
+/**
+ * Fetches and parses CloudFormation documentation page for attributes/return values using AI
+ */
+async function parseAttributeDocumentationPage(baseUrl: string): Promise<Map<string, AttributeInfo>> {
+  console.log(`Fetching and parsing attribute documentation from: ${baseUrl}`);
+  
+  // Check if OpenAI API key is available
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY environment variable is required for enhanced documentation parsing. Set it to use AI-powered documentation extraction.");
+  }
+  
+  try {
+    // Fetch the HTML content
+    const response = await fetch(baseUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${baseUrl}: ${response.status} ${response.statusText}`);
+    }
+    
+    const html = await response.text();
+    
+    // Use AI to parse the HTML and extract attribute documentation from "Return values" section
+    const result = await generateObject({
+      model: openai("gpt-4o-mini"), // Fast, cost-effective model
+      prompt: `You are parsing a CloudFormation resource documentation page. Extract ALL attribute names and their descriptions from the "Return values" section of this HTML content.
+
+Important instructions:
+- Look specifically for sections titled "Return values", "Attributes", or similar
+- Each attribute should have a name and a description
+- Attribute names are typically in code formatting or bold
+- Descriptions explain what the attribute contains or represents
+- Include ALL attributes you can find in the return values section
+- Keep descriptions concise but informative (1-3 sentences)
+- Remove any HTML formatting from descriptions
+- Ignore input properties - only focus on return values/attributes
+- If there's no "Return values" section, return an empty array
+
+HTML Content:
+${html}`,
+      schema: AttributeDocumentationSchema,
+      maxRetries: 5,
+    });
+    
+    // Convert to a Map for easy lookup
+    const attributeMap = new Map<string, AttributeInfo>();
+    for (const attr of result.object.attributes) {
+      attributeMap.set(attr.attributeName, {
+        docstring: attr.docstring
+      });
+    }
+    
+    console.log(`Parsed ${attributeMap.size} attributes from ${baseUrl}`);
+    return attributeMap;
+    
+  } catch (error) {
+    console.error(`Error parsing attribute documentation from ${baseUrl}:`, error);
+    throw error;
   }
 }
 
@@ -129,6 +202,57 @@ ${html}`,
 }
 
 /**
+ * Gets documentation for a specific attribute from a CloudFormation documentation URL
+ */
+export async function getAttributeDocumentation(
+  documentationUrl: string,
+  attributeName: string,
+  requiredAttributes: string[]
+): Promise<AttributeInfo | null> {
+  const baseUrl = extractBaseUrl(documentationUrl);
+  
+  // Check cache first
+  let attributeMap = attributeDocumentationCache.get(baseUrl);
+  
+  if (!attributeMap) {
+    // Parse the documentation page
+    try {
+      attributeMap = await parseAttributeDocumentationPage(baseUrl);
+      attributeDocumentationCache.set(baseUrl, attributeMap);
+    } catch (error) {
+      throw error;
+    }
+  }
+  
+  // Validate that all required attributes have documentation
+  const missingAttributes = requiredAttributes.filter(attr => !attributeMap?.has(attr));
+  
+  if (missingAttributes.length > 0) {
+    console.warn(`Missing documentation for attributes: ${missingAttributes.join(', ')} in ${baseUrl}`);
+    console.log(`Available attributes: ${Array.from(attributeMap.keys()).join(', ')}`);
+    
+    // Invalidate cache and retry once
+    attributeDocumentationCache.delete(baseUrl);
+    try {
+      console.log(`Retrying attribute documentation parsing for ${baseUrl}...`);
+      attributeMap = await parseAttributeDocumentationPage(baseUrl);
+      attributeDocumentationCache.set(baseUrl, attributeMap);
+      
+      // Check again for missing attributes
+      const stillMissingAttributes = requiredAttributes.filter(attr => !attributeMap?.has(attr));
+      if (stillMissingAttributes.length > 0) {
+        console.warn(`Still missing attribute documentation after retry: ${stillMissingAttributes.join(', ')}`);
+      }
+    } catch (retryError) {
+      console.error(`Retry failed for ${baseUrl}:`, retryError);
+      return null;
+    }
+  }
+  
+  return attributeMap.get(attributeName) || null;
+}
+
+/**
  * Gets documentation for a specific property from a CloudFormation documentation URL
  */
 export async function getPropertyDocumentation(
@@ -184,19 +308,26 @@ export async function getPropertyDocumentation(
  */
 export function clearDocumentationCache(): void {
   documentationCache.clear();
+  attributeDocumentationCache.clear();
 }
 
 /**
  * Gets the current cache size (useful for debugging)
  */
-export function getCacheInfo(): { urls: number, totalProperties: number } {
+export function getCacheInfo(): { urls: number, totalProperties: number, totalAttributes: number } {
   let totalProperties = 0;
   for (const propertyMap of documentationCache.values()) {
     totalProperties += propertyMap.size;
   }
   
+  let totalAttributes = 0;
+  for (const attributeMap of attributeDocumentationCache.values()) {
+    totalAttributes += attributeMap.size;
+  }
+  
   return {
-    urls: documentationCache.size,
-    totalProperties
+    urls: documentationCache.size + attributeDocumentationCache.size,
+    totalProperties,
+    totalAttributes
   };
 }
