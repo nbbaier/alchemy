@@ -5,8 +5,6 @@ import { Exec } from "../os/exec.ts";
 import { Scope } from "../scope.ts";
 import { Assets } from "./assets.ts";
 import type { Bindings } from "./bindings.ts";
-import { R2Bucket } from "./bucket.ts";
-import { KVNamespace } from "./kv-namespace.ts";
 import type { Website, WebsiteProps } from "./website.ts";
 import {
   DEFAULT_COMPATIBILITY_DATE,
@@ -162,27 +160,15 @@ export default {
         ["_worker.js", "_routes.json"].join("\n"),
       );
 
-      const [assets, cache, storage] = await Promise.all([
-        Assets("assets", {
-          path: assetsDir,
-        }),
-        R2Bucket(`${id}-storage`, {
-          allowPublicAccess: false,
-        }),
-        KVNamespace(`${id}-cache`, {
-          title: `${id}-cache`,
-        }),
-      ]);
-
       return (await Worker("worker", {
         ...workerProps,
         bindings: {
           ...workerProps.bindings,
           // we don't include the Assets binding until after build to make sure the asset manifest is correct
           // we generate the wrangler.json using all the bind
-          ASSETS: assets,
-          CACHE: cache,
-          STORAGE: storage,
+          ASSETS: await Assets("assets", {
+            path: assetsDir,
+          }),
         },
       } as WorkerProps<any> & { name: string })) as Website<B>;
     },
