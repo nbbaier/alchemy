@@ -70,6 +70,10 @@
       "bun": "./src/os/index.ts",
       "import": "./lib/os/index.js"
     },
+    "./scaleway": {
+      "bun": "./src/scaleway/index.ts",
+      "import": "./lib/scaleway/index.js"
+    },
     "./sentry": {
       "bun": "./src/sentry/index.ts",
       "import": "./lib/sentry/index.js"
@@ -143,6 +147,7 @@
     "jszip": "^3.0.0",
     "libsodium-wrappers": "^0.7.15",
     "prettier": "^3.0.0",
+    "@scaleway/sdk": "^1.0.0",
     "stripe": "^17.0.0",
     "turndown": "^7.0.0",
     "yaml": "^2.0.0",

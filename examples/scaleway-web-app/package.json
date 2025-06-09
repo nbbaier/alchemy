@@ -1,0 +1,19 @@
+{
+  "name": "scaleway-web-app",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "deploy": "tsx alchemy.run.ts",
+    "destroy": "tsx alchemy.run.ts --destroy",
+    "types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "alchemy": "workspace:*",
+    "@scaleway/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}
