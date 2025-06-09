@@ -9,7 +9,9 @@ const DocumentationSchema = z.object({
     propertyName: z.string(),
     docstring: z.string(),
     allowedValues: z.array(z.string()).nullable().optional(),
-    pattern: z.string().nullable().optional()
+    pattern: z.string().nullable().optional(),
+    minLength: z.number().nullable().optional(),
+    maxLength: z.number().nullable().optional()
   }))
 });
 
@@ -26,6 +28,8 @@ export interface PropertyInfo {
   docstring: string;
   allowedValues?: string[] | null;
   pattern?: string | null;
+  minLength?: number | null;
+  maxLength?: number | null;
 }
 
 // Attribute info interface (simpler - just docstring)
@@ -73,6 +77,7 @@ async function parseAttributeDocumentationPage(baseUrl: string): Promise<Map<str
     // Use AI to parse the HTML and extract attribute documentation from "Return values" section
     const result = await generateObject({
       model: openai("gpt-4o-mini"), // Fast, cost-effective model
+      temperature: 0, // Lowest temperature for deterministic output
       prompt: `You are parsing a CloudFormation resource documentation page. Extract ALL attribute names and their descriptions from the "Return values" section of this HTML content.
 
 Important instructions:
@@ -132,6 +137,7 @@ async function parseDocumentationPage(baseUrl: string): Promise<Map<string, Prop
     // Use AI to parse the HTML and extract property documentation
     const result = await generateObject({
       model: openai("gpt-4o-mini"), // Fast, cost-effective model
+      temperature: 0, // Lowest temperature for deterministic output
       prompt: `You are parsing a CloudFormation resource documentation page. Extract ALL property names, their descriptions, and any allowed values from this HTML content.
 
 Important instructions:
@@ -161,6 +167,15 @@ PATTERN EXTRACTION:
 - If a property has a pattern constraint, include it in the pattern field
 - If no pattern is specified, set pattern to null or omit the field entirely
 
+LENGTH CONSTRAINTS EXTRACTION:
+- Look for "Minimum length:", "Min length:", "Maximum length:", "Max length:", or similar phrases
+- Extract numeric values that specify minimum and maximum string lengths
+- Common formats include "Minimum length: 1", "Maximum length: 255", "Length: 1-64 characters"
+- If a property has minimum length constraint, include it in the minLength field
+- If a property has maximum length constraint, include it in the maxLength field
+- If no length constraints are specified, set minLength/maxLength to null or omit the fields entirely
+- Only extract actual numeric values, not descriptive text
+
 HTML Content:
 ${html}`,
       schema: DocumentationSchema,
@@ -188,7 +203,9 @@ ${html}`,
       propertyMap.set(prop.propertyName, {
         docstring: prop.docstring,
         allowedValues: prop.allowedValues || undefined, // Convert null to undefined for consistency
-        pattern: prop.pattern || undefined // Convert null to undefined for consistency
+        pattern: prop.pattern || undefined, // Convert null to undefined for consistency
+        minLength: prop.minLength || undefined, // Convert null to undefined for consistency
+        maxLength: prop.maxLength || undefined // Convert null to undefined for consistency
       });
     }
     

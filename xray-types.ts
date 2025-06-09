@@ -3,9 +3,13 @@
 // Service: AWS::XRay
 
 export interface Tag {
-  /** The value for the tag. You can specify a value that's 1 to 256 characters in length. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -. */
+  /** The value for the tag. You can specify a value that's 1 to 256 characters in length. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., /, =, +, and -.
+@minLength 1
+@maxLength 256 */
   Value: string;
-  /** The key name of the tag. You can specify a value that's 1 to 128 Unicode characters in length and can't be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., :, /, =, +, @, -, and ". */
+  /** The key name of the tag. You can specify a value that's 1 to 128 Unicode characters in length and can't be prefixed with aws:. You can use any of the following characters: the set of Unicode letters, digits, whitespace, _, ., :, /, =, +, @, -, and ".
+@minLength 1
+@maxLength 128 */
   Key: string;
 }
 
@@ -17,37 +21,53 @@ export interface InsightsConfiguration {
 }
 
 export interface SamplingRule {
-  /** The priority of the sampling rule. */
+  /** The priority of the sampling rule.
+@minLength 1
+@maxLength 9999 */
   Priority: number;
-  /** A fixed number of matching requests to instrument per second, prior to applying the fixed rate. The reservoir is not used directly by services, but applies to all services using the rule collectively. */
+  /** A fixed number of matching requests to instrument per second, prior to applying the fixed rate. */
   ReservoirSize: number;
   /** The ARN of the sampling rule. Specify a rule by either name or ARN, but not both. Specifying a sampling rule by name is recommended, as specifying by ARN will be deprecated in future. */
   RuleARN?: string;
-  /** Matches the path from a request URL. */
+  /** Matches the path from a request URL.
+@maxLength 128 */
   URLPath: string;
-  /** Matches attributes derived from the request. Maximum number of 5 items. Key Length Constraints: Minimum length of 1. Maximum length of 32. Value Length Constraints: Minimum length of 1. Maximum length of 32. @pattern ".{1,}" */
+  /** Matches attributes derived from the request. Maximum number of 5 items. Key Length Constraints: Minimum length of 1. Maximum length of 32. Value Length Constraints: Minimum length of 1. Maximum length of 32.
+@minLength 1
+@maxLength 32 */
   Attributes?: Record<string, any>;
-  /** The percentage of matching requests to instrument, after the reservoir is exhausted. */
+  /** The percentage of matching requests to instrument, after the reservoir is exhausted.
+@maxLength 1 */
   FixedRate: number;
-  /** Matches the hostname from a request URL. */
+  /** Matches the hostname from a request URL.
+@maxLength 64 */
   Host: string;
-  /** Matches the ARN of the AWS resource on which the service runs. */
+  /** Matches the ARN of the AWS resource on which the service runs.
+@maxLength 500 */
   ResourceARN: string;
-  /** Matches the HTTP method of a request. */
+  /** Matches the HTTP method of a request.
+@maxLength 10 */
   HTTPMethod: string;
-  /** Matches the name that the service uses to identify itself in segments. */
+  /** Matches the name that the service uses to identify itself in segments.
+@maxLength 64 */
   ServiceName: string;
-  /** The version of the sampling rule. Version can only be set when creating a new sampling rule. */
+  /** The version of the sampling rule. Version can only be set when creating a new sampling rule.
+@minLength 1 */
   Version?: number;
-  /** Matches the origin that the service uses to identify its type in segments. */
+  /** Matches the origin that the service uses to identify its type in segments.
+@maxLength 64 */
   ServiceType: string;
-  /** The name of the sampling rule. Specify a rule by either name or ARN, but not both. */
+  /** The name of the sampling rule. Specify a rule by either name or ARN, but not both.
+@minLength 1
+@maxLength 32 */
   RuleName?: string;
 }
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-group.html */
 export interface GroupProps {
-  /** The unique case-sensitive name of the group. @pattern "^[a-zA-Z0-9-_]{1,32}$" */
+  /** The unique case-sensitive name of the group.
+@minLength 1
+@maxLength 32 */
   GroupName: string;
   /** The structure containing configurations related to insights. */
   InsightsConfiguration?: InsightsConfiguration;
@@ -66,9 +86,14 @@ export interface GroupOutput extends GroupProps {
 export interface ResourcePolicyProps {
   /** A flag to indicate whether to bypass the resource-based policy lockout safety check. */
   BypassPolicyLockoutCheck?: boolean;
-  /** The name of the resource-based policy. Must be unique within a specific AWS account. @pattern "[\w+=,.@-]+" */
+  /** The name of the resource-based policy. Must be unique within a specific AWS account.
+@pattern "[\w+=,.@-]+"
+@minLength 1
+@maxLength 128 */
   PolicyName: string;
-  /** The resource-based policy document, which can be up to 5kb in size. */
+  /** The resource-based policy document, which can be up to 5kb in size.
+@minLength 1
+@maxLength 5120 */
   PolicyDocument: string;
 }
 
@@ -89,7 +114,9 @@ export interface SamplingRuleOutput extends SamplingRuleProps {
 
 /** http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-xray-transactionsearchconfig.html */
 export interface TransactionSearchConfigProps {
-  /** Specifies the percentage of requests to index. This value must be between 0 and 100. @pattern "^[0-9]{1,3}$" */
+  /** Specifies the percentage of requests to index. This value must be between 0 and 100.
+@minLength 1
+@maxLength 3 */
   IndexingPercentage?: number;
 }
 

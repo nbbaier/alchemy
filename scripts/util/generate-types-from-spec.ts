@@ -201,9 +201,17 @@ async function generateInputPropsInterface(
     if (propertyInfo.docstring) {
       let docComment = propertyInfo.docstring;
       
-      // Add pattern information if available
+      // Add metadata with newlines before each
       if (propertyInfo.pattern) {
-        docComment += ` @pattern "${propertyInfo.pattern}"`;
+        docComment += `\n@pattern "${propertyInfo.pattern}"`;
+      }
+      
+      if (propertyInfo.minLength !== undefined && propertyInfo.minLength !== null) {
+        docComment += `\n@minLength ${propertyInfo.minLength}`;
+      }
+      
+      if (propertyInfo.maxLength !== undefined && propertyInfo.maxLength !== null) {
+        docComment += `\n@maxLength ${propertyInfo.maxLength}`;
       }
       
       lines.push(`  /** ${docComment} */`);
@@ -316,9 +324,17 @@ async function generatePropertyTypeInterface(
     if (propertyInfo.docstring) {
       let docComment = propertyInfo.docstring;
       
-      // Add pattern information if available
+      // Add metadata with newlines before each
       if (propertyInfo.pattern) {
-        docComment += ` @pattern "${propertyInfo.pattern}"`;
+        docComment += `\n@pattern "${propertyInfo.pattern}"`;
+      }
+      
+      if (propertyInfo.minLength !== undefined && propertyInfo.minLength !== null) {
+        docComment += `\n@minLength ${propertyInfo.minLength}`;
+      }
+      
+      if (propertyInfo.maxLength !== undefined && propertyInfo.maxLength !== null) {
+        docComment += `\n@maxLength ${propertyInfo.maxLength}`;
       }
       
       lines.push(`  /** ${docComment} */`);
