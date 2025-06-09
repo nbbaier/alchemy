@@ -39,7 +39,7 @@ export type Astro<B extends Bindings> = B extends { ASSETS: any }
  *
  * ```ts
  * import { Astro } from "alchemy/cloudflare";
- * 
+ *
  * const astroSite = await Astro("my-astro-app");
  * ```
  *
@@ -50,7 +50,7 @@ export type Astro<B extends Bindings> = B extends { ASSETS: any }
  *
  * ```ts
  * import { Astro, D1Database } from "alchemy/cloudflare";
- * 
+ *
  * const db = await D1Database("my-db");
  * const astroSiteWithDb = await Astro("my-astro-app-with-db", {
  *   command: "npm run build", // Specify a custom build command
@@ -70,7 +70,7 @@ export async function Astro<B extends Bindings>(
     // Default build command, can be overridden by props.command
     command: props?.command ?? "bun run build",
     // Default entry point for @astrojs/cloudflare adapter
-    main: props?.main ?? path.join("dist", "_worker.js"),
+    main: props?.main ?? path.join("dist", "_worker.js/index.js"),
     // Default static assets directory for @astrojs/cloudflare adapter
     assets: props?.assets ?? "dist",
     // Enable nodejs_compat flag for Astro compatibility

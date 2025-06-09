@@ -1,5 +1,3 @@
-/// <reference types="node" />
-
 import alchemy from "alchemy";
 import { Astro, DOStateStore, KVNamespace, R2Bucket } from "alchemy/cloudflare";
 

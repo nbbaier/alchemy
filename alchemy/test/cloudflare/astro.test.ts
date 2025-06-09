@@ -14,7 +14,7 @@ describe("Astro Resource", () => {
   test("create astro resource with default settings", async (scope) => {
     const resourceId = `${BRANCH_PREFIX}-astro-test`;
     let astroApp: Awaited<ReturnType<typeof Astro>>;
-    
+
     try {
       // Create Astro resource with default settings
       astroApp = await Astro(resourceId, {
@@ -40,7 +40,6 @@ describe("Astro Resource", () => {
 
       // Verify it has the expected URL structure
       expect(astroApp.url).toMatch(/https:\/\/.*\..*\.workers\.dev/);
-
     } finally {
       await destroy(scope);
     }
