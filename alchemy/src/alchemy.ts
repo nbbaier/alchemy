@@ -141,6 +141,7 @@ async function _alchemy(
       await destroy(root);
       return process.exit(0);
     }
+
     return root;
   }
   const [template, ...values] = args;
