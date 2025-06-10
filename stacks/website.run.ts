@@ -5,7 +5,6 @@ import { Astro, CustomDomain, Zone } from "../alchemy/src/cloudflare/index.js";
 import "../alchemy/src/dns/index.js";
 import alchemy from "../alchemy/src/index.js";
 import "../alchemy/src/os/index.js";
-import { Exec } from "../alchemy/src/os/index.js";
 import options from "./env.js";
 
 // Support BRANCH_PREFIX for resource isolation
@@ -22,10 +21,6 @@ if (!isPreview) {
     type: "full",
   });
 }
-
-await Exec("build-site", {
-  command: "bun run --filter alchemy-web docs:build",
-});
 
 export const website = await Astro("alchemy-web", {
   name: branchPrefix ? `${branchPrefix}-alchemy-website` : "alchemy-website",
