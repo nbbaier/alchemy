@@ -12,7 +12,6 @@
     "@astrojs/check": "^0.9.4",
     "@astrojs/cloudflare": "^12.5.4",
     "@astrojs/starlight": "^0.34.3",
-    "alchemy": "https://pkg.pr.new/sam-goodwin/alchemy@accbcb0",
     "astro": "^5.6.1",
     "starlight-llms-txt": "^0.5.1",
     "typescript": "^5.8.3"
