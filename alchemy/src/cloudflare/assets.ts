@@ -167,9 +167,12 @@ async function getFilesRecursively(
   await Promise.all(
     files.map(async (file) => {
       const path = `${dir}/${file.name}`;
+      if (ignoreMatcher.ignores(file.name)) {
+        return;
+      }
       if (file.isDirectory()) {
         result.push(...(await getFilesRecursively(path, ignoreMatcher)));
-      } else if (!ignoreMatcher.ignores(file.name)) {
+      } else {
         result.push(path);
       }
     }),
