@@ -66,11 +66,6 @@ export async function uploadAssets(
 
   const { manifest, filePathsByHash } = await prepareAssetManifest(assets);
 
-  console.log("manifest", manifest);
-  console.log(
-    `/accounts/${api.accountId}/workers/scripts/${workerName}/assets-upload-session`,
-  );
-
   // Start the upload session
   const uploadSessionResponse = await api.post(
     `/accounts/${api.accountId}/workers/scripts/${workerName}/assets-upload-session`,
