@@ -156,7 +156,7 @@ export default {
       }
 
       await writeFile(
-        path.join(assetsDir, ".assetsignore"),
+        path.join(cwd, assetsDir, ".assetsignore"),
         ["_worker.js", "_routes.json"].join("\n"),
       );
 
