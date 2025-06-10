@@ -8,6 +8,7 @@ import {
   type CloudflareApiOptions,
 } from "./api.ts";
 import type { Worker } from "./worker.ts";
+import { getZoneByDomain } from "./zone.ts";
 
 /**
  * Properties for creating or updating a Route
@@ -27,8 +28,10 @@ export interface RouteProps extends CloudflareApiOptions {
 
   /**
    * Zone ID for the route
+   * If not provided, will be automatically inferred from the route pattern using Cloudflare's zones API.
+   * The system will attempt to find a zone that matches the domain in the route pattern.
    */
-  zoneId: string;
+  zoneId?: string;
 
   /**
    * Whether to adopt an existing route with the same pattern if it exists
@@ -96,6 +99,21 @@ export interface Route extends Resource<"cloudflare::Route">, RouteProps {
  *   zoneId: "your-zone-id"
  * });
  *
+ * @example
+ * // Create a route with automatic zone ID inference
+ * // The zone ID will be automatically determined from the domain in the pattern
+ * const autoRoute = await Route("auto-route", {
+ *   pattern: "api.example.com/*", // Zone ID inferred from example.com
+ *   script: "my-worker"
+ * });
+ *
+ * @example
+ * // Works with wildcard patterns too
+ * const wildcardRoute = await Route("wildcard-route", {
+ *   pattern: "*.example.com/api/*", // Zone ID inferred from example.com
+ *   script: "api-worker"
+ * });
+ *
  * @see https://developers.cloudflare.com/workers/configuration/routes/
  */
 export const Route = Resource(
@@ -111,8 +129,26 @@ export const Route = Resource(
     const scriptName =
       typeof props.script === "string" ? props.script : props.script.name;
 
-    // Get zone ID from props
-    const { zoneId } = props;
+    // Get or infer zone ID
+    let zoneId = props.zoneId;
+    if (!zoneId) {
+      const inferredZoneId = await inferZoneIdFromPattern(props.pattern, {
+        accountId: props.accountId,
+        apiKey: props.apiKey,
+        apiToken: props.apiToken,
+        baseUrl: props.baseUrl,
+        email: props.email,
+      });
+
+      if (!inferredZoneId) {
+        throw new Error(
+          `Could not infer zone ID for route pattern "${props.pattern}". ` +
+            "Please ensure the domain is managed by Cloudflare or specify an explicit zoneId.",
+        );
+      }
+
+      zoneId = inferredZoneId;
+    }
 
     if (this.phase === "delete") {
       logger.log("Deleting Route:", props.pattern);
@@ -350,4 +386,57 @@ async function findRouteByPattern(
   // Look for a route with matching pattern
   const match = data.result.find((route) => route.pattern === pattern);
   return match || null;
+}
+
+/**
+ * Extract domain from a route pattern, similar to wrangler's logic
+ * @param pattern The route pattern (e.g., "api.example.com/*", "*.example.com/api/*")
+ * @returns The domain part of the pattern
+ */
+function extractDomainFromPattern(pattern: string): string {
+  // Remove protocol if present
+  let domain = pattern.replace(/^https?:\/\//, "");
+
+  // Remove path part (everything after the first '/')
+  domain = domain.split("/")[0];
+
+  // Remove port if present
+  domain = domain.split(":")[0];
+
+  return domain;
+}
+
+/**
+ * Infer zone ID from a route pattern using Cloudflare API
+ * This implements similar logic to wrangler's zone inference
+ * @param pattern The route pattern
+ * @param apiOptions API options for Cloudflare API calls
+ * @returns Promise resolving to zone ID or null if not found
+ */
+async function inferZoneIdFromPattern(
+  pattern: string,
+  apiOptions: Partial<CloudflareApiOptions>,
+): Promise<string | null> {
+  const domain = extractDomainFromPattern(pattern);
+
+  // Handle wildcard domains by removing the wildcard part
+  const cleanDomain = domain.replace(/^\*\./, "");
+
+  // Try to find zone for the exact domain first
+  let zone = await getZoneByDomain(cleanDomain, apiOptions);
+  if (zone) {
+    return zone.id;
+  }
+
+  // If not found, try parent domains (similar to wrangler's logic)
+  const domainParts = cleanDomain.split(".");
+  for (let i = 1; i < domainParts.length - 1; i++) {
+    const parentDomain = domainParts.slice(i).join(".");
+    zone = await getZoneByDomain(parentDomain, apiOptions);
+    if (zone) {
+      return zone.id;
+    }
+  }
+
+  return null;
 }

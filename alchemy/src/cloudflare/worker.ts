@@ -62,7 +62,6 @@ import type { SingleStepMigration } from "./worker-migration.ts";
 import { WorkerStub, isWorkerStub } from "./worker-stub.ts";
 import { Workflow, isWorkflow, upsertWorkflow } from "./workflow.ts";
 import { Route } from "./route.ts";
-import { getZoneByDomain } from "./zone.ts";
 
 /**
  * Configuration options for static assets
@@ -237,7 +236,7 @@ export interface BaseWorkerProps<
     /**
      * Whether this is a custom domain route
      */
-    custom_domain?: boolean;
+    customDomain?: boolean;
     /**
      * Whether to adopt an existing route with the same pattern if it exists
      * @default false
@@ -793,59 +792,6 @@ export function Worker<const B extends Bindings>(
 
 export const DEFAULT_COMPATIBILITY_DATE = "2025-04-20";
 
-/**
- * Extract domain from a route pattern, similar to wrangler's logic
- * @param pattern The route pattern (e.g., "api.example.com/*", "*.example.com/api/*")
- * @returns The domain part of the pattern
- */
-function extractDomainFromPattern(pattern: string): string {
-  // Remove protocol if present
-  let domain = pattern.replace(/^https?:\/\//, "");
-
-  // Remove path part (everything after the first '/')
-  domain = domain.split("/")[0];
-
-  // Remove port if present
-  domain = domain.split(":")[0];
-
-  return domain;
-}
-
-/**
- * Infer zone ID from a route pattern using Cloudflare API
- * This implements similar logic to wrangler's zone inference
- * @param pattern The route pattern
- * @param apiOptions API options for Cloudflare API calls
- * @returns Promise resolving to zone ID or null if not found
- */
-async function inferZoneIdFromPattern(
-  pattern: string,
-  apiOptions: Partial<CloudflareApiOptions>,
-): Promise<string | null> {
-  const domain = extractDomainFromPattern(pattern);
-
-  // Handle wildcard domains by removing the wildcard part
-  const cleanDomain = domain.replace(/^\*\./, "");
-
-  // Try to find zone for the exact domain first
-  let zone = await getZoneByDomain(cleanDomain, apiOptions);
-  if (zone) {
-    return zone.id;
-  }
-
-  // If not found, try parent domains (similar to wrangler's logic)
-  const domainParts = cleanDomain.split(".");
-  for (let i = 1; i < domainParts.length - 1; i++) {
-    const parentDomain = domainParts.slice(i).join(".");
-    zone = await getZoneByDomain(parentDomain, apiOptions);
-    if (zone) {
-      return zone.id;
-    }
-  }
-
-  return null;
-}
-
 export const _Worker = Resource(
   "cloudflare::Worker",
   {
@@ -1066,35 +1012,10 @@ export const _Worker = Resource(
       // Create Route resources for each route
       await Promise.all(
         props.routes.map(async (routeConfig) => {
-          let zoneId = routeConfig.zoneId;
-
-          // Infer zone ID if not provided
-          if (!zoneId) {
-            const inferredZoneId = await inferZoneIdFromPattern(
-              routeConfig.pattern,
-              {
-                accountId: props.accountId,
-                apiKey: props.apiKey,
-                apiToken: props.apiToken,
-                baseUrl: props.baseUrl,
-                email: props.email,
-              },
-            );
-
-            if (!inferredZoneId) {
-              throw new Error(
-                `Could not infer zone ID for route pattern "${routeConfig.pattern}". ` +
-                  "Please ensure the domain is managed by Cloudflare or specify an explicit zoneId.",
-              );
-            }
-
-            zoneId = inferredZoneId;
-          }
-
           return await Route(routeConfig.pattern, {
             pattern: routeConfig.pattern,
             script: workerName,
-            zoneId,
+            zoneId: routeConfig.zoneId, // Route resource will handle inference if not provided
             adopt: routeConfig.adopt ?? false,
             accountId: props.accountId,
             apiKey: props.apiKey,
