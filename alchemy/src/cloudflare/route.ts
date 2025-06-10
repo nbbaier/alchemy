@@ -137,7 +137,20 @@ export const Route = Resource(
     const scriptName =
       typeof props.script === "string" ? props.script : props.script.name;
 
-    // Get or infer zone ID
+    if (this.phase === "delete") {
+      logger.log("Deleting Route:", props.pattern);
+
+      // Only delete if we have complete output data (both ID and zoneId)
+      // If creation failed, we won't have proper output, so just skip deletion
+      if (this.output?.id && this.output?.zoneId) {
+        await deleteRoute(api, this.output.zoneId, this.output.id);
+      }
+
+      // Return void (a deleted route has no content)
+      return this.destroy();
+    }
+
+    // Get or infer zone ID (only needed for create/update phases)
     let zoneId = props.zoneId;
     if (!zoneId) {
       const inferredZoneId = await inferZoneIdFromPattern(props.pattern, {
@@ -156,18 +169,6 @@ export const Route = Resource(
       }
 
       zoneId = inferredZoneId;
-    }
-
-    if (this.phase === "delete") {
-      logger.log("Deleting Route:", props.pattern);
-
-      // Only delete if we have an ID
-      if (this.output?.id) {
-        await deleteRoute(api, zoneId, this.output.id);
-      }
-
-      // Return void (a deleted route has no content)
-      return this.destroy();
     }
 
     let routeData: CloudflareRouteResponse;
@@ -212,13 +213,14 @@ export const Route = Resource(
             );
           }
 
-          // Use the existing route data
-          routeData = {
-            result: existingRoute,
-            success: true,
-            errors: [],
-            messages: [],
-          };
+          // Update the existing route to point to our script
+          routeData = await updateRoute(
+            api,
+            zoneId,
+            existingRoute.id,
+            props.pattern,
+            scriptName,
+          );
         } else {
           // Re-throw the error if adopt is false or it's not a 409 error
           throw error;

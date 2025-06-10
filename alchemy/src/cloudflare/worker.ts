@@ -51,6 +51,7 @@ import {
   listQueueConsumersForWorker,
 } from "./queue-consumer.ts";
 import { type QueueResource, isQueue } from "./queue.ts";
+import { Route } from "./route.ts";
 import { isVectorizeIndex } from "./vectorize-index.ts";
 import { type AssetUploadResult, uploadAssets } from "./worker-assets.ts";
 import {
@@ -61,7 +62,6 @@ import {
 import type { SingleStepMigration } from "./worker-migration.ts";
 import { WorkerStub, isWorkerStub } from "./worker-stub.ts";
 import { Workflow, isWorkflow, upsertWorkflow } from "./workflow.ts";
-import { Route } from "./route.ts";
 
 /**
  * Configuration options for static assets
@@ -350,7 +350,7 @@ export type Worker<
   B extends Bindings | undefined = Bindings | undefined,
   RPC extends Rpc.WorkerEntrypointBranded = Rpc.WorkerEntrypointBranded,
 > = Resource<"cloudflare::Worker"> &
-  Omit<WorkerProps<B>, "url" | "script"> &
+  Omit<WorkerProps<B>, "url" | "script" | "routes"> &
   globalThis.Service & {
     /** @internal phantom property */
     __rpc__?: RPC;
@@ -394,6 +394,11 @@ export type Worker<
      * Configuration for static assets
      */
     assets?: AssetsConfig;
+
+    /**
+     * The routes that were created for this worker
+     */
+    routes?: Route[];
 
     // phantom property (for typeof myWorker.Env)
     Env: B extends Bindings
@@ -996,7 +1001,8 @@ export const _Worker = Resource(
 
     const { scriptMetadata, workerUrl, now } = await uploadWorkerScript(props);
 
-    // Create routes if provided
+    // Create routes if provided and capture their outputs
+    let createdRoutes: Route[] = [];
     if (props.routes && props.routes.length > 0) {
       // Validate for duplicate patterns
       const patterns = props.routes.map((route) => route.pattern);
@@ -1009,8 +1015,8 @@ export const _Worker = Resource(
         );
       }
 
-      // Create Route resources for each route
-      await Promise.all(
+      // Create Route resources for each route and capture their outputs
+      createdRoutes = await Promise.all(
         props.routes.map(async (routeConfig) => {
           return await Route(routeConfig.pattern, {
             pattern: routeConfig.pattern,
@@ -1072,6 +1078,8 @@ export const _Worker = Resource(
       assets: props.assets,
       // Include cron triggers in the output
       crons: props.crons,
+      // Include the created routes in the output
+      routes: createdRoutes.length > 0 ? createdRoutes : undefined,
       // phantom property
       Env: undefined!,
     } as unknown as Worker<B>);
