@@ -167,7 +167,7 @@ export default {
           // we don't include the Assets binding until after build to make sure the asset manifest is correct
           // we generate the wrangler.json using all the bind
           ASSETS: await Assets("assets", {
-            path: assetsDir,
+            path: path.join(cwd, assetsDir),
           }),
         },
       } as WorkerProps<any> & { name: string })) as Website<B>;
