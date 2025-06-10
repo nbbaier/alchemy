@@ -92,9 +92,54 @@ const app = await alchemy("my-app", {
 });
 ```
 
+### Durable Objects State Store (Recommended)
+
+For high-performance cloud state storage, Alchemy provides a Durable Objects-based state store that offers superior performance compared to R2-based solutions. DOStateStore uses Cloudflare Durable Objects with an RPC interface for fast, consistent state operations.
+
+```typescript
+import { DOStateStore } from "alchemy/cloudflare";
+
+const app = await alchemy("my-app", {
+  stage: "prod", 
+  phase: process.argv.includes("--destroy") ? "destroy" : "up",
+  stateStore: (scope) => new DOStateStore(scope, {
+    // Cloudflare API credentials
+    apiKey: alchemy.secret(process.env.CLOUDFLARE_API_KEY),
+    email: process.env.CLOUDFLARE_EMAIL,
+    // Optional: customize worker name (defaults to "alchemy-state")
+    worker: {
+      name: "my-app-state"
+    }
+  })
+});
+```
+
+You can also use it with minimal configuration by setting environment variables:
+
+```typescript
+import { DOStateStore } from "alchemy/cloudflare";
+
+// Set CLOUDFLARE_API_KEY, CLOUDFLARE_EMAIL, and ALCHEMY_STATE_TOKEN env vars
+const app = await alchemy("my-app", {
+  stage: "prod",
+  phase: process.argv.includes("--destroy") ? "destroy" : "up",
+  stateStore: (scope) => new DOStateStore(scope)
+});
+```
+
+DOStateStore automatically creates and manages a Cloudflare Worker with Durable Objects for state storage. This provides:
+
+- **Higher Performance**: RPC-based operations are faster than REST API calls
+- **Strong Consistency**: Durable Objects provide atomic operations  
+- **Automatic Management**: Worker creation and token handling is automatic
+- **Cost Efficiency**: Lower costs compared to R2 for frequent state operations
+
+> [!TIP]
+> **Performance Recommendation**: Use DOStateStore instead of R2RestStateStore for better performance, especially in CI/CD environments or applications with frequent state updates.
+
 ### R2 Rest State Store
 
-Alchemy supports multiple state storage backends. You can use the default file system store or integrate with cloud services like Cloudflare R2:
+Alchemy also supports state storage using Cloudflare R2, though DOStateStore is recommended for better performance:
 
 ```typescript
 // Example with Cloudflare R2 state store
