@@ -94,7 +94,7 @@ const app = await alchemy("my-app", {
 
 ### Durable Objects State Store (Recommended)
 
-For high-performance cloud state storage, Alchemy provides a Durable Objects-based state store that offers superior performance compared to R2-based solutions. DOStateStore uses Cloudflare Durable Objects with an RPC interface for fast, consistent state operations.
+For high-performance cloud state storage, use DOStateStore with Cloudflare Durable Objects.
 
 ```typescript
 import { DOStateStore } from "alchemy/cloudflare";
@@ -134,8 +134,6 @@ DOStateStore automatically creates and manages a Cloudflare Worker with Durable 
 - **Automatic Management**: Worker creation and token handling is automatic
 - **Cost Efficiency**: Lower costs compared to R2 for frequent state operations
 
-> [!TIP]
-> **Performance Recommendation**: Use DOStateStore instead of R2RestStateStore for better performance, especially in CI/CD environments or applications with frequent state updates.
 
 ### R2 Rest State Store
 
