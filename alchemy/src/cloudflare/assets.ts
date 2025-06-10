@@ -162,16 +162,21 @@ async function getFilesRecursively(
   ignoreMatcher: { ignores: (path: string) => boolean },
 ): Promise<string[]> {
   const files = await fs.readdir(dir, { withFileTypes: true });
+  const result: string[] = [];
 
-  const allFiles = await Promise.all(
+  await Promise.all(
     files.map(async (file) => {
       const path = `${dir}/${file.name}`;
-      if (file.isDirectory()) {
-        return getFilesRecursively(path, ignoreMatcher);
+      if (ignoreMatcher.ignores(file.name)) {
+        return;
       }
-      return path;
+      if (file.isDirectory()) {
+        result.push(...(await getFilesRecursively(path, ignoreMatcher)));
+      } else {
+        result.push(path);
+      }
     }),
   );
 
-  return allFiles.flat().filter((file) => !ignoreMatcher.ignores(file));
+  return result;
 }

@@ -77,7 +77,7 @@ export async function uploadAssets(
 
   if (!uploadSessionResponse.ok) {
     throw new Error(
-      `Failed to start assets upload session: ${uploadSessionResponse.status} ${uploadSessionResponse.statusText}`,
+      `Failed to start assets upload session: ${uploadSessionResponse.status} ${uploadSessionResponse.statusText} - ${await uploadSessionResponse.text()}`,
     );
   }
 
@@ -241,6 +241,12 @@ export async function calculateFileMetadata(
 
   const extension = path.extname(filePath).substring(1);
   hash.update(extension);
+
+  if (contents.length > 26214400) {
+    throw new Error(
+      `File "${filePath}" is too large to upload as an asset to Cloudflare (the file is ${(contents.length / 1024 / 1024).toFixed(2)} MB; the maximum size is 25MB).`,
+    );
+  }
 
   return {
     hash: hash.digest("hex").slice(0, 32),
