@@ -61,6 +61,7 @@ import {
 import type { SingleStepMigration } from "./worker-migration.ts";
 import { WorkerStub, isWorkerStub } from "./worker-stub.ts";
 import { Workflow, isWorkflow, upsertWorkflow } from "./workflow.ts";
+import { Route } from "./route.ts";
 
 /**
  * Configuration options for static assets
@@ -216,6 +217,32 @@ export interface BaseWorkerProps<
    * Can include queues, streams, or other event sources.
    */
   eventSources?: EventSource[];
+
+  /**
+   * Routes to create for this worker.
+   *
+   * Each route maps a URL pattern to this worker script.
+   */
+  routes?: Array<{
+    /**
+     * URL pattern for the route
+     * @example "sub.example.com/*"
+     */
+    pattern: string;
+    /**
+     * Zone ID for the route
+     */
+    zoneId: string;
+    /**
+     * Whether this is a custom domain route
+     */
+    custom_domain?: boolean;
+    /**
+     * Whether to adopt an existing route with the same pattern if it exists
+     * @default false
+     */
+    adopt?: boolean;
+  }>;
 
   /**
    * The RPC class to use for the worker.
@@ -968,6 +995,37 @@ export const _Worker = Resource(
     }
 
     const { scriptMetadata, workerUrl, now } = await uploadWorkerScript(props);
+
+    // Create routes if provided
+    if (props.routes && props.routes.length > 0) {
+      // Validate for duplicate patterns
+      const patterns = props.routes.map((route) => route.pattern);
+      const duplicates = patterns.filter(
+        (pattern, index) => patterns.indexOf(pattern) !== index,
+      );
+      if (duplicates.length > 0) {
+        throw new Error(
+          `Duplicate route patterns found: ${duplicates.join(", ")}`,
+        );
+      }
+
+      // Create Route resources for each route
+      await Promise.all(
+        props.routes.map(async (routeConfig) => {
+          return await Route(routeConfig.pattern, {
+            pattern: routeConfig.pattern,
+            script: workerName,
+            zoneId: routeConfig.zoneId,
+            adopt: routeConfig.adopt ?? false,
+            accountId: props.accountId,
+            apiKey: props.apiKey,
+            apiToken: props.apiToken,
+            baseUrl: props.baseUrl,
+            email: props.email,
+          });
+        }),
+      );
+    }
 
     function exportBindings() {
       return Object.fromEntries(
