@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { AsyncQueue } from "../util/async-queue.ts";
 import { getContentType } from "../util/content-type.ts";
 import type { CloudflareApi } from "./api.ts";
 import type { Assets } from "./assets.ts";
@@ -95,20 +96,22 @@ export async function uploadAssets(
   let completionToken = sessionData.result.jwt;
   const buckets = sessionData.result.buckets;
 
-  for (let i = 0; i < buckets.length; i += 3) {
-    const batch = buckets.slice(i, i + 3);
-    await Promise.all(
-      batch.map((bucket) =>
-        uploadBucket(api, sessionData.result.jwt, bucket, filePathsByHash).then(
-          (jwt) => {
-            if (jwt) {
-              completionToken = jwt;
-            }
-          },
-        ),
-      ),
-    );
-  }
+  const queue = new AsyncQueue(3);
+  await Promise.all(
+    buckets.map((bucket) =>
+      queue.add(async () => {
+        const jwt = await uploadBucket(
+          api,
+          sessionData.result.jwt,
+          bucket,
+          filePathsByHash,
+        );
+        if (jwt) {
+          completionToken = jwt;
+        }
+      }),
+    ),
+  );
 
   // Return the final completion token with asset configuration
   return {
