@@ -99,6 +99,22 @@ For high-performance cloud state storage, use DOStateStore with Cloudflare Durab
 ```typescript
 import { DOStateStore } from "alchemy/cloudflare";
 
+// Set CLOUDFLARE_API_KEY, CLOUDFLARE_EMAIL, and ALCHEMY_STATE_TOKEN env vars
+const app = await alchemy("my-app", {
+  stage: "prod",
+  phase: process.argv.includes("--destroy") ? "destroy" : "up",
+  stateStore: (scope) => new DOStateStore(scope)
+});
+```
+
+> [!TIP]
+> Credentials can be inferred from environment variables or OAuth. See the [Cloudflare Auth Guide](../guides/cloudflare-auth.md) for setup instructions.
+
+You can also provide explicit configuration:
+
+```typescript
+import { DOStateStore } from "alchemy/cloudflare";
+
 const app = await alchemy("my-app", {
   stage: "prod", 
   phase: process.argv.includes("--destroy") ? "destroy" : "up",
@@ -114,25 +130,7 @@ const app = await alchemy("my-app", {
 });
 ```
 
-You can also use it with minimal configuration by setting environment variables:
-
-```typescript
-import { DOStateStore } from "alchemy/cloudflare";
-
-// Set CLOUDFLARE_API_KEY, CLOUDFLARE_EMAIL, and ALCHEMY_STATE_TOKEN env vars
-const app = await alchemy("my-app", {
-  stage: "prod",
-  phase: process.argv.includes("--destroy") ? "destroy" : "up",
-  stateStore: (scope) => new DOStateStore(scope)
-});
-```
-
-DOStateStore automatically creates and manages a Cloudflare Worker with Durable Objects for state storage. This provides:
-
-- **Higher Performance**: RPC-based operations are faster than REST API calls
-- **Strong Consistency**: Durable Objects provide atomic operations  
-- **Automatic Management**: Worker creation and token handling is automatic
-- **Cost Efficiency**: Lower costs compared to R2 for frequent state operations
+DOStateStore automatically creates and manages a Cloudflare Worker with Durable Objects for state storage.
 
 
 ### R2 Rest State Store
