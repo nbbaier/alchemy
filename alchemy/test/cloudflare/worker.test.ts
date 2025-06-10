@@ -1434,8 +1434,8 @@ describe("Worker Resource", () => {
     const workerName = `${BRANCH_PREFIX}-worker-routes-auto`;
     const testDomain = `${BRANCH_PREFIX}-auto-routes.com`;
 
-    let worker: Worker | undefined;
-    let zone: Zone | undefined;
+    let worker: Worker;
+    let zone: Zone;
 
     try {
       // Create a zone first
@@ -1506,8 +1506,8 @@ describe("Worker Resource", () => {
     const testDomain2 = `${BRANCH_PREFIX}-mixed2.com`;
 
     let worker: Worker | undefined;
-    let zone1: Zone | undefined;
-    let zone2: Zone | undefined;
+    let zone1: Zone;
+    let zone2: Zone;
 
     try {
       // Create two zones
