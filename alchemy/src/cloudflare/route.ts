@@ -30,6 +30,14 @@ export interface RouteProps extends CloudflareApiOptions {
    * Zone ID for the route
    * If not provided, will be automatically inferred from the route pattern using Cloudflare's zones API.
    * The system will attempt to find a zone that matches the domain in the route pattern.
+   *
+   * @example
+   * // Explicit zone ID:
+   * { pattern: "api.example.com/*", zoneId: "abc123def456" }
+   *
+   * // Automatic inference (recommended):
+   * { pattern: "api.example.com/*" } // Zone ID automatically inferred from "example.com"
+   * { pattern: "*.example.com/api/*" } // Zone ID inferred from "example.com"
    */
   zoneId?: string;
 
