@@ -313,3 +313,257 @@ It is usually better to be targeted with the tests you run instead. That way you
 ```sh
 bun vitest ./alchemy/test/.. -t "..."
 ```
+
+# Advanced Provider Patterns
+
+> [!NOTE]
+> These advanced patterns emerged from building comprehensive provider implementations like Cloudflare. They should be followed for production-ready providers.
+
+## API Error Handling
+
+> [!IMPORTANT]
+> All providers should implement consistent, centralized error handling patterns for better developer experience and debugging.
+
+### Error Handler Pattern
+
+Each provider should have a dedicated error handling module:
+
+```ts
+// ./alchemy/src/{provider}/api-error.ts
+export class {Provider}ApiError extends Error {
+  constructor(
+    public status: number,
+    public action: string,
+    public resourceType: string,
+    public resourceName: string | undefined,
+    message: string,
+  ) {
+    super(`Error ${status} ${action} ${resourceType}${resourceName ? ` '${resourceName}'` : ""}: ${message}`);
+  }
+}
+
+export async function handleApiError(
+  response: Response,
+  action: string,
+  resourceType: string,
+  resourceName?: string,
+): Promise<never> {
+  let errorMessage: string;
+  try {
+    const errorData = await response.json();
+    errorMessage = errorData.message || errorData.error || "Unknown error";
+  } catch {
+    errorMessage = response.statusText || "Unknown error";
+  }
+  
+  throw new {Provider}ApiError(
+    response.status,
+    action,
+    resourceType,
+    resourceName,
+    errorMessage,
+  );
+}
+```
+
+### Usage in Resources
+
+```ts
+const response = await api.post(`/endpoint`, { /* data */ });
+if (!response.ok) {
+  await handleApiError(response, "creating", "Resource", resourceId);
+}
+```
+
+## Standard Resource Props
+
+> [!IMPORTANT]
+> All resources should support these standard props for consistent behavior across providers.
+
+### Authentication Extension
+
+```ts
+export interface {Resource}Props extends {Provider}ApiOptions {
+  // resource-specific props
+}
+```
+
+### Standard Props Pattern
+
+```ts
+export interface {Resource}Props extends {Provider}ApiOptions {
+  name?: string; // defaults to resource id if not provided
+  adopt?: boolean; // adopt existing resource instead of creating new
+  delete?: boolean; // control whether resource is actually deleted on destroy (default: true)
+  // ... other resource-specific props
+}
+```
+
+### Resource Reference Pattern
+
+> [!CAUTION]
+> When a prop references another resource, use union types to support both direct resource references and string identifiers.
+
+```ts
+export interface {Resource}Props {
+  // Instead of: bucketId: string
+  bucket: string | BucketResource; // Allows both resource objects and string IDs
+  
+  // Instead of: tableArn: string  
+  table: string | TableResource; // Enables type-safe resource composition
+}
+```
+
+## Enhanced Testing Patterns
+
+> [!IMPORTANT]
+> Follow these enhanced testing patterns for reliable, maintainable tests.
+
+### Test Structure with Cleanup
+
+```ts
+// ./alchemy/test/{provider}/{resource}.test.ts
+import { destroy } from "../src/destroy.ts"
+import { BRANCH_PREFIX } from "../util.ts";
+
+import "../../src/test/vitest.ts";
+
+const test = alchemy.test(import.meta, {
+  prefix: BRANCH_PREFIX,
+});
+
+describe("{Provider}", () => {
+  test("{test case}", async (scope) => {
+    const resourceId = `${BRANCH_PREFIX}-descriptive-name`; // deterministic, unique ID
+    let resource: {Resource} | undefined;
+    
+    try {
+      // create
+      resource = await {Resource}(resourceId, {
+        // props
+      });
+
+      expect(resource).toMatchObject({
+        // assertions
+      });
+
+      // update (if applicable)
+      resource = await {Resource}(resourceId, {
+        // updated props
+      });
+
+      expect(resource).toMatchObject({
+        // updated assertions
+      });
+    } finally {
+      await destroy(scope);
+      if (resource) {
+        await assert{Resource}DoesNotExist(resource);
+      }
+    }
+  });
+});
+
+async function assert{Resource}DoesNotExist(resource: {Resource}) {
+  // Provider-specific logic to verify resource deletion
+  // Should throw descriptive error if resource still exists
+}
+```
+
+### Testing Guidelines
+
+- **Deterministic Naming**: Use `${BRANCH_PREFIX}-descriptive-name` format
+- **Always Cleanup**: Use try-finally blocks to ensure resource cleanup
+- **Assertion Helpers**: Create dedicated functions to verify resource deletion
+- **Test Isolation**: Each test should be independent and not rely on other tests
+
+## Resource Lifecycle Management
+
+> [!IMPORTANT]
+> Implement proper lifecycle management in all resources to handle create, update, and delete operations correctly.
+
+### Phase-Based Implementation
+
+```ts
+export const {Resource} = Resource(
+  "{provider}::{resource}",
+  async function (this: Context<>, id: string, props: {Resource}Props): Promise<{Resource}> {
+    const api = await create{Provider}Api(props);
+    
+    if (this.phase === "delete") {
+      return await delete{Resource}(api, id, props);
+    }
+    
+    const existing = await find{Resource}(api, props.name || id);
+    
+    if (existing && props.adopt) {
+      return existing; // Adopt existing resource
+    }
+    
+    if (existing && this.phase === "create") {
+      throw new Error(`{Resource} '${props.name || id}' already exists. Use adopt: true to adopt it.`);
+    }
+    
+    if (!existing && this.phase === "update") {
+      // Resource was deleted externally, recreate it
+      return await create{Resource}(api, id, props);
+    }
+    
+    if (existing) {
+      return await update{Resource}(api, existing, props);
+    } else {
+      return await create{Resource}(api, id, props);
+    }
+  }
+);
+```
+
+### Delete Operation Pattern
+
+```ts
+async function delete{Resource}(api: {Provider}Api, id: string, props: {Resource}Props) {
+  if (props.delete === false) {
+    // Skip actual deletion but return placeholder
+    return { id, type: "{provider}::{resource}" } as {Resource};
+  }
+  
+  try {
+    await api.delete(`/resources/${id}`);
+  } catch (error) {
+    if (error.status === 404) {
+      // Resource already deleted, this is fine
+      return { id, type: "{provider}::{resource}" } as {Resource};
+    }
+    throw error;
+  }
+  
+  return { id, type: "{provider}::{resource}" } as {Resource};
+}
+```
+
+## Property Validation
+
+> [!IMPORTANT]
+> Implement proper validation for resource properties, especially immutable ones.
+
+### Immutability Checks
+
+```ts
+async function update{Resource}(api: {Provider}Api, existing: {Resource}, props: {Resource}Props): Promise<{Resource}> {
+  // Check immutable properties
+  if (props.immutableProp && props.immutableProp !== existing.immutableProp) {
+    throw new Error(
+      `Cannot change immutableProp from '${existing.immutableProp}' to '${props.immutableProp}'. ` +
+      `This property is immutable after resource creation.`
+    );
+  }
+  
+  // Continue with update...
+}
+```
+
+### Validation Guidelines
+
+- **Clear Error Messages**: Explain what cannot be changed and why
+- **Early Validation**: Check constraints before making API calls
+- **Helpful Suggestions**: When possible, suggest alternatives or workarounds
