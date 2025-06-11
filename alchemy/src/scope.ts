@@ -72,6 +72,12 @@ export class Scope {
   private startedAt = performance.now();
 
   private deferred: (() => Promise<any>)[] = [];
+  
+  /**
+   * Collection of scope finalizers to be executed in LIFO order.
+   * Only used by the root scope to accumulate finalizers from all child scopes.
+   */
+  private scopeFinalizers: Array<() => Promise<void>> = [];
 
   constructor(options: ScopeOptions) {
     this.appName = options.appName;
@@ -191,6 +197,8 @@ export class Scope {
     if (this.finalized) {
       return;
     }
+    
+    // Handle global scope cleanup for Cloudflare Workers emulation
     if (this.parent === undefined && Scope.globals.length > 0) {
       const last = Scope.globals.pop();
       if (last !== this) {
@@ -199,9 +207,38 @@ export class Scope {
         );
       }
     }
+    
     this.finalized = true;
-    // trigger and await all deferred promises
+    
+    // If this is not the root scope, register this scope's finalizer with the root
+    // to be executed later in LIFO order
+    if (this.parent !== undefined) {
+      const root = this.root;
+      root.scopeFinalizers.push(async () => {
+        await this.executeFinalization();
+      });
+      return;
+    }
+    
+    // This is the root scope - execute all scope finalizers in LIFO order
+    // (finalizers are already registered in reverse order of scope creation)
+    const finalizers = [...this.scopeFinalizers];
+    for (const finalizer of finalizers) {
+      await finalizer();
+    }
+    
+    // Finally execute root scope's own finalization
+    await this.executeFinalization();
+  }
+  
+  /**
+   * Executes the actual finalization logic for this scope.
+   * This includes deferred promises, orphan cleanup and telemetry recording.
+   */
+  private async executeFinalization() {
+    // Execute deferred promises for this scope
     await Promise.all(this.deferred.map((fn) => fn()));
+    
     if (!this.isErrored) {
       // TODO: need to detect if it is in error
       const resourceIds = await this.state.list();
@@ -229,7 +266,10 @@ export class Scope {
       });
     }
 
-    await this.rootTelemetryClient?.finalize();
+    // Only finalize telemetry client if this is the root scope
+    if (this.parent === undefined) {
+      await this.rootTelemetryClient?.finalize();
+    }
   }
 
   /**
