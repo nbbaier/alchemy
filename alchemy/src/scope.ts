@@ -72,6 +72,13 @@ export class Scope {
   private startedAt = performance.now();
 
   private deferred: (() => Promise<any>)[] = [];
+  
+  /**
+   * Tracks whether this scope should delay finalization
+   * until the root application scope is finalized.
+   * This is used for resource replacement scenarios.
+   */
+  private delayFinalization = false;
 
   constructor(options: ScopeOptions) {
     this.appName = options.appName;
@@ -180,6 +187,34 @@ export class Scope {
     return null;
   }
 
+  /**
+   * Enable delayed finalization for this scope.
+   * When enabled, the scope won't finalize when alchemy.run() completes,
+   * but will wait until the root application scope is finalized.
+   */
+  public enableDelayedFinalization() {
+    this.delayFinalization = true;
+  }
+
+  /**
+   * Check if this scope has delayed finalization enabled.
+   */
+  public hasDelayedFinalization(): boolean {
+    return this.delayFinalization;
+  }
+
+  /**
+   * Get all child scopes recursively.
+   */
+  private getAllChildScopes(): Scope[] {
+    const scopes: Scope[] = [];
+    for (const child of this.children.values()) {
+      scopes.push(child);
+      scopes.push(...child.getAllChildScopes());
+    }
+    return scopes;
+  }
+
   public async finalize() {
     if (this.phase === "read") {
       this.rootTelemetryClient?.record({
@@ -191,6 +226,34 @@ export class Scope {
     if (this.finalized) {
       return;
     }
+    
+    // If this is the root scope, finalize all child scopes first
+    if (this.parent === undefined) {
+      const allScopes = this.getAllChildScopes();
+      for (const childScope of allScopes) {
+        if (!childScope.finalized) {
+          await childScope.finalizeScope();
+        }
+      }
+    }
+    
+    // If finalization is delayed and this is not the root scope, skip for now
+    if (this.delayFinalization && this.parent !== undefined) {
+      return;
+    }
+    
+    await this.finalizeScope();
+  }
+
+  /**
+   * Internal method to actually perform finalization.
+   * This is separated from finalize() to support delayed finalization.
+   */
+  private async finalizeScope() {
+    if (this.finalized) {
+      return;
+    }
+    
     if (this.parent === undefined && Scope.globals.length > 0) {
       const last = Scope.globals.pop();
       if (last !== this) {
@@ -204,18 +267,36 @@ export class Scope {
     await Promise.all(this.deferred.map((fn) => fn()));
     if (!this.isErrored) {
       // TODO: need to detect if it is in error
-      const resourceIds = await this.state.list();
+      const allStates = await this.state.all();
       const aliveIds = new Set(this.resources.keys());
-      const orphanIds = Array.from(
-        resourceIds.filter((id) => !aliveIds.has(id)),
+      
+      // First, clean up replaced resources
+      const replacedResources = Object.entries(allStates)
+        .filter(([_, state]) => state.replaced === true)
+        .map(([_, state]) => state.output);
+      
+      if (replacedResources.length > 0) {
+        this.logger.log(`Cleaning up ${replacedResources.length} replaced resources`);
+        await destroyAll(replacedResources, {
+          quiet: this.quiet,
+          strategy: "sequential",
+        });
+      }
+      
+      // Then, clean up orphaned resources (resources in state but not in current code)
+      const orphanIds = Object.keys(allStates).filter(
+        (id) => !aliveIds.has(id) && !allStates[id].replaced
       );
-      const orphans = await Promise.all(
-        orphanIds.map(async (id) => (await this.state.get(id))!.output),
-      );
-      await destroyAll(orphans, {
-        quiet: this.quiet,
-        strategy: "sequential",
-      });
+      const orphans = orphanIds.map((id) => allStates[id].output);
+      
+      if (orphans.length > 0) {
+        this.logger.log(`Cleaning up ${orphans.length} orphaned resources`);
+        await destroyAll(orphans, {
+          quiet: this.quiet,
+          strategy: "sequential",
+        });
+      }
+      
       this.rootTelemetryClient?.record({
         event: "app.success",
         elapsed: performance.now() - this.startedAt,

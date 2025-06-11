@@ -179,6 +179,17 @@ async function _apply<Out extends Resource>(
           return;
         }
         isReplaced = true;
+        
+        // Mark the resource as replaced in state
+        state.replaced = true;
+        
+        // Enable delayed finalization for this scope and all parent scopes
+        // This ensures resources aren't cleaned up until the root app finalizes
+        let currentScope: Scope | undefined = scope;
+        while (currentScope) {
+          currentScope.enableDelayedFinalization();
+          currentScope = currentScope.parent;
+        }
       },
     });
 
