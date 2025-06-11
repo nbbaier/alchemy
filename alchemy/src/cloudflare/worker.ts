@@ -258,6 +258,15 @@ export interface BaseWorkerProps<
    * This allows workers to be routed to via dispatch namespace routing rules
    */
   namespace?: string | DispatchNamespaceResource;
+
+  /**
+   * Deploy this worker to Workers for Platform
+   *
+   * When true, this worker will be deployed to Workers for Platform
+   * instead of as a standard worker script
+   * @default false
+   */
+  platform?: boolean;
 }
 
 export interface InlineWorkerProps<
@@ -429,6 +438,11 @@ export type Worker<
      * The dispatch namespace this worker is deployed to
      */
     namespace?: string | DispatchNamespaceResource;
+
+    /**
+     * Whether this worker is deployed to Workers for Platform
+     */
+    platform?: boolean;
   };
 
 /**
@@ -590,6 +604,14 @@ export function WorkerRef<
  *     // Cross-script binding to the data worker's durable object
  *     SHARED_STORAGE: dataWorker.bindings.STORAGE
  *   }
+ * });
+ *
+ * @example
+ * // Deploy a worker to Workers for Platform:
+ * const platformWorker = await Worker("platform-worker", {
+ *   name: "platform-worker",
+ *   entrypoint: "./src/platform.ts",
+ *   platform: true
  * });
  *
  * @see
@@ -895,6 +917,7 @@ export const _Worker = Resource(
           workerName,
         },
         assetUploadResult,
+        props.platform,
       );
 
       // Get dispatch namespace if specified
@@ -910,6 +933,7 @@ export const _Worker = Resource(
         scriptBundle,
         scriptMetadata,
         dispatchNamespace,
+        props.platform,
       );
 
       for (const workflow of workflowsBindings) {
@@ -1111,6 +1135,8 @@ export const _Worker = Resource(
       routes: createdRoutes.length > 0 ? createdRoutes : undefined,
       // Include the dispatch namespace in the output
       namespace: props.namespace,
+      // Include whether this is deployed to Workers for Platform
+      platform: props.platform,
       // phantom property
       Env: undefined!,
     } as unknown as Worker<B>);
@@ -1159,6 +1185,7 @@ export async function putWorker(
   scriptBundle: string | NoBundleResult,
   scriptMetadata: WorkerMetadata,
   dispatchNamespace?: string,
+  platform?: boolean,
 ) {
   return withExponentialBackoff(
     async () => {

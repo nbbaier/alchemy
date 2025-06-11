@@ -1356,4 +1356,55 @@ describe("Worker Resource", () => {
       await destroy(scope);
     }
   });
+
+  test("create worker with Workers for Platform", async (scope) => {
+    const workerName = `${BRANCH_PREFIX}-test-worker-platform`;
+
+    let worker: Worker | undefined;
+    try {
+      // Create a worker for Workers for Platform
+      worker = await Worker(workerName, {
+        name: workerName,
+        script: `
+          export default {
+            async fetch(request, env, ctx) {
+              return new Response('Hello from Workers for Platform!', {
+                status: 200,
+                headers: { 'Content-Type': 'text/plain' }
+              });
+            }
+          };
+        `,
+        format: "esm",
+        platform: true,
+      });
+
+      expect(worker.id).toBeTruthy();
+      expect(worker.name).toEqual(workerName);
+      expect(worker.platform).toEqual(true);
+      expect(worker.format).toEqual("esm");
+
+      // Update the worker to verify platform option is preserved
+      worker = await Worker(workerName, {
+        name: workerName,
+        script: `
+          export default {
+            async fetch(request, env, ctx) {
+              return new Response('Updated Workers for Platform!', {
+                status: 200,
+                headers: { 'Content-Type': 'text/plain' }
+              });
+            }
+          };
+        `,
+        format: "esm",
+        platform: true,
+      });
+
+      expect(worker.platform).toEqual(true);
+    } finally {
+      await destroy(scope);
+      await assertWorkerDoesNotExist(workerName);
+    }
+  });
 });

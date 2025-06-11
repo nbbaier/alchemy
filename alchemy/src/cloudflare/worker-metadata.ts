@@ -203,6 +203,7 @@ export async function prepareWorkerMetadata<B extends Bindings>(
     workerName: string;
   },
   assetUploadResult?: AssetUploadResult,
+  platform?: boolean,
 ): Promise<WorkerMetadata> {
   // we use Cloudflare Worker tags to store a mapping between Alchemy's stable identifier and the binding name
   // e.g.
@@ -295,16 +296,19 @@ export async function prepareWorkerMetadata<B extends Bindings>(
             : [],
       ),
     ],
-    migrations: {
-      new_classes: props.migrations?.new_classes ?? [],
-      deleted_classes: [
-        ...(deletedClasses ?? []),
-        ...(props.migrations?.deleted_classes ?? []),
-      ],
-      renamed_classes: props.migrations?.renamed_classes ?? [],
-      transferred_classes: props.migrations?.transferred_classes ?? [],
-      new_sqlite_classes: props.migrations?.new_sqlite_classes ?? [],
-    },
+    // Skip migrations for Workers for Platform as they are not supported
+    ...(!platform && {
+      migrations: {
+        new_classes: props.migrations?.new_classes ?? [],
+        deleted_classes: [
+          ...(deletedClasses ?? []),
+          ...(props.migrations?.deleted_classes ?? []),
+        ],
+        renamed_classes: props.migrations?.renamed_classes ?? [],
+        transferred_classes: props.migrations?.transferred_classes ?? [],
+        new_sqlite_classes: props.migrations?.new_sqlite_classes ?? [],
+      },
+    }),
   };
 
   // If we have asset upload results, add them to the metadata
@@ -374,11 +378,13 @@ export async function prepareWorkerMetadata<B extends Bindings>(
         namespace_id: binding.namespaceId,
       });
       if (
-        binding.scriptName === undefined ||
-        // TODO(sam): not sure if Cloudflare Api would like us using `this` worker name here
-        binding.scriptName === props.workerName
+        !platform &&
+        (binding.scriptName === undefined ||
+          // TODO(sam): not sure if Cloudflare Api would like us using `this` worker name here
+          binding.scriptName === props.workerName)
       ) {
         // we do not need configure class migrations for cross-script bindings
+        // Skip migrations for Workers for Platform as they are not supported
         configureClassMigration(bindingName, binding);
       }
     } else if (binding.type === "r2_bucket") {
