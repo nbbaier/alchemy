@@ -62,20 +62,21 @@ describe("QueueConsumer Resource", () => {
       const thisConsumer = consumers.find((c) => c.scriptName === workerName);
 
       expect(thisConsumer).toBeTruthy();
-    } finally {
-      // Always clean up, even if test assertions fail
-      await destroy(scope);
+      } finally {
+        // Always clean up, even if test assertions fail
+        await destroy(scope);
 
-      // Verify consumers were deleted
-      try {
-        if (queue?.id) {
-          await listQueueConsumers(api, queue.id);
-        }
-      } catch (err) {
-        if (err instanceof CloudflareApiError && err.status === 404) {
-          // expected
-        } else {
-          throw err;
+        // Verify consumers were deleted
+        try {
+          if (queue?.id) {
+            await listQueueConsumers(api, queue.id);
+          }
+        } catch (err) {
+          if (err instanceof CloudflareApiError && err.status === 404) {
+            // expected
+          } else {
+            throw err;
+          }
         }
       }
     }
