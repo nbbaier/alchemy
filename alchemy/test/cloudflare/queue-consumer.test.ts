@@ -5,7 +5,7 @@ import { listQueueConsumers } from "../../src/cloudflare/queue-consumer.ts";
 import { Queue } from "../../src/cloudflare/queue.ts";
 import { Worker } from "../../src/cloudflare/worker.ts";
 import { destroy } from "../../src/destroy.ts";
-import { BRANCH_PREFIX } from "../util.ts";
+import { BRANCH_PREFIX, testBothPlatforms } from "../util.ts";
 // must import this or else alchemy.test won't exist
 import { CloudflareApiError } from "../../src/cloudflare/api-error.ts";
 import "../../src/test/vitest.ts";
@@ -17,12 +17,14 @@ const test = alchemy.test(import.meta, {
 const api = await createCloudflareApi({});
 
 describe("QueueConsumer Resource", () => {
-  // Use BRANCH_PREFIX for deterministic, non-colliding resource names
-  const testId = `${BRANCH_PREFIX}-test-queue-consumer`;
-  const queueName = `${testId}-queue`;
-  const workerName = `${testId}-worker`;
-
-  test("create, update, and delete queue consumer", async (scope) => {
+  const queueConsumerTests = testBothPlatforms(
+    ["vanilla", "wfp"],
+    "create, update, and delete queue consumer",
+    async (scope, platform: "vanilla" | "wfp") => {
+      // Use BRANCH_PREFIX for deterministic, non-colliding resource names
+      const testId = `${BRANCH_PREFIX}-test-queue-consumer-${platform}`;
+      const queueName = `${testId}-queue`;
+      const workerName = `${testId}-worker`;
     let queue: Queue | undefined;
     let worker: Worker | undefined;
 
@@ -47,6 +49,7 @@ describe("QueueConsumer Resource", () => {
             }
           }
         `,
+        platform: platform === "wfp",
         eventSources: [queue],
         adopt: true, // make test idempotent
       });
@@ -76,5 +79,10 @@ describe("QueueConsumer Resource", () => {
         }
       }
     }
-  });
+  );
+
+  // Register the queue consumer tests
+  for (const queueConsumerTest of queueConsumerTests) {
+    test(queueConsumerTest.name, queueConsumerTest.handler);
+  }
 });

@@ -4,7 +4,7 @@ import { createCloudflareApi } from "../../src/cloudflare/api.ts";
 import { Queue, listQueues } from "../../src/cloudflare/queue.ts";
 import { Worker } from "../../src/cloudflare/worker.ts";
 import { destroy } from "../../src/destroy.ts";
-import { BRANCH_PREFIX } from "../util.ts";
+import { BRANCH_PREFIX, testBothPlatforms } from "../util.ts";
 import { fetchAndExpectOK } from "./fetch-utils.ts";
 
 import "../../src/test/vitest.ts";
@@ -230,11 +230,14 @@ describe("Cloudflare Queue Resource", async () => {
     }
   }, 120000);
 
-  test("create and test worker with Queue binding", async (scope) => {
-    // Sample ESM worker script with Queue functionality
+  const queueWorkerTests = testBothPlatforms(
+    ["vanilla", "wfp"],
+    "create and test worker with Queue binding",
+    async (scope, platform: "vanilla" | "wfp") => {
+      // Sample ESM worker script with Queue functionality
 
-    const workerName = `${BRANCH_PREFIX}-test-worker-queue`;
-    const queueName = `${BRANCH_PREFIX}-test-queue-worker`;
+      const workerName = `${BRANCH_PREFIX}-test-worker-queue-${platform}`;
+      const queueName = `${BRANCH_PREFIX}-test-queue-worker-${platform}`;
 
     let worker: Worker<{ MESSAGE_QUEUE: Queue }> | undefined;
     let queue: Queue | undefined;
@@ -296,6 +299,7 @@ describe("Cloudflare Queue Resource", async () => {
           };
         `,
         format: "esm",
+        platform: platform === "wfp",
         url: true, // Enable workers.dev URL to test the worker
         bindings: {
           MESSAGE_QUEUE: queue,
@@ -334,10 +338,16 @@ describe("Cloudflare Queue Resource", async () => {
         expect(responseData.success).toEqual(true);
         expect(responseData.message).toEqual("Message sent successfully");
       }
-    } finally {
-      await destroy(scope);
+      } finally {
+        await destroy(scope);
+      }
     }
-  }, 120000); // Increased timeout for Queue operations
+  );
+
+  // Register the queue worker tests
+  for (const queueWorkerTest of queueWorkerTests) {
+    test(queueWorkerTest.name, queueWorkerTest.handler, 120000); // Increased timeout for Queue operations
+  }
 });
 
 async function assertQueueDeleted(queue: Queue) {
