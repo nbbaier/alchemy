@@ -1407,4 +1407,82 @@ describe("Worker Resource", () => {
       await assertWorkerDoesNotExist(workerName);
     }
   });
+
+  test("Workers for Platform supports Durable Object migrations", async (scope) => {
+    const workerName = `${BRANCH_PREFIX}-test-worker-platform-do`;
+
+    // Sample worker script with Durable Objects
+    const workerScript = `
+      export class Counter {
+        constructor(state, env) {
+          this.state = state;
+          this.counter = 0;
+        }
+
+        async fetch(request) {
+          this.counter++;
+          return new Response('Counter: ' + this.counter, { status: 200 });
+        }
+      }
+
+      export default {
+        async fetch(request, env, ctx) {
+          const url = new URL(request.url);
+
+          if (url.pathname.includes('/counter')) {
+            const id = env.COUNTER.idFromName('default');
+            const stub = env.COUNTER.get(id);
+            return stub.fetch(request);
+          }
+
+          return new Response('Workers for Platform with DO!', { status: 200 });
+        }
+      };
+    `;
+
+    // Create a Durable Object namespace
+    const counterNamespace = new DurableObjectNamespace(
+      "platform-counter-namespace",
+      {
+        className: "Counter",
+        scriptName: workerName,
+      },
+    );
+
+    let worker: Worker | undefined;
+    try {
+      // Create a Workers for Platform worker with Durable Objects
+      worker = await Worker(workerName, {
+        name: workerName,
+        script: workerScript,
+        format: "esm",
+        platform: true,
+        bindings: {
+          COUNTER: counterNamespace,
+        },
+      });
+
+      expect(worker.id).toBeTruthy();
+      expect(worker.name).toEqual(workerName);
+      expect(worker.platform).toEqual(true);
+      expect(worker.bindings?.COUNTER).toBeDefined();
+
+      // Update the worker - this should handle Durable Object migrations properly
+      worker = await Worker(workerName, {
+        name: workerName,
+        script: workerScript,
+        format: "esm",
+        platform: true,
+        bindings: {
+          COUNTER: counterNamespace,
+        },
+      });
+
+      expect(worker.platform).toEqual(true);
+      expect(worker.bindings?.COUNTER).toBeDefined();
+    } finally {
+      await destroy(scope);
+      await assertWorkerDoesNotExist(workerName);
+    }
+  });
 });
