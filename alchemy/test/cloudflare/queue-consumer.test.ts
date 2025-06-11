@@ -5,7 +5,7 @@ import { listQueueConsumers } from "../../src/cloudflare/queue-consumer.ts";
 import { Queue } from "../../src/cloudflare/queue.ts";
 import { Worker } from "../../src/cloudflare/worker.ts";
 import { destroy } from "../../src/destroy.ts";
-import { BRANCH_PREFIX, testBothPlatforms } from "../util.ts";
+import { BRANCH_PREFIX } from "../util.ts";
 // must import this or else alchemy.test won't exist
 import { CloudflareApiError } from "../../src/cloudflare/api-error.ts";
 import "../../src/test/vitest.ts";
@@ -17,29 +17,29 @@ const test = alchemy.test(import.meta, {
 const api = await createCloudflareApi({});
 
 describe("QueueConsumer Resource", () => {
-  const queueConsumerTests = testBothPlatforms(
-    ["vanilla", "wfp"],
+  const queueConsumerTests = test.variant(
+    ["vanilla", "wfp"] as const,
     "create, update, and delete queue consumer",
     async (scope, platform: "vanilla" | "wfp") => {
       // Use BRANCH_PREFIX for deterministic, non-colliding resource names
       const testId = `${BRANCH_PREFIX}-test-queue-consumer-${platform}`;
       const queueName = `${testId}-queue`;
       const workerName = `${testId}-worker`;
-    let queue: Queue | undefined;
-    let worker: Worker | undefined;
+      let queue: Queue | undefined;
+      let worker: Worker | undefined;
 
-    try {
-      queue = await Queue(`${testId}-queue`, {
-        name: queueName,
-        adopt: true,
-      });
+      try {
+        queue = await Queue(`${testId}-queue`, {
+          name: queueName,
+          adopt: true,
+        });
 
-      expect(queue.id).toBeTruthy();
-      expect(queue.name).toEqual(queueName);
+        expect(queue.id).toBeTruthy();
+        expect(queue.name).toEqual(queueName);
 
-      worker = await Worker(`${testId}-worker`, {
-        name: workerName,
-        script: `
+        worker = await Worker(`${testId}-worker`, {
+          name: workerName,
+          script: `
           export default {
             async fetch(request, env, ctx) {
               return new Response("Hello World");
@@ -49,19 +49,19 @@ describe("QueueConsumer Resource", () => {
             }
           }
         `,
-        platform: platform === "wfp",
-        eventSources: [queue],
-        adopt: true, // make test idempotent
-      });
+          platform: platform === "wfp",
+          eventSources: [queue],
+          adopt: true, // make test idempotent
+        });
 
-      expect(worker.id).toBeTruthy();
-      expect(worker.name).toEqual(workerName);
+        expect(worker.id).toBeTruthy();
+        expect(worker.name).toEqual(workerName);
 
-      const consumers = await listQueueConsumers(api, queue.id);
+        const consumers = await listQueueConsumers(api, queue.id);
 
-      const thisConsumer = consumers.find((c) => c.scriptName === workerName);
+        const thisConsumer = consumers.find((c) => c.scriptName === workerName);
 
-      expect(thisConsumer).toBeTruthy();
+        expect(thisConsumer).toBeTruthy();
       } finally {
         // Always clean up, even if test assertions fail
         await destroy(scope);
@@ -79,7 +79,7 @@ describe("QueueConsumer Resource", () => {
           }
         }
       }
-    }
+    },
   );
 
   // Register the queue consumer tests

@@ -10,7 +10,7 @@ import { DurableObjectNamespace } from "../../src/cloudflare/durable-object-name
 import { KVNamespace } from "../../src/cloudflare/kv-namespace.ts";
 import { Worker, WorkerRef } from "../../src/cloudflare/worker.ts";
 import { destroy } from "../../src/destroy.ts";
-import { BRANCH_PREFIX, testBothPlatforms } from "../util.ts";
+import { BRANCH_PREFIX } from "../util.ts";
 import { fetchAndExpectOK, fetchAndExpectStatus } from "./fetch-utils.ts";
 
 import "../../src/test/vitest.ts";
@@ -23,11 +23,15 @@ const test = alchemy.test(import.meta, {
 const api = await createCloudflareApi();
 
 // Helper function to check if a worker exists (platform-aware)
-async function assertWorkerDoesNotExist(workerName: string, platform: "vanilla" | "wfp" = "vanilla") {
+async function assertWorkerDoesNotExist(
+  workerName: string,
+  platform: "vanilla" | "wfp" = "vanilla",
+) {
   try {
-    const endpoint = platform === "wfp"
-      ? `/accounts/${api.accountId}/workers/platform/scripts/${workerName}`
-      : `/accounts/${api.accountId}/workers/scripts/${workerName}`;
+    const endpoint =
+      platform === "wfp"
+        ? `/accounts/${api.accountId}/workers/platform/scripts/${workerName}`
+        : `/accounts/${api.accountId}/workers/scripts/${workerName}`;
     const response = await api.get(endpoint);
     expect(response.status).toEqual(404);
   } catch {
@@ -38,8 +42,8 @@ async function assertWorkerDoesNotExist(workerName: string, platform: "vanilla" 
 
 describe("Worker Resource", () => {
   // Create tests for both platforms using testBothPlatforms helper
-  const cjsTests = testBothPlatforms(
-    ["vanilla", "wfp"],
+  const cjsTests = test.variant(
+    ["vanilla", "wfp"] as const,
     "create, update, and delete worker (CJS format)",
     async (scope, platform: "vanilla" | "wfp") => {
       const workerName = `${BRANCH_PREFIX}-test-worker-cjs-${platform}-1`;
@@ -84,7 +88,7 @@ describe("Worker Resource", () => {
         await destroy(scope);
         await assertWorkerDoesNotExist(workerName, platform);
       }
-    }
+    },
   );
 
   // Register the CJS tests
@@ -92,8 +96,8 @@ describe("Worker Resource", () => {
     test(cjsTest.name, cjsTest.handler);
   }
 
-  const esmTests = testBothPlatforms(
-    ["vanilla", "wfp"],
+  const esmTests = test.variant(
+    ["vanilla", "wfp"] as const,
     "create, update, and delete worker (ESM format)",
     async (scope, platform: "vanilla" | "wfp") => {
       const workerName = `${BRANCH_PREFIX}-test-worker-esm-${platform}-1`;
@@ -142,7 +146,7 @@ describe("Worker Resource", () => {
         await destroy(scope);
         await assertWorkerDoesNotExist(workerName, platform);
       }
-    }
+    },
   );
 
   // Register the ESM tests
@@ -150,8 +154,8 @@ describe("Worker Resource", () => {
     test(esmTest.name, esmTest.handler);
   }
 
-  const formatConversionTests = testBothPlatforms(
-    ["vanilla", "wfp"],
+  const formatConversionTests = test.variant(
+    ["vanilla", "wfp"] as const,
     "convert between ESM and CJS formats",
     async (scope, platform: "vanilla" | "wfp") => {
       const workerName = `${BRANCH_PREFIX}-test-worker-format-conversion-${platform}-1`;
@@ -209,7 +213,7 @@ describe("Worker Resource", () => {
         await destroy(scope);
         await assertWorkerDoesNotExist(workerName, platform);
       }
-    }
+    },
   );
 
   // Register the format conversion tests
@@ -250,8 +254,8 @@ describe("Worker Resource", () => {
     }
   });
 
-  const multiBindingTests = testBothPlatforms(
-    ["vanilla", "wfp"],
+  const multiBindingTests = test.variant(
+    ["vanilla", "wfp"] as const,
     "create and delete worker with multiple bindings",
     async (scope, platform: "vanilla" | "wfp") => {
       const workerName = `${BRANCH_PREFIX}-test-worker-multi-bindings-${platform}-1`;
@@ -352,7 +356,7 @@ describe("Worker Resource", () => {
         await destroy(scope);
         await assertWorkerDoesNotExist(workerName, platform);
       }
-    }
+    },
   );
 
   // Register the multi-binding tests
@@ -1412,5 +1416,4 @@ describe("Worker Resource", () => {
       await destroy(scope);
     }
   });
-
 });

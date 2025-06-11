@@ -5,7 +5,7 @@ import { DurableObjectNamespace } from "../../src/cloudflare/durable-object-name
 import { Worker } from "../../src/cloudflare/worker.ts";
 import { destroy } from "../../src/destroy.ts";
 import { withExponentialBackoff } from "../../src/util/retry.ts";
-import { BRANCH_PREFIX, testBothPlatforms } from "../util.ts";
+import { BRANCH_PREFIX } from "../util.ts";
 
 import "../../src/test/vitest.ts";
 import { fetchAndExpectOK } from "./fetch-utils.ts";
@@ -47,11 +47,15 @@ export default {
 `;
 
 // Helper function to check if a worker exists (platform-aware)
-async function assertWorkerDoesNotExist(workerName: string, platform: "vanilla" | "wfp" = "vanilla") {
+async function assertWorkerDoesNotExist(
+  workerName: string,
+  platform: "vanilla" | "wfp" = "vanilla",
+) {
   try {
-    const endpoint = platform === "wfp"
-      ? `/accounts/${api.accountId}/workers/platform/scripts/${workerName}`
-      : `/accounts/${api.accountId}/workers/scripts/${workerName}`;
+    const endpoint =
+      platform === "wfp"
+        ? `/accounts/${api.accountId}/workers/platform/scripts/${workerName}`
+        : `/accounts/${api.accountId}/workers/scripts/${workerName}`;
     const response = await api.get(endpoint);
     expect(response.status).toEqual(404);
   } catch {
@@ -61,8 +65,8 @@ async function assertWorkerDoesNotExist(workerName: string, platform: "vanilla" 
 }
 
 describe("Durable Object Namespace", () => {
-  const doBindingTests = testBothPlatforms(
-    ["vanilla", "wfp"],
+  const doBindingTests = test.variant(
+    ["vanilla", "wfp"] as const,
     "create and delete worker with Durable Object binding",
     async (scope, platform: "vanilla" | "wfp") => {
       const workerName = `${BRANCH_PREFIX}-test-worker-do-binding-${platform}-1`;
@@ -111,7 +115,7 @@ describe("Durable Object Namespace", () => {
         await destroy(scope);
         await assertWorkerDoesNotExist(workerName, platform);
       }
-    }
+    },
   );
 
   // Register the DO binding tests
@@ -119,8 +123,8 @@ describe("Durable Object Namespace", () => {
     test(doBindingTest.name, doBindingTest.handler);
   }
 
-  const doEnvTests = testBothPlatforms(
-    ["vanilla", "wfp"],
+  const doEnvTests = test.variant(
+    ["vanilla", "wfp"] as const,
     "add environment variables to worker with durable object",
     async (scope, platform: "vanilla" | "wfp") => {
       const workerName = `${BRANCH_PREFIX}-test-worker-do-with-env-${platform}-1`;
@@ -188,7 +192,7 @@ describe("Durable Object Namespace", () => {
         await destroy(scope);
         await assertWorkerDoesNotExist(workerName, platform);
       }
-    }
+    },
   );
 
   // Register the DO environment tests
