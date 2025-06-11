@@ -30,6 +30,7 @@
     "examples/cloudflare-astro",
     "examples/cloudflare-nuxt-pipeline",
     "examples/cloudflare-react-router",
+    "examples/cloudflare-redwood",
     "examples/cloudflare-sveltekit",
     "examples/cloudflare-vite",
     "examples/cloudflare-worker",
