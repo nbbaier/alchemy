@@ -1,7 +1,7 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, type RailwayApi } from "../../src/railway/api.ts";
 import { Environment } from "../../src/railway/environment.ts";
 import { Project } from "../../src/railway/project.ts";
 import { Service } from "../../src/railway/service.ts";
@@ -9,6 +9,20 @@ import { TcpProxy } from "../../src/railway/tcp-proxy.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import "../../src/test/vitest.ts";
+
+// GraphQL queries for tests
+const GET_TCP_PROXY_QUERY = `
+  query TcpProxy($id: String!) {
+    tcpProxy(id: $id) {
+      id
+      applicationPort
+      proxyPort
+      serviceId
+      environmentId
+      domain
+    }
+  }
+`;
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
@@ -65,21 +79,7 @@ describe("TcpProxy Resource", () => {
         });
         expect(tcpProxy.domain).toBeTruthy();
 
-        const response = await api.query(
-          `
-        query TcpProxy($id: String!) {
-          tcpProxy(id: $id) {
-            id
-            applicationPort
-            proxyPort
-            serviceId
-            environmentId
-            domain
-          }
-        }
-        `,
-          { id: tcpProxy.id },
-        );
+        const response = await api.query(GET_TCP_PROXY_QUERY, { id: tcpProxy.id });
 
         const railwayTcpProxy = response.data?.tcpProxy;
         expect(railwayTcpProxy).toMatchObject({
@@ -103,18 +103,9 @@ describe("TcpProxy Resource", () => {
   );
 });
 
-async function assertTcpProxyDeleted(tcpProxyId: string, api: any) {
+async function assertTcpProxyDeleted(tcpProxyId: string, api: RailwayApi) {
   try {
-    const response = await api.query(
-      `
-      query TcpProxy($id: String!) {
-        tcpProxy(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: tcpProxyId },
-    );
+    const response = await api.query(GET_TCP_PROXY_QUERY, { id: tcpProxyId });
 
     expect(response.data?.tcpProxy).toBeNull();
   } catch (error) {

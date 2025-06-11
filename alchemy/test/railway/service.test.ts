@@ -1,12 +1,27 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, type RailwayApi } from "../../src/railway/api.ts";
 import { Project } from "../../src/railway/project.ts";
 import { Service } from "../../src/railway/service.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import "../../src/test/vitest.ts";
+
+// GraphQL queries for tests
+const GET_SERVICE_QUERY = `
+  query Service($id: String!) {
+    service(id: $id) {
+      id
+      name
+      projectId
+      sourceImage
+      sourceRepo
+      sourceRepoBranch
+      rootDirectory
+    }
+  }
+`;
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
@@ -50,21 +65,7 @@ describe("Service Resource", () => {
           rootDirectory: "/",
         });
 
-        const response = await api.query(
-          `
-        query Service($id: String!) {
-          service(id: $id) {
-            id
-            name
-            projectId
-            sourceRepo
-            sourceRepoBranch
-            rootDirectory
-          }
-        }
-        `,
-          { id: service.id },
-        );
+        const response = await api.query(GET_SERVICE_QUERY, { id: service.id });
 
         const railwayService = response.data?.service;
         expect(railwayService).toMatchObject({
@@ -104,18 +105,9 @@ describe("Service Resource", () => {
   );
 });
 
-async function assertServiceDeleted(serviceId: string, api: any) {
+async function assertServiceDeleted(serviceId: string, api: RailwayApi) {
   try {
-    const response = await api.query(
-      `
-      query Service($id: String!) {
-        service(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: serviceId },
-    );
+    const response = await api.query(GET_SERVICE_QUERY, { id: serviceId });
 
     expect(response.data?.service).toBeNull();
   } catch (error) {

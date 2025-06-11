@@ -1,7 +1,7 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, type RailwayApi } from "../../src/railway/api.ts";
 import { CustomDomain } from "../../src/railway/custom-domain.ts";
 import { Environment } from "../../src/railway/environment.ts";
 import { Project } from "../../src/railway/project.ts";
@@ -9,6 +9,19 @@ import { Service } from "../../src/railway/service.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import "../../src/test/vitest.ts";
+
+// GraphQL queries for tests
+const GET_CUSTOM_DOMAIN_QUERY = `
+  query CustomDomain($id: String!) {
+    customDomain(id: $id) {
+      id
+      domain
+      serviceId
+      environmentId
+      status
+    }
+  }
+`;
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
@@ -63,20 +76,7 @@ describe("CustomDomain Resource", () => {
         });
         expect(customDomain.status).toBeTruthy();
 
-        const response = await api.query(
-          `
-        query CustomDomain($id: String!) {
-          customDomain(id: $id) {
-            id
-            domain
-            serviceId
-            environmentId
-            status
-          }
-        }
-        `,
-          { id: customDomain.id },
-        );
+        const response = await api.query(GET_CUSTOM_DOMAIN_QUERY, { id: customDomain.id });
 
         const railwayCustomDomain = response.data?.customDomain;
         expect(railwayCustomDomain).toMatchObject({
@@ -99,18 +99,9 @@ describe("CustomDomain Resource", () => {
   );
 });
 
-async function assertCustomDomainDeleted(customDomainId: string, api: any) {
+async function assertCustomDomainDeleted(customDomainId: string, api: RailwayApi) {
   try {
-    const response = await api.query(
-      `
-      query CustomDomain($id: String!) {
-        customDomain(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: customDomainId },
-    );
+    const response = await api.query(GET_CUSTOM_DOMAIN_QUERY, { id: customDomainId });
 
     expect(response.data?.customDomain).toBeNull();
   } catch (error) {

@@ -1,13 +1,26 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, type RailwayApi } from "../../src/railway/api.ts";
 import { Database } from "../../src/railway/database.ts";
 import { Environment } from "../../src/railway/environment.ts";
 import { Project } from "../../src/railway/project.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import "../../src/test/vitest.ts";
+
+// GraphQL queries for tests
+const GET_DATABASE_QUERY = `
+  query Database($id: String!) {
+    database(id: $id) {
+      id
+      name
+      projectId
+      environmentId
+      type
+    }
+  }
+`;
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
@@ -56,20 +69,7 @@ describe("Database Resource", () => {
       expect(database.connectionString.unencrypted).toBeTruthy();
       expect(database.password.unencrypted).toBeTruthy();
 
-      const response = await api.query(
-        `
-        query Database($id: String!) {
-          database(id: $id) {
-            id
-            name
-            projectId
-            environmentId
-            type
-          }
-        }
-        `,
-        { id: database.id },
-      );
+      const response = await api.query(GET_DATABASE_QUERY, { id: database.id });
 
       const railwayDatabase = response.data?.database;
       expect(railwayDatabase).toMatchObject({
@@ -92,18 +92,9 @@ describe("Database Resource", () => {
   });
 });
 
-async function assertDatabaseDeleted(databaseId: string, api: any) {
+async function assertDatabaseDeleted(databaseId: string, api: RailwayApi) {
   try {
-    const response = await api.query(
-      `
-      query Database($id: String!) {
-        database(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: databaseId },
-    );
+    const response = await api.query(GET_DATABASE_QUERY, { id: databaseId });
 
     expect(response.data?.database).toBeNull();
   } catch (error) {

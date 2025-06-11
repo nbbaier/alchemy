@@ -1,7 +1,7 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, type RailwayApi } from "../../src/railway/api.ts";
 import { Environment } from "../../src/railway/environment.ts";
 import { Project } from "../../src/railway/project.ts";
 import { Service } from "../../src/railway/service.ts";
@@ -10,6 +10,18 @@ import { secret } from "../../src/secret.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import "../../src/test/vitest.ts";
+
+// GraphQL queries for tests
+const GET_VARIABLE_QUERY = `
+  query Variable($id: String!) {
+    variable(id: $id) {
+      id
+      name
+      environmentId
+      serviceId
+    }
+  }
+`;
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
@@ -65,19 +77,7 @@ describe("Variable Resource", () => {
         });
         expect(variable.value.unencrypted).toBe("secret-value-123");
 
-        const response = await api.query(
-          `
-        query Variable($id: String!) {
-          variable(id: $id) {
-            id
-            name
-            environmentId
-            serviceId
-          }
-        }
-        `,
-          { id: variable.id },
-        );
+        const response = await api.query(GET_VARIABLE_QUERY, { id: variable.id });
 
         const railwayVariable = response.data?.variable;
         expect(railwayVariable).toMatchObject({
@@ -109,18 +109,9 @@ describe("Variable Resource", () => {
   );
 });
 
-async function assertVariableDeleted(variableId: string, api: any) {
+async function assertVariableDeleted(variableId: string, api: RailwayApi) {
   try {
-    const response = await api.query(
-      `
-      query Variable($id: String!) {
-        variable(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: variableId },
-    );
+    const response = await api.query(GET_VARIABLE_QUERY, { id: variableId });
 
     expect(response.data?.variable).toBeNull();
   } catch (error) {

@@ -1,13 +1,27 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, type RailwayApi } from "../../src/railway/api.ts";
 import { Environment } from "../../src/railway/environment.ts";
 import { Project } from "../../src/railway/project.ts";
 import { Volume } from "../../src/railway/volume.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import "../../src/test/vitest.ts";
+
+// GraphQL queries for tests
+const GET_VOLUME_QUERY = `
+  query Volume($id: String!) {
+    volume(id: $id) {
+      id
+      name
+      projectId
+      environmentId
+      mountPath
+      size
+    }
+  }
+`;
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
@@ -58,21 +72,7 @@ describe("Volume Resource", () => {
           size: 1024,
         });
 
-        const response = await api.query(
-          `
-        query Volume($id: String!) {
-          volume(id: $id) {
-            id
-            name
-            projectId
-            environmentId
-            mountPath
-            size
-          }
-        }
-        `,
-          { id: volume.id },
-        );
+        const response = await api.query(GET_VOLUME_QUERY, { id: volume.id });
 
         const railwayVolume = response.data?.volume;
         expect(railwayVolume).toMatchObject({
@@ -111,18 +111,9 @@ describe("Volume Resource", () => {
   );
 });
 
-async function assertVolumeDeleted(volumeId: string, api: any) {
+async function assertVolumeDeleted(volumeId: string, api: RailwayApi) {
   try {
-    const response = await api.query(
-      `
-      query Volume($id: String!) {
-        volume(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: volumeId },
-    );
+    const response = await api.query(GET_VOLUME_QUERY, { id: volumeId });
 
     expect(response.data?.volume).toBeNull();
   } catch (error) {

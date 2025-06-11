@@ -1,12 +1,23 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, type RailwayApi } from "../../src/railway/api.ts";
 import { Environment } from "../../src/railway/environment.ts";
 import { Project } from "../../src/railway/project.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import "../../src/test/vitest.ts";
+
+// GraphQL queries for tests
+const GET_ENVIRONMENT_QUERY = `
+  query Environment($id: String!) {
+    environment(id: $id) {
+      id
+      name
+      projectId
+    }
+  }
+`;
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
@@ -44,18 +55,7 @@ describe("Environment Resource", () => {
           projectId: project.id,
         });
 
-        const response = await api.query(
-          `
-        query Environment($id: String!) {
-          environment(id: $id) {
-            id
-            name
-            projectId
-          }
-        }
-        `,
-          { id: environment.id },
-        );
+        const response = await api.query(GET_ENVIRONMENT_QUERY, { id: environment.id });
 
         const railwayEnvironment = response.data?.environment;
         expect(railwayEnvironment).toMatchObject({
@@ -87,18 +87,9 @@ describe("Environment Resource", () => {
   );
 });
 
-async function assertEnvironmentDeleted(environmentId: string, api: any) {
+async function assertEnvironmentDeleted(environmentId: string, api: RailwayApi) {
   try {
-    const response = await api.query(
-      `
-      query Environment($id: String!) {
-        environment(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: environmentId },
-    );
+    const response = await api.query(GET_ENVIRONMENT_QUERY, { id: environmentId });
 
     expect(response.data?.environment).toBeNull();
   } catch (error) {

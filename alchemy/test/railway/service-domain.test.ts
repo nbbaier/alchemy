@@ -1,14 +1,28 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, type RailwayApi } from "../../src/railway/api.ts";
 import { Environment } from "../../src/railway/environment.ts";
 import { Project } from "../../src/railway/project.ts";
-import { Service } from "../../src/railway/service.ts";
 import { ServiceDomain } from "../../src/railway/service-domain.ts";
+import { Service } from "../../src/railway/service.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import "../../src/test/vitest.ts";
+
+// GraphQL queries for tests
+const GET_SERVICE_DOMAIN_QUERY = `
+  query ServiceDomain($id: String!) {
+    serviceDomain(id: $id) {
+      id
+      domain
+      subdomain
+      serviceId
+      environmentId
+      url
+    }
+  }
+`;
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
@@ -63,20 +77,7 @@ describe("ServiceDomain Resource", () => {
         });
         expect(serviceDomain.url).toBeTruthy();
 
-        const response = await api.query(
-          `
-        query ServiceDomain($id: String!) {
-          serviceDomain(id: $id) {
-            id
-            domain
-            serviceId
-            environmentId
-            url
-          }
-        }
-        `,
-          { id: serviceDomain.id },
-        );
+        const response = await api.query(GET_SERVICE_DOMAIN_QUERY, { id: serviceDomain.id });
 
         const railwayServiceDomain = response.data?.serviceDomain;
         expect(railwayServiceDomain).toMatchObject({
@@ -109,18 +110,9 @@ describe("ServiceDomain Resource", () => {
   );
 });
 
-async function assertServiceDomainDeleted(serviceDomainId: string, api: any) {
+async function assertServiceDomainDeleted(serviceDomainId: string, api: RailwayApi) {
   try {
-    const response = await api.query(
-      `
-      query ServiceDomain($id: String!) {
-        serviceDomain(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: serviceDomainId },
-    );
+    const response = await api.query(GET_SERVICE_DOMAIN_QUERY, { id: serviceDomainId });
 
     expect(response.data?.serviceDomain).toBeNull();
   } catch (error) {

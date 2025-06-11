@@ -1,13 +1,28 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, type RailwayApi } from "../../src/railway/api.ts";
 import { Environment } from "../../src/railway/environment.ts";
 import { Function } from "../../src/railway/function.ts";
 import { Project } from "../../src/railway/project.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import "../../src/test/vitest.ts";
+
+// GraphQL queries for tests
+const GET_FUNCTION_QUERY = `
+  query Function($id: String!) {
+    function(id: $id) {
+      id
+      name
+      projectId
+      environmentId
+      runtime
+      entrypoint
+      url
+    }
+  }
+`;
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
@@ -60,22 +75,7 @@ describe("Function Resource", () => {
         });
         expect(func.url).toBeTruthy();
 
-        const response = await api.query(
-          `
-        query Function($id: String!) {
-          function(id: $id) {
-            id
-            name
-            projectId
-            environmentId
-            runtime
-            entrypoint
-            url
-          }
-        }
-        `,
-          { id: func.id },
-        );
+        const response = await api.query(GET_FUNCTION_QUERY, { id: func.id });
 
         const railwayFunction = response.data?.function;
         expect(railwayFunction).toMatchObject({
@@ -115,18 +115,9 @@ describe("Function Resource", () => {
   );
 });
 
-async function assertFunctionDeleted(functionId: string, api: any) {
+async function assertFunctionDeleted(functionId: string, api: RailwayApi) {
   try {
-    const response = await api.query(
-      `
-      query Function($id: String!) {
-        function(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: functionId },
-    );
+    const response = await api.query(GET_FUNCTION_QUERY, { id: functionId });
 
     expect(response.data?.function).toBeNull();
   } catch (error) {

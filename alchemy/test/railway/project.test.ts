@@ -1,11 +1,23 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, type RailwayApi } from "../../src/railway/api.ts";
 import { Project } from "../../src/railway/project.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import "../../src/test/vitest.ts";
+
+// GraphQL queries for tests
+const GET_PROJECT_QUERY = `
+  query Project($id: String!) {
+    project(id: $id) {
+      id
+      name
+      description
+      isPublic
+    }
+  }
+`;
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
@@ -38,19 +50,7 @@ describe("Project Resource", () => {
           isPublic: false,
         });
 
-        const response = await api.query(
-          `
-        query Project($id: String!) {
-          project(id: $id) {
-            id
-            name
-            description
-            isPublic
-          }
-        }
-        `,
-          { id: project.id },
-        );
+        const response = await api.query(GET_PROJECT_QUERY, { id: project.id });
 
         const railwayProject = response.data?.project;
         expect(railwayProject).toMatchObject({
@@ -73,19 +73,7 @@ describe("Project Resource", () => {
           isPublic: true,
         });
 
-        const updatedResponse = await api.query(
-          `
-        query Project($id: String!) {
-          project(id: $id) {
-            id
-            name
-            description
-            isPublic
-          }
-        }
-        `,
-          { id: project.id },
-        );
+        const updatedResponse = await api.query(GET_PROJECT_QUERY, { id: project.id });
 
         const updatedRailwayProject = updatedResponse.data?.project;
         expect(updatedRailwayProject).toMatchObject({
@@ -107,18 +95,9 @@ describe("Project Resource", () => {
   );
 });
 
-async function assertProjectDeleted(projectId: string, api: any) {
+async function assertProjectDeleted(projectId: string, api: RailwayApi) {
   try {
-    const response = await api.query(
-      `
-      query Project($id: String!) {
-        project(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: projectId },
-    );
+    const response = await api.query(GET_PROJECT_QUERY, { id: projectId });
 
     expect(response.data?.project).toBeNull();
   } catch (error) {
