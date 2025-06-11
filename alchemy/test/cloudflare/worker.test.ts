@@ -23,9 +23,9 @@ const test = alchemy.test(import.meta, {
 const api = await createCloudflareApi();
 
 // Helper function to check if a worker exists (platform-aware)
-async function assertWorkerDoesNotExist(workerName: string, platform = false) {
+async function assertWorkerDoesNotExist(workerName: string, platform: "vanilla" | "wfp" = "vanilla") {
   try {
-    const endpoint = platform
+    const endpoint = platform === "wfp"
       ? `/accounts/${api.accountId}/workers/platform/scripts/${workerName}`
       : `/accounts/${api.accountId}/workers/scripts/${workerName}`;
     const response = await api.get(endpoint);
@@ -39,10 +39,10 @@ async function assertWorkerDoesNotExist(workerName: string, platform = false) {
 describe("Worker Resource", () => {
   // Create tests for both platforms using testBothPlatforms helper
   const cjsTests = testBothPlatforms(
-    [false, true],
+    ["vanilla", "wfp"],
     "create, update, and delete worker (CJS format)",
-    async (scope, isWFP: boolean) => {
-      const workerName = `${BRANCH_PREFIX}-test-worker-cjs-${isWFP ? 'wfp' : 'std'}-1`;
+    async (scope, platform: "vanilla" | "wfp") => {
+      const workerName = `${BRANCH_PREFIX}-test-worker-cjs-${platform}-1`;
 
       let worker: Worker | undefined;
       try {
@@ -55,14 +55,14 @@ describe("Worker Resource", () => {
             });
           `,
           format: "cjs",
-          platform: isWFP,
+          platform: platform === "wfp",
         });
 
         // Apply to create the worker
         expect(worker.id).toBeTruthy();
         expect(worker.name).toEqual(workerName);
         expect(worker.format).toEqual("cjs");
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
 
         // Update the worker with a new script
         const updatedScript = `
@@ -75,14 +75,14 @@ describe("Worker Resource", () => {
           name: workerName,
           script: updatedScript,
           format: "cjs",
-          platform: isWFP,
+          platform: platform === "wfp",
         });
 
         expect(worker.id).toEqual(worker.id);
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
       } finally {
         await destroy(scope);
-        await assertWorkerDoesNotExist(workerName, isWFP);
+        await assertWorkerDoesNotExist(workerName, platform);
       }
     }
   );
@@ -93,10 +93,10 @@ describe("Worker Resource", () => {
   }
 
   const esmTests = testBothPlatforms(
-    [false, true],
+    ["vanilla", "wfp"],
     "create, update, and delete worker (ESM format)",
-    async (scope, isWFP: boolean) => {
-      const workerName = `${BRANCH_PREFIX}-test-worker-esm-${isWFP ? 'wfp' : 'std'}-1`;
+    async (scope, platform: "vanilla" | "wfp") => {
+      const workerName = `${BRANCH_PREFIX}-test-worker-esm-${platform}-1`;
 
       let worker: Worker | undefined;
       try {
@@ -111,14 +111,14 @@ describe("Worker Resource", () => {
             };
           `,
           format: "esm", // Explicitly using ESM
-          platform: isWFP,
+          platform: platform === "wfp",
         });
 
         // Apply to create the worker
         expect(worker.id).toBeTruthy();
         expect(worker.name).toEqual(workerName);
         expect(worker.format).toEqual("esm");
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
 
         // Update the worker with a new ESM script
         const updatedEsmScript = `
@@ -133,14 +133,14 @@ describe("Worker Resource", () => {
           name: workerName,
           script: updatedEsmScript,
           format: "esm",
-          platform: isWFP,
+          platform: platform === "wfp",
         });
 
         expect(worker.id).toEqual(worker.id);
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
       } finally {
         await destroy(scope);
-        await assertWorkerDoesNotExist(workerName, isWFP);
+        await assertWorkerDoesNotExist(workerName, platform);
       }
     }
   );
@@ -151,10 +151,10 @@ describe("Worker Resource", () => {
   }
 
   const formatConversionTests = testBothPlatforms(
-    [false, true],
+    ["vanilla", "wfp"],
     "convert between ESM and CJS formats",
-    async (scope, isWFP: boolean) => {
-      const workerName = `${BRANCH_PREFIX}-test-worker-format-conversion-${isWFP ? 'wfp' : 'std'}-1`;
+    async (scope, platform: "vanilla" | "wfp") => {
+      const workerName = `${BRANCH_PREFIX}-test-worker-format-conversion-${platform}-1`;
 
       let worker: Worker | undefined;
       try {
@@ -169,11 +169,11 @@ describe("Worker Resource", () => {
             };
           `,
           format: "esm",
-          platform: isWFP,
+          platform: platform === "wfp",
         });
 
         expect(worker.format).toEqual("esm");
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
 
         // Update to CJS format
         worker = await Worker(workerName, {
@@ -184,10 +184,10 @@ describe("Worker Resource", () => {
             });
           `,
           format: "cjs",
-          platform: isWFP,
+          platform: platform === "wfp",
         });
         expect(worker.format).toEqual("cjs");
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
 
         // Update back to ESM format
         worker = await Worker(workerName, {
@@ -200,14 +200,14 @@ describe("Worker Resource", () => {
             };
           `,
           format: "esm",
-          platform: isWFP,
+          platform: platform === "wfp",
         });
 
         expect(worker.format).toEqual("esm");
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
       } finally {
         await destroy(scope);
-        await assertWorkerDoesNotExist(workerName, isWFP);
+        await assertWorkerDoesNotExist(workerName, platform);
       }
     }
   );
@@ -251,10 +251,10 @@ describe("Worker Resource", () => {
   });
 
   const multiBindingTests = testBothPlatforms(
-    [false, true],
+    ["vanilla", "wfp"],
     "create and delete worker with multiple bindings",
-    async (scope, isWFP: boolean) => {
-      const workerName = `${BRANCH_PREFIX}-test-worker-multi-bindings-${isWFP ? 'wfp' : 'std'}-1`;
+    async (scope, platform: "vanilla" | "wfp") => {
+      const workerName = `${BRANCH_PREFIX}-test-worker-multi-bindings-${platform}-1`;
 
       // Sample ESM worker script with multiple bindings
       const multiBindingsWorkerScript = `
@@ -298,7 +298,7 @@ describe("Worker Resource", () => {
 
       // Create a Durable Object namespace
       const counterNamespace = new DurableObjectNamespace(
-        `test-counter-namespace-${isWFP ? 'wfp' : 'std'}`,
+        `test-counter-namespace-${platform}`,
         {
           className: "Counter",
           scriptName: workerName,
@@ -306,8 +306,8 @@ describe("Worker Resource", () => {
       );
 
       // Create a KV namespace
-      const testKv = await KVNamespace(`test-kv-namespace-${isWFP ? 'wfp' : 'std'}`, {
-        title: `${BRANCH_PREFIX} Test KV Namespace ${isWFP ? 'WFP' : 'STD'} 1`,
+      const testKv = await KVNamespace(`test-kv-namespace-${platform}`, {
+        title: `${BRANCH_PREFIX} Test KV Namespace ${platform.toUpperCase()} 1`,
         values: [
           {
             key: "testKey",
@@ -324,19 +324,19 @@ describe("Worker Resource", () => {
           name: workerName,
           script: multiBindingsWorkerScript,
           format: "esm",
-          platform: isWFP,
+          platform: platform === "wfp",
         });
 
         expect(worker.id).toBeTruthy();
         expect(worker.name).toEqual(workerName);
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
 
         // Update the worker with all bindings
         worker = await Worker(workerName, {
           name: workerName,
           script: multiBindingsWorkerScript,
           format: "esm",
-          platform: isWFP,
+          platform: platform === "wfp",
           bindings: {
             COUNTER: counterNamespace,
             TEST_KV: testKv,
@@ -346,11 +346,11 @@ describe("Worker Resource", () => {
 
         expect(worker.id).toBeTruthy();
         expect(worker.name).toEqual(workerName);
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
         expect(worker.bindings).toBeDefined();
       } finally {
         await destroy(scope);
-        await assertWorkerDoesNotExist(workerName, isWFP);
+        await assertWorkerDoesNotExist(workerName, platform);
       }
     }
   );

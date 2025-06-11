@@ -47,9 +47,9 @@ export default {
 `;
 
 // Helper function to check if a worker exists (platform-aware)
-async function assertWorkerDoesNotExist(workerName: string, platform = false) {
+async function assertWorkerDoesNotExist(workerName: string, platform: "vanilla" | "wfp" = "vanilla") {
   try {
-    const endpoint = platform
+    const endpoint = platform === "wfp"
       ? `/accounts/${api.accountId}/workers/platform/scripts/${workerName}`
       : `/accounts/${api.accountId}/workers/scripts/${workerName}`;
     const response = await api.get(endpoint);
@@ -62,10 +62,10 @@ async function assertWorkerDoesNotExist(workerName: string, platform = false) {
 
 describe("Durable Object Namespace", () => {
   const doBindingTests = testBothPlatforms(
-    [false, true],
+    ["vanilla", "wfp"],
     "create and delete worker with Durable Object binding",
-    async (scope, isWFP: boolean) => {
-      const workerName = `${BRANCH_PREFIX}-test-worker-do-binding-${isWFP ? 'wfp' : 'std'}-1`;
+    async (scope, platform: "vanilla" | "wfp") => {
+      const workerName = `${BRANCH_PREFIX}-test-worker-do-binding-${platform}-1`;
 
       let worker: Worker | undefined;
       try {
@@ -74,18 +74,18 @@ describe("Durable Object Namespace", () => {
           name: workerName,
           script: durableObjectWorkerScript,
           format: "esm",
-          platform: isWFP,
+          platform: platform === "wfp",
           // No bindings yet
         });
 
         expect(worker.id).toBeTruthy();
         expect(worker.name).toEqual(workerName);
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
         expect(worker.bindings).toEqual({});
 
         // Create a Durable Object namespace
         const counterNamespace = new DurableObjectNamespace(
-          `test-counter-namespace-${isWFP ? 'wfp' : 'std'}`,
+          `test-counter-namespace-${platform}`,
           {
             className: "Counter",
             scriptName: workerName,
@@ -97,7 +97,7 @@ describe("Durable Object Namespace", () => {
           name: workerName,
           script: durableObjectWorkerScript,
           format: "esm",
-          platform: isWFP,
+          platform: platform === "wfp",
           bindings: {
             COUNTER: counterNamespace,
           },
@@ -105,11 +105,11 @@ describe("Durable Object Namespace", () => {
 
         expect(worker.id).toBeTruthy();
         expect(worker.name).toEqual(workerName);
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
         expect(worker.bindings).toBeDefined();
       } finally {
         await destroy(scope);
-        await assertWorkerDoesNotExist(workerName, isWFP);
+        await assertWorkerDoesNotExist(workerName, platform);
       }
     }
   );
@@ -120,10 +120,10 @@ describe("Durable Object Namespace", () => {
   }
 
   const doEnvTests = testBothPlatforms(
-    [false, true],
+    ["vanilla", "wfp"],
     "add environment variables to worker with durable object",
-    async (scope, isWFP: boolean) => {
-      const workerName = `${BRANCH_PREFIX}-test-worker-do-with-env-${isWFP ? 'wfp' : 'std'}-1`;
+    async (scope, platform: "vanilla" | "wfp") => {
+      const workerName = `${BRANCH_PREFIX}-test-worker-do-with-env-${platform}-1`;
 
       let worker: Worker | undefined;
       try {
@@ -132,16 +132,16 @@ describe("Durable Object Namespace", () => {
           name: workerName,
           script: durableObjectWorkerScript,
           format: "esm",
-          platform: isWFP,
+          platform: platform === "wfp",
         });
 
         expect(worker.id).toBeTruthy();
         expect(worker.name).toEqual(workerName);
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
 
         // Create a Durable Object namespace
         const counterNamespace = new DurableObjectNamespace(
-          `test-counter-env-namespace-${isWFP ? 'wfp' : 'std'}`,
+          `test-counter-env-namespace-${platform}`,
           {
             className: "Counter",
             scriptName: workerName,
@@ -153,7 +153,7 @@ describe("Durable Object Namespace", () => {
           name: workerName,
           script: durableObjectWorkerScript,
           format: "esm",
-          platform: isWFP,
+          platform: platform === "wfp",
           bindings: {
             COUNTER: counterNamespace,
           },
@@ -161,7 +161,7 @@ describe("Durable Object Namespace", () => {
 
         // Apply the worker with binding
         expect(worker.bindings).toBeDefined();
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
         expect(worker.env).toBeUndefined();
 
         // Now update the worker by adding environment variables
@@ -169,7 +169,7 @@ describe("Durable Object Namespace", () => {
           name: workerName,
           script: durableObjectWorkerScript,
           format: "esm",
-          platform: isWFP,
+          platform: platform === "wfp",
           bindings: {
             COUNTER: counterNamespace,
           },
@@ -180,13 +180,13 @@ describe("Durable Object Namespace", () => {
         });
 
         expect(worker.bindings).toBeDefined();
-        expect(worker.platform).toEqual(isWFP);
+        expect(worker.platform).toEqual(platform === "wfp");
         expect(worker.env).toBeDefined();
         expect(worker.env?.API_SECRET).toEqual("test-secret-123");
         expect(worker.env?.DEBUG_MODE).toEqual("true");
       } finally {
         await destroy(scope);
-        await assertWorkerDoesNotExist(workerName, isWFP);
+        await assertWorkerDoesNotExist(workerName, platform);
       }
     }
   );

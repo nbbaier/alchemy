@@ -37,18 +37,18 @@ export const BRANCH_PREFIX = sanitizeForAwsResourceName(
 /**
  * Test helper that runs the same test for both standard workers and Workers for Platform
  * 
- * @param platforms Array of platform boolean values to test (typically [false, true])
- * @param testName Base name for the test (will be suffixed with "-wfp" for platform tests)
- * @param testHandler Function that receives scope and platform boolean
+ * @param platforms Array of platform types to test (typically ["vanilla", "wfp"])
+ * @param testName Base name for the test (will be suffixed with platform type)
+ * @param testHandler Function that receives scope and platform type
  * @returns Array of test functions that can be called with vitest's test() function
  */
 export function testBothPlatforms<T extends any[]>(
-  platforms: boolean[],
+  platforms: Array<"vanilla" | "wfp">,
   testName: string,
-  testHandler: (scope: any, isWFP: boolean, ...args: T) => Promise<void>,
+  testHandler: (scope: any, platform: "vanilla" | "wfp", ...args: T) => Promise<void>,
 ): Array<{ name: string; handler: (scope: any, ...args: T) => Promise<void> }> {
   return platforms.map((platform) => ({
-    name: platform ? `${testName} (WFP)` : testName,
+    name: platform === "wfp" ? `${testName} (${platform})` : testName,
     handler: async (scope: any, ...args: T) => {
       return testHandler(scope, platform, ...args);
     },
