@@ -73,13 +73,6 @@ export class Scope {
 
   private deferred: (() => Promise<any>)[] = [];
   
-  /**
-   * Tracks whether this scope should delay finalization
-   * until the root application scope is finalized.
-   * This is used for resource replacement scenarios.
-   */
-  private delayFinalization = false;
-
   constructor(options: ScopeOptions) {
     this.appName = options.appName;
     this.scopeName = options.scopeName ?? null;
@@ -188,22 +181,6 @@ export class Scope {
   }
 
   /**
-   * Enable delayed finalization for this scope.
-   * When enabled, the scope won't finalize when alchemy.run() completes,
-   * but will wait until the root application scope is finalized.
-   */
-  public enableDelayedFinalization() {
-    this.delayFinalization = true;
-  }
-
-  /**
-   * Check if this scope has delayed finalization enabled.
-   */
-  public hasDelayedFinalization(): boolean {
-    return this.delayFinalization;
-  }
-
-  /**
    * Get all child scopes recursively.
    */
   private getAllChildScopes(): Scope[] {
@@ -215,6 +192,16 @@ export class Scope {
     return scopes;
   }
 
+  /**
+   * Finalize the scope and clean up resources.
+   * 
+   * For root scopes (app scopes), this triggers finalization of all child scopes
+   * and then finalizes itself.
+   * 
+   * For child scopes, this method does nothing - they are finalized only when
+   * their root scope finalizes. This ensures resources marked for replacement
+   * aren't cleaned up prematurely.
+   */
   public async finalize() {
     if (this.phase === "read") {
       this.rootTelemetryClient?.record({
@@ -227,27 +214,24 @@ export class Scope {
       return;
     }
     
-    // If this is the root scope, finalize all child scopes first
+    // Only root scopes trigger finalization
     if (this.parent === undefined) {
+      // Root scope: finalize all child scopes first
       const allScopes = this.getAllChildScopes();
       for (const childScope of allScopes) {
         if (!childScope.finalized) {
           await childScope.finalizeScope();
         }
       }
+      // Then finalize the root scope itself
+      await this.finalizeScope();
     }
-    
-    // If finalization is delayed and this is not the root scope, skip for now
-    if (this.delayFinalization && this.parent !== undefined) {
-      return;
-    }
-    
-    await this.finalizeScope();
+    // Child scopes do nothing - they wait for root to finalize them
   }
 
   /**
    * Internal method to actually perform finalization.
-   * This is separated from finalize() to support delayed finalization.
+   * This is called by the root scope during its finalization.
    */
   private async finalizeScope() {
     if (this.finalized) {

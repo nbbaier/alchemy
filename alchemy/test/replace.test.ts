@@ -51,7 +51,7 @@ const TestResource = Resource(
 );
 
 describe("Resource Replacement", () => {
-  test("should delay finalization when replacement is triggered", async (scope) => {
+  test("should mark resource as replaced when replacement is triggered", async (scope) => {
     // Create initial resource
     const resource1 = await TestResource("test-resource", {
       value: "initial",
@@ -69,9 +69,6 @@ describe("Resource Replacement", () => {
     
     expect(resource2.value).toBe("updated");
     expect(resource2.immutableProp).toBe("v2");
-    
-    // Check that the scope has delayed finalization enabled
-    expect(scope.hasDelayedFinalization()).toBe(true);
     
     // The old resource should still exist in state but marked as replaced
     const state = await scope.state.get("test-resource");
@@ -112,31 +109,46 @@ describe("Resource Replacement", () => {
     }
   });
 
-  test("nested scopes should propagate delayed finalization", async () => {
-    const app = await alchemy(`${BRANCH_PREFIX}-nested-replace-test`);
+  test("child scopes should not finalize until root scope finalizes", async () => {
+    const app = await alchemy(`${BRANCH_PREFIX}-nested-finalize-test`);
+    let childFinalized = false;
+    let parentFinalized = false;
     
     try {
       await alchemy.run("parent", async (parentScope) => {
         await alchemy.run("child", async (childScope) => {
-          // Create resource that triggers replacement
+          // Create a resource
           await TestResource("nested-resource", {
-            value: "initial",
+            value: "test",
             immutableProp: "v1",
           });
           
-          await TestResource("nested-resource", {
-            value: "updated",
-            immutableProp: "v2",
-          });
-          
-          // Both child and parent scopes should have delayed finalization
-          expect(childScope.hasDelayedFinalization()).toBe(true);
-          expect(parentScope.hasDelayedFinalization()).toBe(true);
-          expect(app.hasDelayedFinalization()).toBe(true);
+          // Override finalize to track when it's called
+          const originalFinalize = childScope.finalize.bind(childScope);
+          childScope.finalize = async () => {
+            await originalFinalize();
+            childFinalized = true;
+          };
         });
+        
+        // Override parent finalize to track when it's called
+        const originalFinalize = parentScope.finalize.bind(parentScope);
+        parentScope.finalize = async () => {
+          await originalFinalize();
+          parentFinalized = true;
+        };
       });
       
+      // After alchemy.run completes, child scopes should not be finalized
+      expect(childFinalized).toBe(false);
+      expect(parentFinalized).toBe(false);
+      
+      // Finalize the app - this should finalize all scopes
       await app.finalize();
+      
+      // Now all scopes should be finalized
+      expect(childFinalized).toBe(true);
+      expect(parentFinalized).toBe(true);
     } catch (error) {
       await app.finalize();
       throw error;
