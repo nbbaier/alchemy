@@ -1485,4 +1485,111 @@ describe("Worker Resource", () => {
       await assertWorkerDoesNotExist(workerName);
     }
   });
+
+  test("Workers for Platform supports static assets upload", async (scope) => {
+    const workerName = `${BRANCH_PREFIX}-test-worker-platform-assets`;
+    let tempDir: string | undefined;
+
+    try {
+      // Create temporary assets directory
+      tempDir = path.join(".out", "alchemy-platform-assets-test");
+      await fs.rm(tempDir, { recursive: true, force: true });
+      await fs.mkdir(tempDir, { recursive: true });
+
+      // Create test files with different content types
+      const indexContent = "<!DOCTYPE html><html><body><h1>Workers for Platform Assets</h1></body></html>";
+      const cssContent = "body { font-family: Arial; background: #f0f0f0; color: #333; }";
+      const jsContent = "console.log('Platform assets test');";
+
+      await Promise.all([
+        fs.writeFile(path.join(tempDir, "index.html"), indexContent),
+        fs.writeFile(path.join(tempDir, "styles.css"), cssContent),
+        fs.writeFile(path.join(tempDir, "app.js"), jsContent),
+      ]);
+
+      // Create Assets resource
+      const assets = await Assets("platform-static-assets", {
+        path: tempDir,
+      });
+
+      // Worker script that can serve assets
+      const workerScript = `
+        export default {
+          async fetch(request, env, ctx) {
+            const url = new URL(request.url);
+            
+            // API routes handled by worker
+            if (url.pathname.startsWith("/api/")) {
+              return new Response(JSON.stringify({
+                message: "Workers for Platform with assets!",
+                platform: true,
+                path: url.pathname
+              }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+              });
+            }
+            
+            // All other requests should be handled by assets
+            return new Response("Not found", { status: 404 });
+          }
+        };
+      `;
+
+      let worker: Worker | undefined;
+
+      // Create Workers for Platform worker with static assets
+      worker = await Worker(workerName, {
+        name: workerName,
+        script: workerScript,
+        format: "esm",
+        platform: true, // Key: Deploy to Workers for Platform
+        bindings: {
+          ASSETS: assets,
+        },
+        assets: {
+          html_handling: "auto-trailing-slash",
+          not_found_handling: "single-page-application",
+          run_worker_first: false,
+        },
+      });
+
+      // Verify worker was created successfully
+      expect(worker.id).toBeTruthy();
+      expect(worker.name).toEqual(workerName);
+      expect(worker.platform).toEqual(true);
+      expect(worker.bindings?.ASSETS).toBeDefined();
+      expect(worker.assets?.html_handling).toEqual("auto-trailing-slash");
+      expect(worker.assets?.not_found_handling).toEqual("single-page-application");
+
+      // Update the worker to verify platform assets work on updates too
+      worker = await Worker(workerName, {
+        name: workerName,
+        script: workerScript.replace("Workers for Platform with assets!", "Updated Workers for Platform with assets!"),
+        format: "esm",
+        platform: true,
+        bindings: {
+          ASSETS: assets,
+        },
+        assets: {
+          html_handling: "auto-trailing-slash",
+          not_found_handling: "single-page-application",
+          run_worker_first: false,
+        },
+      });
+
+      // Verify the update preserved platform and assets settings
+      expect(worker.platform).toEqual(true);
+      expect(worker.bindings?.ASSETS).toBeDefined();
+      expect(worker.assets?.html_handling).toEqual("auto-trailing-slash");
+
+    } finally {
+      // Cleanup
+      if (tempDir) {
+        await fs.rm(tempDir, { recursive: true, force: true });
+      }
+      await destroy(scope);
+      await assertWorkerDoesNotExist(workerName);
+    }
+  });
 });

@@ -647,6 +647,7 @@ export function Worker<const B extends Bindings>(
       apiToken: props.apiToken,
       baseUrl: props.baseUrl,
       email: props.email,
+      platform: props.platform,
     });
 
     async function collectResources(
@@ -902,6 +903,7 @@ export const _Worker = Resource(
           workerName,
           assetBinding.assets,
           props.assets,
+          props.platform,
         );
       }
 
@@ -1004,7 +1006,7 @@ export const _Worker = Resource(
 
     if (this.phase === "delete") {
       // Delete any queue consumers attached to this worker first
-      await deleteQueueConsumers(api, workerName);
+      await deleteQueueConsumers(api, workerName, props.platform);
 
       // @ts-ignore
       await uploadWorkerScript({
@@ -1456,12 +1458,14 @@ async function getWorkerBindings(api: CloudflareApi, workerName: string, platfor
  * @param ctx Worker context containing eventSources
  * @param api CloudflareApi instance
  * @param workerName Name of the worker script
+ * @param platform Whether this is for Workers for Platform
  */
 async function deleteQueueConsumers(
   api: CloudflareApi,
   workerName: string,
+  platform?: boolean,
 ): Promise<void> {
-  const consumers = await listQueueConsumersForWorker(api, workerName);
+  const consumers = await listQueueConsumersForWorker(api, workerName, platform);
 
   await Promise.all(
     consumers.map(async (consumer) => {
