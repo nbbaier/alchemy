@@ -1,5 +1,7 @@
 # Service
 
+## Basic Usage
+
 ```typescript
 import { Service } from "alchemy/railway";
 
@@ -9,6 +11,8 @@ const service = await Service("api-service", {
   project: project,
 });
 ```
+
+## GitHub Repository Service
 
 ```typescript
 // GitHub repository service
@@ -20,6 +24,8 @@ const webApp = await Service("web-app", {
   rootDirectory: "/",
 });
 ```
+
+## String References
 
 ```typescript
 // Using string references

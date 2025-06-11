@@ -1,5 +1,7 @@
 # Custom Domain
 
+## Basic Usage
+
 ```typescript
 import { CustomDomain } from "alchemy/railway";
 
@@ -10,6 +12,8 @@ const domain = await CustomDomain("my-domain", {
   environment: environment,
 });
 ```
+
+## Multiple Domains
 
 ```typescript
 // Multiple domains for different services
@@ -25,6 +29,8 @@ const webDomain = await CustomDomain("web-domain", {
   environment: environment,
 });
 ```
+
+## String References
 
 ```typescript
 // Using string references

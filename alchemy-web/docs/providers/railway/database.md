@@ -1,5 +1,7 @@
 # Database
 
+## Basic Usage
+
 ```typescript
 import { Database } from "alchemy/railway";
 
@@ -11,6 +13,8 @@ const database = await Database("postgres-db", {
   type: "postgresql",
 });
 ```
+
+## Multiple Database Types
 
 ```typescript
 // Multiple database types
@@ -28,6 +32,8 @@ const redis = await Database("redis-cache", {
   type: "redis",
 });
 ```
+
+## String References
 
 ```typescript
 // Using string references

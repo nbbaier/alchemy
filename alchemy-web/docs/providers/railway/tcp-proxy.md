@@ -1,5 +1,7 @@
 # TCP Proxy
 
+## Basic Usage
+
 ```typescript
 import { TcpProxy } from "alchemy/railway";
 
@@ -12,6 +14,8 @@ const gameProxy = await TcpProxy("minecraft-proxy", {
 });
 ```
 
+## Database Proxy with Automatic Port
+
 ```typescript
 // Database proxy with automatic port
 const dbProxy = await TcpProxy("db-proxy", {
@@ -20,6 +24,8 @@ const dbProxy = await TcpProxy("db-proxy", {
   environment: environment,
 });
 ```
+
+## String References
 
 ```typescript
 // Using string references

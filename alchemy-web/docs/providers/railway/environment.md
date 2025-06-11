@@ -1,5 +1,7 @@
 # Environment
 
+## Basic Usage
+
 ```typescript
 import { Environment } from "alchemy/railway";
 
@@ -9,6 +11,8 @@ const environment = await Environment("staging-env", {
   project: project,
 });
 ```
+
+## Multiple Environments
 
 ```typescript
 // Multiple environments for deployment pipeline
@@ -27,6 +31,8 @@ const production = await Environment("prod-env", {
   project: project,
 });
 ```
+
+## String References
 
 ```typescript
 // Using string references

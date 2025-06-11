@@ -1,5 +1,7 @@
 # Project
 
+## Basic Usage
+
 ```typescript
 import { Project } from "alchemy/railway";
 
@@ -10,6 +12,8 @@ const project = await Project("my-project", {
 });
 ```
 
+## Team Project
+
 ```typescript
 // Team project
 const teamProject = await Project("team-project", {
@@ -18,6 +22,8 @@ const teamProject = await Project("team-project", {
   teamId: "team_abc123",
 });
 ```
+
+## Public Project
 
 ```typescript
 // Public project

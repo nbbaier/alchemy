@@ -1,5 +1,7 @@
 # Volume
 
+## Basic Usage
+
 ```typescript
 import { Volume } from "alchemy/railway";
 
@@ -13,6 +15,8 @@ const dataVolume = await Volume("data-volume", {
 });
 ```
 
+## Large Storage Volume
+
 ```typescript
 // Large storage volume
 const fileStorage = await Volume("file-storage", {
@@ -23,6 +27,8 @@ const fileStorage = await Volume("file-storage", {
   size: 10240, // 10GB
 });
 ```
+
+## String References
 
 ```typescript
 // Using string references

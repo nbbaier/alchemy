@@ -1,5 +1,7 @@
 # Function
 
+## Basic Usage
+
 ```typescript
 import { Function } from "alchemy/railway";
 
@@ -14,6 +16,8 @@ const helloWorld = await Function("hello-function", {
 });
 ```
 
+## Repository-based Function
+
 ```typescript
 // Repository-based function
 const apiGateway = await Function("api-gateway", {
@@ -26,6 +30,8 @@ const apiGateway = await Function("api-gateway", {
   entrypoint: "main",
 });
 ```
+
+## String References
 
 ```typescript
 // Using string references

@@ -1,5 +1,7 @@
 # Variable
 
+## Basic Usage
+
 ```typescript
 import { Variable } from "alchemy/railway";
 
@@ -12,6 +14,8 @@ const port = await Variable("port-var", {
 });
 ```
 
+## Secret Variable
+
 ```typescript
 // Secret variable
 const apiKey = await Variable("api-key-var", {
@@ -21,6 +25,8 @@ const apiKey = await Variable("api-key-var", {
   service: service,
 });
 ```
+
+## String References
 
 ```typescript
 // Using string references

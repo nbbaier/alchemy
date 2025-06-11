@@ -1,5 +1,7 @@
 # Service Domain
 
+## Basic Usage
+
 ```typescript
 import { ServiceDomain } from "alchemy/railway";
 
@@ -10,6 +12,8 @@ const serviceDomain = await ServiceDomain("api-domain", {
   environment: environment,
 });
 ```
+
+## Multiple Service Domains
 
 ```typescript
 // Multiple service domains
@@ -25,6 +29,8 @@ const webDomain = await ServiceDomain("web-domain", {
   environment: environment,
 });
 ```
+
+## String References
 
 ```typescript
 // Using string references
