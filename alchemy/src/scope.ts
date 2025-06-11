@@ -72,12 +72,6 @@ export class Scope {
   private startedAt = performance.now();
 
   private deferred: (() => Promise<any>)[] = [];
-  
-  /**
-   * Collection of scope finalizers to be executed in LIFO order.
-   * Only used by the root scope to accumulate finalizers from all child scopes.
-   */
-  private scopeFinalizers: Array<() => Promise<void>> = [];
 
   constructor(options: ScopeOptions) {
     this.appName = options.appName;
@@ -210,24 +204,18 @@ export class Scope {
     
     this.finalized = true;
     
-    // If this is not the root scope, register this scope's finalizer with the root
-    // to be executed later in LIFO order
-    if (this.parent !== undefined) {
-      const root = this.root;
-      root.scopeFinalizers.push(async () => {
-        await this.executeFinalization();
-      });
-      return;
+    // If this is the root scope, initiate backwards pass through children in LIFO order
+    if (this.parent === undefined) {
+      // Get children in reverse order of their creation (LIFO)
+      const childScopes = Array.from(this.children.values()).reverse();
+      
+      // Finalize children first in LIFO order
+      for (const childScope of childScopes) {
+        await childScope.finalize();
+      }
     }
     
-    // This is the root scope - execute all scope finalizers in LIFO order
-    // (finalizers are already registered in reverse order of scope creation)
-    const finalizers = [...this.scopeFinalizers];
-    for (const finalizer of finalizers) {
-      await finalizer();
-    }
-    
-    // Finally execute root scope's own finalization
+    // Execute this scope's finalization
     await this.executeFinalization();
   }
   
