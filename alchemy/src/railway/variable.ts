@@ -1,7 +1,7 @@
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { type Secret, secret } from "../secret.ts";
-import { createRailwayApi, handleRailwayDeleteError, type RailwayApi } from "./api.ts";
+import { createRailwayApi, type RailwayApi } from "./api.ts";
 import type { Environment } from "./environment.ts";
 import type { Service } from "./service.ts";
 
@@ -112,14 +112,9 @@ export const Variable = Resource(
     const api = createRailwayApi({ apiKey: props.apiKey });
 
     if (this.phase === "delete") {
-      try {
-        if (this.output?.id) {
-          await deleteVariable(api, this.output.id);
-        }
-      } catch (error) {
-        handleRailwayDeleteError(error, "Variable", this.output?.id);
+      if (this.output?.id) {
+        await deleteVariable(api, this.output.id);
       }
-
       return this.destroy();
     }
 

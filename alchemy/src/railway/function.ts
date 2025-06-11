@@ -2,7 +2,7 @@ import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import type { Secret } from "../secret.ts";
 import { Bundle } from "../esbuild/bundle.ts";
-import { createRailwayApi, handleRailwayDeleteError, type RailwayApi } from "./api.ts";
+import { createRailwayApi, type RailwayApi } from "./api.ts";
 import type { Project } from "./project.ts";
 import type { Environment } from "./environment.ts";
 
@@ -46,6 +46,11 @@ export interface FunctionProps {
    * The entry point for the function (e.g., "index.handler", "main.py")
    */
   entrypoint?: string;
+
+  /**
+   * Node.js target version for bundling. Defaults to "node20"
+   */
+  nodeTarget?: string;
 
   /**
    * Railway API token to use for authentication. Defaults to RAILWAY_TOKEN environment variable
@@ -188,14 +193,9 @@ export const Function = Resource(
     const api = createRailwayApi({ apiKey: props.apiKey });
 
     if (this.phase === "delete") {
-      try {
-        if (this.output?.id) {
-          await deleteFunction(api, this.output.id);
-        }
-      } catch (error) {
-        handleRailwayDeleteError(error, "Function", this.output?.id);
+      if (this.output?.id) {
+        await deleteFunction(api, this.output.id);
       }
-
       return this.destroy();
     }
 
@@ -249,18 +249,7 @@ export async function createFunction(
       ? props.environment
       : props.environment.id;
 
-  let bundledCode: string | undefined;
-  if (props.runtime === "nodejs" && !props.sourceRepo) {
-    const bundle = await Bundle(`${id}-bundle`, {
-      entryPoint: props.main,
-      format: "cjs",
-      target: "node18",
-      platform: "node",
-      bundle: true,
-      minify: true,
-    });
-    bundledCode = bundle.content;
-  }
+  const bundledCode = await getBundledCode(props, id);
 
   const response = await api.mutate(FUNCTION_CREATE_MUTATION, {
     input: {
@@ -288,18 +277,7 @@ export async function updateFunction(
   id: string,
   props: FunctionProps,
 ) {
-  let bundledCode: string | undefined;
-  if (props.runtime === "nodejs" && !props.sourceRepo) {
-    const bundle = await Bundle(`${id}-bundle`, {
-      entryPoint: props.main,
-      format: "cjs",
-      target: "node18",
-      platform: "node",
-      bundle: true,
-      minify: true,
-    });
-    bundledCode = bundle.content;
-  }
+  const bundledCode = await getBundledCode(props, id);
 
   const response = await api.mutate(FUNCTION_UPDATE_MUTATION, {
     id,
@@ -323,4 +301,21 @@ export async function updateFunction(
 
 export async function deleteFunction(api: RailwayApi, id: string) {
   await api.mutate(FUNCTION_DELETE_MUTATION, { id });
+}
+
+async function getBundledCode(props: FunctionProps, id: string): Promise<string | undefined> {
+  if (props.runtime !== "nodejs" || props.sourceRepo) {
+    return undefined;
+  }
+
+  const bundle = await Bundle(`${id}-bundle`, {
+    entryPoint: props.main,
+    format: "esm",
+    target: props.nodeTarget || "node20",
+    platform: "node",
+    bundle: true,
+    minify: true,
+  });
+  
+  return bundle.content;
 }

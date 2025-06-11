@@ -93,24 +93,6 @@ export function createRailwayApi(options: RailwayApiOptions = {}): RailwayApi {
   return new RailwayApi(options);
 }
 
-export function handleRailwayDeleteError(
-  error: any,
-  resourceType: string,
-  resourceId?: string,
-): void {
-  if (error?.message?.includes("not found") || error?.status === 404) {
-    console.log(
-      `${resourceType} ${resourceId || "unknown"} not found during deletion (already deleted)`,
-    );
-    return;
-  }
-
-  console.error(
-    `Error deleting ${resourceType} ${resourceId || "unknown"}:`,
-    error,
-  );
-  throw error;
-}
 
 function isRailwayRetryableError(error: any): boolean {
   return (

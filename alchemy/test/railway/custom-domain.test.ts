@@ -1,7 +1,7 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, getCustomDomain } from "../../src/railway/index.ts";
 import { CustomDomain } from "../../src/railway/custom-domain.ts";
 import { Environment } from "../../src/railway/environment.ts";
 import { Project } from "../../src/railway/project.ts";
@@ -20,14 +20,10 @@ describe("CustomDomain Resource", () => {
   const testServiceId = `${BRANCH_PREFIX}-domain-service`;
   const testDomainId = `${BRANCH_PREFIX}-custom-domain`;
 
-  test.skipIf(!!process.env.CI)(
+  test.skipIf(!import.meta.env.RAILWAY_TOKEN)(
     "create and delete custom domain",
     async (scope) => {
-      const railwayToken = import.meta.env.RAILWAY_TOKEN;
-      if (!railwayToken) {
-        throw new Error("RAILWAY_TOKEN environment variable is required");
-      }
-      const api = createRailwayApi({ apiKey: railwayToken });
+      const api = createRailwayApi();
       let project: Project | undefined;
       let environment: Environment | undefined;
       let service: Service | undefined;
@@ -63,22 +59,7 @@ describe("CustomDomain Resource", () => {
         });
         expect(customDomain.status).toBeTruthy();
 
-        const response = await api.query(
-          `
-        query CustomDomain($id: String!) {
-          customDomain(id: $id) {
-            id
-            domain
-            serviceId
-            environmentId
-            status
-          }
-        }
-        `,
-          { id: customDomain.id },
-        );
-
-        const railwayCustomDomain = response.data?.customDomain;
+        const railwayCustomDomain = await getCustomDomain(api, customDomain.id);
         expect(railwayCustomDomain).toMatchObject({
           id: customDomain.id,
           domain: `${BRANCH_PREFIX}-test.example.com`,
@@ -101,18 +82,8 @@ describe("CustomDomain Resource", () => {
 
 async function assertCustomDomainDeleted(customDomainId: string, api: any) {
   try {
-    const response = await api.query(
-      `
-      query CustomDomain($id: String!) {
-        customDomain(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: customDomainId },
-    );
-
-    expect(response.data?.customDomain).toBeNull();
+    const customDomain = await getCustomDomain(api, customDomainId);
+    expect(customDomain).toBeNull();
   } catch (error) {
     if (error instanceof Error && error.message.includes("not found")) {
       return;

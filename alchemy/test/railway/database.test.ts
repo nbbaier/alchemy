@@ -1,7 +1,7 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, getDatabase } from "../../src/railway/index.ts";
 import { Database } from "../../src/railway/database.ts";
 import { Environment } from "../../src/railway/environment.ts";
 import { Project } from "../../src/railway/project.ts";
@@ -18,12 +18,8 @@ describe("Database Resource", () => {
   const testEnvironmentId = `${BRANCH_PREFIX}-db-environment`;
   const testDatabaseId = `${BRANCH_PREFIX}-database`;
 
-  test.skipIf(!!process.env.CI)("create and delete database", async (scope) => {
-    const railwayToken = import.meta.env.RAILWAY_TOKEN;
-    if (!railwayToken) {
-      throw new Error("RAILWAY_TOKEN environment variable is required");
-    }
-    const api = createRailwayApi({ apiKey: railwayToken });
+  test.skipIf(!import.meta.env.RAILWAY_TOKEN)("create and delete database", async (scope) => {
+    const api = createRailwayApi();
     let project: Project | undefined;
     let environment: Environment | undefined;
     let database: Database | undefined;
@@ -56,22 +52,7 @@ describe("Database Resource", () => {
       expect(database.connectionString.unencrypted).toBeTruthy();
       expect(database.password.unencrypted).toBeTruthy();
 
-      const response = await api.query(
-        `
-        query Database($id: String!) {
-          database(id: $id) {
-            id
-            name
-            projectId
-            environmentId
-            type
-          }
-        }
-        `,
-        { id: database.id },
-      );
-
-      const railwayDatabase = response.data?.database;
+      const railwayDatabase = await getDatabase(api, database.id);
       expect(railwayDatabase).toMatchObject({
         id: database.id,
         name: "test-postgres",
@@ -94,18 +75,8 @@ describe("Database Resource", () => {
 
 async function assertDatabaseDeleted(databaseId: string, api: any) {
   try {
-    const response = await api.query(
-      `
-      query Database($id: String!) {
-        database(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: databaseId },
-    );
-
-    expect(response.data?.database).toBeNull();
+    const database = await getDatabase(api, databaseId);
+    expect(database).toBeNull();
   } catch (error) {
     if (error instanceof Error && error.message.includes("not found")) {
       return;

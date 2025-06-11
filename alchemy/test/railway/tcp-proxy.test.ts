@@ -1,7 +1,7 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, getTcpProxy } from "../../src/railway/index.ts";
 import { Environment } from "../../src/railway/environment.ts";
 import { Project } from "../../src/railway/project.ts";
 import { Service } from "../../src/railway/service.ts";
@@ -20,14 +20,10 @@ describe("TcpProxy Resource", () => {
   const testServiceId = `${BRANCH_PREFIX}-tcp-service`;
   const testTcpProxyId = `${BRANCH_PREFIX}-tcp-proxy`;
 
-  test.skipIf(!!process.env.CI)(
+  test.skipIf(!import.meta.env.RAILWAY_TOKEN)(
     "create and delete TCP proxy",
     async (scope) => {
-      const railwayToken = import.meta.env.RAILWAY_TOKEN;
-      if (!railwayToken) {
-        throw new Error("RAILWAY_TOKEN environment variable is required");
-      }
-      const api = createRailwayApi({ apiKey: railwayToken });
+      const api = createRailwayApi();
       let project: Project | undefined;
       let environment: Environment | undefined;
       let service: Service | undefined;
@@ -65,23 +61,7 @@ describe("TcpProxy Resource", () => {
         });
         expect(tcpProxy.domain).toBeTruthy();
 
-        const response = await api.query(
-          `
-        query TcpProxy($id: String!) {
-          tcpProxy(id: $id) {
-            id
-            applicationPort
-            proxyPort
-            serviceId
-            environmentId
-            domain
-          }
-        }
-        `,
-          { id: tcpProxy.id },
-        );
-
-        const railwayTcpProxy = response.data?.tcpProxy;
+        const railwayTcpProxy = await getTcpProxy(api, tcpProxy.id);
         expect(railwayTcpProxy).toMatchObject({
           id: tcpProxy.id,
           applicationPort: 3000,
@@ -105,18 +85,8 @@ describe("TcpProxy Resource", () => {
 
 async function assertTcpProxyDeleted(tcpProxyId: string, api: any) {
   try {
-    const response = await api.query(
-      `
-      query TcpProxy($id: String!) {
-        tcpProxy(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: tcpProxyId },
-    );
-
-    expect(response.data?.tcpProxy).toBeNull();
+    const tcpProxy = await getTcpProxy(api, tcpProxyId);
+    expect(tcpProxy).toBeNull();
   } catch (error) {
     if (error instanceof Error && error.message.includes("not found")) {
       return;

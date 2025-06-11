@@ -1,7 +1,7 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { destroy } from "../../src/destroy.ts";
-import { createRailwayApi } from "../../src/railway/api.ts";
+import { createRailwayApi, getServiceDomain } from "../../src/railway/index.ts";
 import { Environment } from "../../src/railway/environment.ts";
 import { Project } from "../../src/railway/project.ts";
 import { Service } from "../../src/railway/service.ts";
@@ -20,14 +20,10 @@ describe("ServiceDomain Resource", () => {
   const testServiceId = `${BRANCH_PREFIX}-svc-domain-service`;
   const testServiceDomainId = `${BRANCH_PREFIX}-service-domain`;
 
-  test.skipIf(!!process.env.CI)(
+  test.skipIf(!import.meta.env.RAILWAY_TOKEN)(
     "create, update, and delete service domain",
     async (scope) => {
-      const railwayToken = import.meta.env.RAILWAY_TOKEN;
-      if (!railwayToken) {
-        throw new Error("RAILWAY_TOKEN environment variable is required");
-      }
-      const api = createRailwayApi({ apiKey: railwayToken });
+      const api = createRailwayApi();
       let project: Project | undefined;
       let environment: Environment | undefined;
       let service: Service | undefined;
@@ -63,22 +59,7 @@ describe("ServiceDomain Resource", () => {
         });
         expect(serviceDomain.url).toBeTruthy();
 
-        const response = await api.query(
-          `
-        query ServiceDomain($id: String!) {
-          serviceDomain(id: $id) {
-            id
-            domain
-            serviceId
-            environmentId
-            url
-          }
-        }
-        `,
-          { id: serviceDomain.id },
-        );
-
-        const railwayServiceDomain = response.data?.serviceDomain;
+        const railwayServiceDomain = await getServiceDomain(api, serviceDomain.id);
         expect(railwayServiceDomain).toMatchObject({
           id: serviceDomain.id,
           domain: `${BRANCH_PREFIX}-api.railway.app`,
@@ -111,18 +92,8 @@ describe("ServiceDomain Resource", () => {
 
 async function assertServiceDomainDeleted(serviceDomainId: string, api: any) {
   try {
-    const response = await api.query(
-      `
-      query ServiceDomain($id: String!) {
-        serviceDomain(id: $id) {
-          id
-        }
-      }
-      `,
-      { id: serviceDomainId },
-    );
-
-    expect(response.data?.serviceDomain).toBeNull();
+    const serviceDomain = await getServiceDomain(api, serviceDomainId);
+    expect(serviceDomain).toBeNull();
   } catch (error) {
     if (error instanceof Error && error.message.includes("not found")) {
       return;
