@@ -66,7 +66,7 @@ async function assertWorkerDoesNotExist(
 
 describe("Durable Object Namespace", () => {
   const doBindingTests = test.variant(
-    ["vanilla", "wfp"] as const,
+    ["vanilla", "wfp"],
     "create and delete worker with Durable Object binding",
     async (scope, platform: "vanilla" | "wfp") => {
       const workerName = `${BRANCH_PREFIX}-test-worker-do-binding-${platform}-1`;
@@ -124,7 +124,7 @@ describe("Durable Object Namespace", () => {
   }
 
   const doEnvTests = test.variant(
-    ["vanilla", "wfp"] as const,
+    ["vanilla", "wfp"],
     "add environment variables to worker with durable object",
     async (scope, platform: "vanilla" | "wfp") => {
       const workerName = `${BRANCH_PREFIX}-test-worker-do-with-env-${platform}-1`;

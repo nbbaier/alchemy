@@ -18,7 +18,7 @@ const api = await createCloudflareApi({});
 
 describe("QueueConsumer Resource", () => {
   const queueConsumerTests = test.variant(
-    ["vanilla", "wfp"] as const,
+    ["vanilla", "wfp"],
     "create, update, and delete queue consumer",
     async (scope, platform: "vanilla" | "wfp") => {
       // Use BRANCH_PREFIX for deterministic, non-colliding resource names

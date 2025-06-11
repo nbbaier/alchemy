@@ -43,7 +43,7 @@ async function assertWorkerDoesNotExist(
 describe("Worker Resource", () => {
   // Create tests for both platforms using testBothPlatforms helper
   const cjsTests = test.variant(
-    ["vanilla", "wfp"] as const,
+    ["vanilla", "wfp"],
     "create, update, and delete worker (CJS format)",
     async (scope, platform: "vanilla" | "wfp") => {
       const workerName = `${BRANCH_PREFIX}-test-worker-cjs-${platform}-1`;
@@ -97,7 +97,7 @@ describe("Worker Resource", () => {
   }
 
   const esmTests = test.variant(
-    ["vanilla", "wfp"] as const,
+    ["vanilla", "wfp"],
     "create, update, and delete worker (ESM format)",
     async (scope, platform: "vanilla" | "wfp") => {
       const workerName = `${BRANCH_PREFIX}-test-worker-esm-${platform}-1`;
@@ -155,7 +155,7 @@ describe("Worker Resource", () => {
   }
 
   const formatConversionTests = test.variant(
-    ["vanilla", "wfp"] as const,
+    ["vanilla", "wfp"],
     "convert between ESM and CJS formats",
     async (scope, platform: "vanilla" | "wfp") => {
       const workerName = `${BRANCH_PREFIX}-test-worker-format-conversion-${platform}-1`;
@@ -255,7 +255,7 @@ describe("Worker Resource", () => {
   });
 
   const multiBindingTests = test.variant(
-    ["vanilla", "wfp"] as const,
+    ["vanilla", "wfp"],
     "create and delete worker with multiple bindings",
     async (scope, platform: "vanilla" | "wfp") => {
       const workerName = `${BRANCH_PREFIX}-test-worker-multi-bindings-${platform}-1`;

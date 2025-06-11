@@ -231,7 +231,7 @@ describe("Cloudflare Queue Resource", async () => {
   }, 120000);
 
   const queueWorkerTests = test.variant(
-    ["vanilla", "wfp"] as const,
+    ["vanilla", "wfp"],
     "create and test worker with Queue binding",
     async (scope, platform: "vanilla" | "wfp") => {
       // Sample ESM worker script with Queue functionality

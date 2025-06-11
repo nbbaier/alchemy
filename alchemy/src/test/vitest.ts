@@ -86,7 +86,7 @@ type test = {
    * @param testHandler Function that receives scope and variant value
    * @returns Array of test functions that can be called
    */
-  variant<T extends readonly string[]>(
+  variant<const T extends readonly string[]>(
     variants: T,
     testName: string,
     testHandler: (scope: Scope, variant: T[number]) => Promise<void>,
@@ -151,7 +151,7 @@ export function test(
     return test;
   };
 
-  test.variant = <T extends readonly string[]>(
+  test.variant = <const T extends readonly string[]>(
     variants: T,
     testName: string,
     testHandler: (scope: Scope, variant: T[number]) => Promise<void>,
