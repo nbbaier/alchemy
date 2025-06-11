@@ -53,7 +53,7 @@ interface UploadResponse {
  * @param workerName Name of the worker
  * @param assets Assets resource containing files to upload
  * @param assetConfig Configuration for the assets
- * @param platform Whether this is for Workers for Platform
+ * @param platform Whether this is for Workers for Platform (defaults to false unless your worker is in or bound to a dispatch namespace)
  * @returns Completion token for the assets upload
  */
 export async function uploadAssets(

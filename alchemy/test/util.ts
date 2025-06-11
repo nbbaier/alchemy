@@ -33,3 +33,24 @@ function sanitizeForAwsResourceName(str: string): string {
 export const BRANCH_PREFIX = sanitizeForAwsResourceName(
   process.env.BRANCH_PREFIX || os.userInfo().username,
 );
+
+/**
+ * Test helper that runs the same test for both standard workers and Workers for Platform
+ * 
+ * @param platforms Array of platform boolean values to test (typically [false, true])
+ * @param testName Base name for the test (will be suffixed with "-wfp" for platform tests)
+ * @param testHandler Function that receives scope and platform boolean
+ * @returns Array of test functions that can be called with vitest's test() function
+ */
+export function testBothPlatforms<T extends any[]>(
+  platforms: boolean[],
+  testName: string,
+  testHandler: (scope: any, isWFP: boolean, ...args: T) => Promise<void>,
+): Array<{ name: string; handler: (scope: any, ...args: T) => Promise<void> }> {
+  return platforms.map((platform) => ({
+    name: platform ? `${testName} (WFP)` : testName,
+    handler: async (scope: any, ...args: T) => {
+      return testHandler(scope, platform, ...args);
+    },
+  }));
+}

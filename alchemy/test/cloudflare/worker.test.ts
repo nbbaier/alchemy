@@ -10,7 +10,7 @@ import { DurableObjectNamespace } from "../../src/cloudflare/durable-object-name
 import { KVNamespace } from "../../src/cloudflare/kv-namespace.ts";
 import { Worker, WorkerRef } from "../../src/cloudflare/worker.ts";
 import { destroy } from "../../src/destroy.ts";
-import { BRANCH_PREFIX } from "../util.ts";
+import { BRANCH_PREFIX, testBothPlatforms } from "../util.ts";
 import { fetchAndExpectOK, fetchAndExpectStatus } from "./fetch-utils.ts";
 
 import "../../src/test/vitest.ts";
@@ -22,12 +22,13 @@ const test = alchemy.test(import.meta, {
 // Create a Cloudflare API client for verification
 const api = await createCloudflareApi();
 
-// Helper function to check if a worker exists
-async function assertWorkerDoesNotExist(workerName: string) {
+// Helper function to check if a worker exists (platform-aware)
+async function assertWorkerDoesNotExist(workerName: string, platform = false) {
   try {
-    const response = await api.get(
-      `/accounts/${api.accountId}/workers/scripts/${workerName}`,
-    );
+    const endpoint = platform
+      ? `/accounts/${api.accountId}/workers/platform/scripts/${workerName}`
+      : `/accounts/${api.accountId}/workers/scripts/${workerName}`;
+    const response = await api.get(endpoint);
     expect(response.status).toEqual(404);
   } catch {
     // 404 is expected, so we can ignore it
@@ -1404,7 +1405,7 @@ describe("Worker Resource", () => {
       expect(worker.platform).toEqual(true);
     } finally {
       await destroy(scope);
-      await assertWorkerDoesNotExist(workerName);
+      await assertWorkerDoesNotExist(workerName, true);
     }
   });
 
@@ -1482,7 +1483,7 @@ describe("Worker Resource", () => {
       expect(worker.bindings?.COUNTER).toBeDefined();
     } finally {
       await destroy(scope);
-      await assertWorkerDoesNotExist(workerName);
+      await assertWorkerDoesNotExist(workerName, true);
     }
   });
 
@@ -1589,7 +1590,200 @@ describe("Worker Resource", () => {
         await fs.rm(tempDir, { recursive: true, force: true });
       }
       await destroy(scope);
-      await assertWorkerDoesNotExist(workerName);
+      await assertWorkerDoesNotExist(workerName, true);
     }
   });
+
+  // New scalable tests using testBothPlatforms helper with actual HTTP requests
+  const platformTests = testBothPlatforms(
+    [false, true],
+    "basic worker functionality with HTTP verification",
+    async (scope, isWFP: boolean) => {
+      const workerName = `${BRANCH_PREFIX}-test-worker-basic-${isWFP ? 'wfp' : 'std'}`;
+
+      let worker: Worker | undefined;
+      try {
+        // Create a worker with a simple script
+        worker = await Worker(workerName, {
+          name: workerName,
+          script: `
+            export default {
+              async fetch(request, env, ctx) {
+                const url = new URL(request.url);
+                
+                if (url.pathname === '/test') {
+                  return new Response(JSON.stringify({
+                    message: 'Hello from worker!',
+                    platform: ${isWFP ? 'true' : 'false'},
+                    path: url.pathname
+                  }), {
+                    headers: { 'Content-Type': 'application/json' }
+                  });
+                }
+                
+                return new Response('Worker is running!', { status: 200 });
+              }
+            };
+          `,
+          format: "esm",
+          platform: isWFP,
+        });
+
+        // Verify worker properties
+        expect(worker.id).toBeTruthy();
+        expect(worker.name).toEqual(workerName);
+        expect(worker.platform).toEqual(isWFP);
+        expect(worker.url).toBeTruthy();
+
+        // Make actual HTTP request to verify functionality
+        if (worker.url) {
+          const rootResponse = await fetchAndExpectOK(worker.url);
+          const rootText = await rootResponse.text();
+          expect(rootText).toBe('Worker is running!');
+
+          const testResponse = await fetchAndExpectOK(`${worker.url}/test`);
+          const testData = await testResponse.json();
+          expect(testData).toEqual({
+            message: 'Hello from worker!',
+            platform: isWFP,
+            path: '/test'
+          });
+        }
+
+        // Update the worker and verify the changes work
+        worker = await Worker(workerName, {
+          name: workerName,
+          script: `
+            export default {
+              async fetch(request, env, ctx) {
+                const url = new URL(request.url);
+                
+                if (url.pathname === '/test') {
+                  return new Response(JSON.stringify({
+                    message: 'Updated worker!',
+                    platform: ${isWFP ? 'true' : 'false'},
+                    path: url.pathname,
+                    updated: true
+                  }), {
+                    headers: { 'Content-Type': 'application/json' }
+                  });
+                }
+                
+                return new Response('Updated worker is running!', { status: 200 });
+              }
+            };
+          `,
+          format: "esm",
+          platform: isWFP,
+        });
+
+        // Verify updated functionality with HTTP request
+        if (worker.url) {
+          const updatedResponse = await fetchAndExpectOK(`${worker.url}/test`);
+          const updatedData = await updatedResponse.json();
+          expect(updatedData).toEqual({
+            message: 'Updated worker!',
+            platform: isWFP,
+            path: '/test',
+            updated: true
+          });
+        }
+
+      } finally {
+        await destroy(scope);
+        await assertWorkerDoesNotExist(workerName, isWFP);
+      }
+    }
+  );
+
+  // Register the platform tests
+  for (const platformTest of platformTests) {
+    test(platformTest.name, platformTest.handler);
+  }
+
+  const bindingTests = testBothPlatforms(
+    [false, true],
+    "worker with KV bindings and HTTP verification",
+    async (scope, isWFP: boolean) => {
+      const workerName = `${BRANCH_PREFIX}-test-worker-kv-${isWFP ? 'wfp' : 'std'}`;
+      const kvNamespace = new KVNamespace(`${workerName}-kv`);
+
+      let worker: Worker | undefined;
+      try {
+        // Create a worker with KV bindings
+        worker = await Worker(workerName, {
+          name: workerName,
+          script: `
+            export default {
+              async fetch(request, env, ctx) {
+                const url = new URL(request.url);
+                
+                if (url.pathname === '/set') {
+                  const key = url.searchParams.get('key') || 'test';
+                  const value = url.searchParams.get('value') || 'value';
+                  await env.MY_KV.put(key, value);
+                  return new Response(JSON.stringify({ action: 'set', key, value }), {
+                    headers: { 'Content-Type': 'application/json' }
+                  });
+                }
+                
+                if (url.pathname === '/get') {
+                  const key = url.searchParams.get('key') || 'test';
+                  const value = await env.MY_KV.get(key);
+                  return new Response(JSON.stringify({ 
+                    action: 'get', 
+                    key, 
+                    value,
+                    platform: ${isWFP ? 'true' : 'false'}
+                  }), {
+                    headers: { 'Content-Type': 'application/json' }
+                  });
+                }
+                
+                return new Response('KV Worker is running!', { status: 200 });
+              }
+            };
+          `,
+          format: "esm",
+          platform: isWFP,
+          bindings: {
+            MY_KV: kvNamespace,
+          },
+        });
+
+        // Verify worker properties
+        expect(worker.id).toBeTruthy();
+        expect(worker.name).toEqual(workerName);
+        expect(worker.platform).toEqual(isWFP);
+        expect(worker.bindings?.MY_KV).toBeDefined();
+
+        // Test KV functionality with HTTP requests
+        if (worker.url) {
+          // Set a value
+          const setResponse = await fetchAndExpectOK(`${worker.url}/set?key=testkey&value=testvalue`);
+          const setData = await setResponse.json();
+          expect(setData).toEqual({ action: 'set', key: 'testkey', value: 'testvalue' });
+
+          // Get the value
+          const getResponse = await fetchAndExpectOK(`${worker.url}/get?key=testkey`);
+          const getData = await getResponse.json();
+          expect(getData).toEqual({
+            action: 'get',
+            key: 'testkey',
+            value: 'testvalue',
+            platform: isWFP
+          });
+        }
+
+      } finally {
+        await destroy(scope);
+        await assertWorkerDoesNotExist(workerName, isWFP);
+      }
+    }
+  );
+
+  // Register the binding tests
+  for (const bindingTest of bindingTests) {
+    test(bindingTest.name, bindingTest.handler);
+  }
 });
