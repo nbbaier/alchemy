@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import Dashboard from './components/Dashboard';
 import LoginPage from './components/LoginPage';
+import type { User } from './types';
+import { apiCall } from './utils/api';
 
-interface User {
-  id: string;
-  email?: string;
-  name?: string;
+interface SessionResponse {
+  user: User | null;
 }
 
 function App() {
@@ -14,8 +14,7 @@ function App() {
 
   useEffect(() => {
     // Check if user is logged in
-    fetch('/api/session', { credentials: 'same-origin' })
-      .then(res => res.json())
+    apiCall<SessionResponse>('/api/session')
       .then(data => {
         if (data.user) {
           setUser(data.user);

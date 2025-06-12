@@ -8,6 +8,34 @@ This example demonstrates a multi-tenant SaaS architecture using:
 - **Drizzle ORM** with SQLite for user-specific schemas
 - **Vite + React** for the frontend
 
+## Project Structure
+
+```
+examples/cloudflare-saas/
+├── src/
+│   ├── index.ts              # Worker entry point
+│   ├── main.tsx              # Client entry point
+│   ├── App.tsx               # Root React component
+│   ├── index.css             # Global styles
+│   ├── components/           # React components
+│   │   ├── Dashboard.tsx     # Main app dashboard
+│   │   └── LoginPage.tsx     # Authentication page
+│   ├── durable-objects/      # Durable Object classes
+│   │   └── users.ts          # User data isolation logic
+│   ├── shared/               # Code shared between worker and client
+│   │   └── schema.ts         # Database schema definitions
+│   ├── types/                # TypeScript type definitions
+│   │   └── index.ts          # Shared types
+│   └── utils/                # Utility functions
+│       └── api.ts            # API helper functions
+├── alchemy.run.ts            # Infrastructure as code
+├── index.html                # Vite entry HTML
+├── vite.config.ts            # Vite configuration
+├── tsconfig.json             # TypeScript configuration
+├── wrangler.toml             # Cloudflare Worker config
+└── package.json              # Dependencies and scripts
+```
+
 ## Architecture
 
 1. **Main Worker**: Handles authentication and routes requests
@@ -173,7 +201,7 @@ Each user's Durable Object:
 
 ### Database Schema
 
-The schema is defined in `src/schema.ts` and includes two tables per user:
+The schema is defined in `src/shared/schema.ts` and includes two tables per user:
 
 - **todos**: Task management with title, description, and completion status
 - **notes**: Simple notes with title and content
@@ -209,8 +237,8 @@ npm run deploy
 
 ### Adding New Tables
 
-1. Define new table schema in `src/schema.ts`
-2. Add to schema initialization in `durable-object.ts`
+1. Define new table schema in `src/shared/schema.ts`
+2. Add to schema initialization in `durable-objects/users.ts`
 3. Implement CRUD routes in `setupRoutes()`
 
 ### Adding New Auth Providers

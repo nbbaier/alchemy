@@ -35,8 +35,8 @@ const worker = await Worker(`cloudflare-saas${BRANCH_PREFIX}`, {
     AUTH_KV: authKv,
     
     // Durable Object namespace
-    USER_DO: new DurableObjectNamespace("UserDurableObject", {
-      className: "UserDurableObject",
+    USER_DO: new DurableObjectNamespace("Users", {
+      className: "Users",
       sqlite: true,
     }),
   },

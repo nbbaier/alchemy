@@ -1,31 +1,20 @@
 import React, { useEffect, useState } from 'react';
-
-interface User {
-  id: string;
-  email?: string;
-  name?: string;
-}
-
-interface Todo {
-  id: number;
-  title: string;
-  description?: string;
-  completed: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Note {
-  id: number;
-  title: string;
-  content?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { Note, Todo, User } from '../types';
+import { apiCall, ApiException } from '../utils/api';
 
 interface DashboardProps {
   user: User;
   setUser: (user: User | null) => void;
+}
+
+interface UserData {
+  todos: Todo[];
+  notes: Note[];
+}
+
+interface Stats {
+  totalTodos: number;
+  totalNotes: number;
 }
 
 function Dashboard({ user, setUser }: DashboardProps) {
@@ -40,37 +29,21 @@ function Dashboard({ user, setUser }: DashboardProps) {
     loadUserData();
   }, []);
 
-  const apiCall = async (path: string, options: RequestInit = {}) => {
-    try {
-      const response = await fetch(path, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-        credentials: 'same-origin',
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'API error');
-      }
-
-      return response.json();
-    } catch (error: any) {
-      setError(error.message);
-      setTimeout(() => setError(''), 5000);
-      throw error;
-    }
+  const showError = (message: string) => {
+    setError(message);
+    setTimeout(() => setError(''), 5000);
   };
 
   const loadUserData = async () => {
     try {
-      const data = await apiCall(`/api/user/${user.id}/data`);
+      const data = await apiCall<UserData>(`/api/user/${user.id}/data`);
       setTodos(data.todos || []);
       setNotes(data.notes || []);
       setLoading(false);
     } catch (error) {
+      if (error instanceof ApiException) {
+        showError(error.message);
+      }
       console.error('Failed to load user data:', error);
       setLoading(false);
     }
@@ -80,48 +53,80 @@ function Dashboard({ user, setUser }: DashboardProps) {
     e.preventDefault();
     if (!todoTitle.trim()) return;
 
-    await apiCall(`/api/user/${user.id}/data/todos`, {
-      method: 'POST',
-      body: JSON.stringify({ title: todoTitle }),
-    });
-    setTodoTitle('');
-    loadUserData();
+    try {
+      await apiCall<Todo>(`/api/user/${user.id}/data/todos`, {
+        method: 'POST',
+        body: JSON.stringify({ title: todoTitle }),
+      });
+      setTodoTitle('');
+      loadUserData();
+    } catch (error) {
+      if (error instanceof ApiException) {
+        showError(error.message);
+      }
+    }
   };
 
   const toggleTodo = async (id: number, completed: boolean) => {
-    await apiCall(`/api/user/${user.id}/data/todos/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ completed }),
-    });
-    loadUserData();
+    try {
+      await apiCall<Todo>(`/api/user/${user.id}/data/todos/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ completed }),
+      });
+      loadUserData();
+    } catch (error) {
+      if (error instanceof ApiException) {
+        showError(error.message);
+      }
+    }
   };
 
   const deleteTodo = async (id: number) => {
     if (!confirm('Delete this todo?')) return;
-    await apiCall(`/api/user/${user.id}/data/todos/${id}`, {
-      method: 'DELETE',
-    });
-    loadUserData();
+    
+    try {
+      await apiCall(`/api/user/${user.id}/data/todos/${id}`, {
+        method: 'DELETE',
+      });
+      loadUserData();
+    } catch (error) {
+      if (error instanceof ApiException) {
+        showError(error.message);
+      }
+    }
   };
 
   const addNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!noteTitle.trim()) return;
 
-    await apiCall(`/api/user/${user.id}/data/notes`, {
-      method: 'POST',
-      body: JSON.stringify({ title: noteTitle }),
-    });
-    setNoteTitle('');
-    loadUserData();
+    try {
+      await apiCall<Note>(`/api/user/${user.id}/data/notes`, {
+        method: 'POST',
+        body: JSON.stringify({ title: noteTitle }),
+      });
+      setNoteTitle('');
+      loadUserData();
+    } catch (error) {
+      if (error instanceof ApiException) {
+        showError(error.message);
+      }
+    }
   };
 
   const deleteNote = async (id: number) => {
     if (!confirm('Delete this note?')) return;
-    await apiCall(`/api/user/${user.id}/data/notes/${id}`, {
-      method: 'DELETE',
-    });
-    loadUserData();
+    
+    try {
+      await apiCall(`/api/user/${user.id}/data/notes/${id}`, {
+        method: 'DELETE',
+      });
+      loadUserData();
+    } catch (error) {
+      if (error instanceof ApiException) {
+        showError(error.message);
+      }
+    }
   };
 
   const handleLogout = () => {
