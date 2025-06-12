@@ -85,7 +85,9 @@ class ZeroDepTUI {
   private spinnerIndex = 0;
   private spinnerInterval?: NodeJS.Timeout;
   private isRunning = false;
-  private currentRow = 1;
+  private readonly headerRows = 6; // Fixed header size
+  private readonly maxLogLines = 10; // Max log lines to show
+  private tasksStartRow = 0; // Will be calculated based on screen layout
 
   constructor(alchemyInfo: AlchemyInfo) {
     this.alchemyInfo = alchemyInfo;
@@ -94,11 +96,17 @@ class ZeroDepTUI {
   start(): LoggerApi {
     this.isRunning = true;
     
+    // Calculate layout
+    this.tasksStartRow = this.headerRows + this.maxLogLines + 3; // header + logs + separators
+    
     // Hide cursor and clear screen
     process.stdout.write(ANSI.hideCursor + ANSI.clearScreen);
     
     // Render initial header
     this.renderHeader();
+    
+    // Render initial tasks section
+    this.renderTasksSection();
     
     // Start spinner animation
     this.spinnerInterval = setInterval(() => {
@@ -133,20 +141,35 @@ class ZeroDepTUI {
     process.stdout.write(this.colorize(`Stage: ${this.alchemyInfo.stage}`, "gray", true) + '\n');
     process.stdout.write('\n');
     process.stdout.write(this.colorize("Logs", "green", true) + '\n');
-    
-    this.currentRow = 7; // Header takes 6 lines + separator
   }
 
   private addLog(text: string) {
     this.logs.push({ id: this.nextId++, text });
     
-    // Position cursor after header and existing logs
-    process.stdout.write(ANSI.moveCursor(this.currentRow, 1));
-    process.stdout.write(this.colorize(text, "gray") + '\n');
-    this.currentRow++;
+    // Keep only the most recent logs to fit in the allocated space
+    if (this.logs.length > this.maxLogLines) {
+      this.logs = this.logs.slice(-this.maxLogLines);
+    }
     
-    // Re-render tasks below
-    this.renderTasksSection();
+    // Render logs in their fixed area
+    this.renderLogsSection();
+  }
+
+  private renderLogsSection() {
+    // Position cursor at start of logs area (after header)
+    const logsStartRow = this.headerRows + 1;
+    process.stdout.write(ANSI.moveCursor(logsStartRow, 1));
+    
+    // Clear the logs area
+    for (let i = 0; i < this.maxLogLines; i++) {
+      process.stdout.write(ANSI.clearLine + '\n');
+    }
+    
+    // Render the logs
+    process.stdout.write(ANSI.moveCursor(logsStartRow, 1));
+    for (const log of this.logs) {
+      process.stdout.write(this.colorize(log.text, "gray") + '\n');
+    }
   }
 
   private updateTask(id: string, data: Task) {
@@ -155,11 +178,10 @@ class ZeroDepTUI {
   }
 
   private renderTasksSection() {
-    // Move to tasks section (after logs)
-    const tasksStartRow = this.currentRow + 1;
-    process.stdout.write(ANSI.moveCursor(tasksStartRow, 1));
+    // Move to tasks section at fixed position
+    process.stdout.write(ANSI.moveCursor(this.tasksStartRow, 1));
     
-    // Clear from this point down
+    // Clear from this point down to avoid leftover content
     process.stdout.write(ANSI.clearBelow);
     
     // Render tasks header
@@ -212,6 +234,7 @@ class ZeroDepTUI {
     }
     
     if (hasPendingTasks) {
+      // Only re-render the tasks section, not the entire screen
       this.renderTasksSection();
     }
   }
