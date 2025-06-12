@@ -85,17 +85,20 @@ export const createFallbackLogger = (alchemyInfo: AlchemyInfo): LoggerApi => {
     warn: (...args: unknown[]) => console.warn(colorize("WARN", "yellowBright"), ...args),
     task: (id: string, data: Task) => {
       const prefix = data.prefix ? `[${data.prefix}]` : '';
+      
+      // Pad the prefix to ensure consistent alignment (12 characters total)
+      const paddedPrefix = prefix.padEnd(12);
       const prefixWithColor = data.prefixColor && prefix 
-        ? colorize(prefix, data.prefixColor as ColorName)
-        : prefix;
+        ? colorize(paddedPrefix, data.prefixColor as ColorName)
+        : paddedPrefix;
       
       const resource = data.resource ? colorize(data.resource, "gray") : '';
       const message = data.message;
       
       if (prefixWithColor && resource) {
-        console.log(`${prefixWithColor} ${resource} ${message}`);
+        console.log(`${prefixWithColor}${resource} ${message}`);
       } else if (prefixWithColor) {
-        console.log(`${prefixWithColor} ${message}`);
+        console.log(`${prefixWithColor}${message}`);
       } else {
         console.log(message);
       }
