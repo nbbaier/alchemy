@@ -1,0 +1,51 @@
+{
+  "name": "alchemy-cli",
+  "version": "0.28.0",
+  "description": "Interactive CLI for Alchemy Infrastructure-as-Code",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./lib/index.js",
+      "types": "./lib/index.d.ts"
+    }
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sam-goodwin/alchemy",
+    "directory": "alchemy-cli"
+  },
+  "keywords": [
+    "alchemy",
+    "infrastructure-as-code",
+    "cli",
+    "interactive",
+    "react",
+    "ink"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "publish:npm": "npm publish --access public"
+  },
+  "dependencies": {
+    "ink": "^5.0.1",
+    "ink-spinner": "^5.0.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.14",
+    "typescript": "latest"
+  },
+  "peerDependencies": {
+    "alchemy": "^0.28.0"
+  },
+  "files": [
+    "lib/**/*",
+    "README.md",
+    "CHANGELOG.md"
+  ]
+}

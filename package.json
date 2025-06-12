@@ -25,6 +25,7 @@
   },
   "workspaces": [
     "alchemy",
+    "alchemy-cli",
     "alchemy-web",
     "examples/*",
     "stacks"
