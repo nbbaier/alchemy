@@ -160,14 +160,14 @@ describe.skipIf(!process.env.PLANETSCALE_TEST)("Branch Resource", () => {
         },
       );
       expect(createBackupResponse.status).toEqual(201);
-      const backupId = (await createBackupResponse.json<any>()).id;
+      const backupId = (await createBackupResponse.json()).id;
       // Wait for backup to be ready (up to 240 seconds). It takes a while...
       let backupReady = false;
       for (let i = 0; i < 48; i++) {
         const backupStatusResponse = await api.get(
           `/organizations/${organizationId}/databases/${testDB.name}/backups/${backupId}`,
         );
-        const statusData = await backupStatusResponse.json<any>();
+        const statusData = await backupStatusResponse.json();
         if (statusData.completed_at) {
           backupReady = true;
           break;
@@ -234,7 +234,7 @@ describe.skipIf(!process.env.PLANETSCALE_TEST)("Branch Resource", () => {
         `/organizations/${organizationId}/databases/${testDB.name}/branches/${testId}`,
       );
       expect(response.status).toEqual(200);
-      expect((await response.json<any>()).safe_migrations).toBe(true);
+      expect((await response.json()).safe_migrations).toBe(true);
 
       // Update branch to disable safe migrations
       branch = await Branch(testId, {
@@ -251,7 +251,7 @@ describe.skipIf(!process.env.PLANETSCALE_TEST)("Branch Resource", () => {
         `/organizations/${organizationId}/databases/${testDB.name}/branches/${testId}`,
       );
       expect(response.ok).toBeTruthy();
-      expect((await response.json<any>()).safe_migrations).toBe(false);
+      expect((await response.json()).safe_migrations).toBe(false);
     } catch (err) {
       console.log(err);
       throw err;
@@ -294,7 +294,7 @@ describe.skipIf(!process.env.PLANETSCALE_TEST)("Branch Resource", () => {
         `/organizations/${organizationId}/databases/${testDB.name}/branches/${testId}`,
       );
       expect(response.status).toEqual(200);
-      const data = await response.json<any>();
+      const data = await response.json();
       expect(data.cluster_name).toEqual("PS_20");
     } catch (err) {
       console.log(err);
@@ -348,7 +348,7 @@ describe.skipIf(!process.env.PLANETSCALE_TEST)("Branch Resource", () => {
       );
       expect(getChildResponse.status).toEqual(200);
 
-      const childData = await getChildResponse.json<any>();
+      const childData = await getChildResponse.json();
       expect(childData.parent_branch).toEqual(parentBranchId);
     } catch (err) {
       console.log(err);

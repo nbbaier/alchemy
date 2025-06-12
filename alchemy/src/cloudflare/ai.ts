@@ -1,3 +1,5 @@
+import type { AiModelListType } from "@cloudflare/workers-types";
+
 /**
  * Cloudflare Workers AI binding for running machine learning models.
  *

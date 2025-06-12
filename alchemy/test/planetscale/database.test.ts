@@ -54,7 +54,7 @@ describe.skipIf(!process.env.PLANETSCALE_TEST)("Database Resource", () => {
       );
 
       expect(mainBranchResponse.status).toEqual(200);
-      const mainBranchData = await mainBranchResponse.json<any>();
+      const mainBranchData = await mainBranchResponse.json();
       expect(mainBranchData.cluster_name).toEqual("PS_10");
     } finally {
       await destroy(scope);
@@ -139,7 +139,7 @@ describe.skipIf(!process.env.PLANETSCALE_TEST)("Database Resource", () => {
         `/organizations/${organizationId}/databases/${testId}/branches/main`,
       );
       expect(mainBranchResponse.status).toEqual(200);
-      const mainBranchData = await mainBranchResponse.json<any>();
+      const mainBranchData = await mainBranchResponse.json();
       expect(mainBranchData.cluster_rate_name).toEqual("PS_20");
     } catch (err) {
       console.error("Test error:", err);
@@ -180,7 +180,7 @@ describe.skipIf(!process.env.PLANETSCALE_TEST)("Database Resource", () => {
       );
       expect(branchResponse.status).toEqual(200);
 
-      const branchData = await branchResponse.json<any>();
+      const branchData = await branchResponse.json();
       expect(branchData.parent_branch).toEqual("main");
       expect(branchData.cluster_rate_name).toEqual("PS_10");
 
@@ -204,7 +204,7 @@ describe.skipIf(!process.env.PLANETSCALE_TEST)("Database Resource", () => {
       );
       expect(newBranchResponse.status).toEqual(200);
 
-      const newBranchData = await newBranchResponse.json<any>();
+      const newBranchData = await newBranchResponse.json();
       expect(newBranchData.cluster_rate_name).toEqual("PS_20");
     } catch (err) {
       console.error("Test error:", err);

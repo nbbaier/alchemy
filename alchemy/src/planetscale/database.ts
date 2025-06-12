@@ -209,7 +209,7 @@ export const Database = Resource(
       const getResponse = await api.get(
         `/organizations/${props.organizationId}/databases/${props.name}`,
       );
-      const getData = await getResponse.json<any>();
+      const getData = await getResponse.json();
       if (this.phase === "update" || (props.adopt && getResponse.ok)) {
         if (!getResponse.ok) {
           throw new Error(`Database ${props.name} not found`);
@@ -271,7 +271,7 @@ export const Database = Resource(
           getData.ready,
         );
 
-        const data = await updateResponse.json<any>();
+        const data = await updateResponse.json();
         return this({
           ...props,
           id: data.id,
@@ -312,7 +312,7 @@ export const Database = Resource(
         );
       }
 
-      const data = await createResponse.json<any>();
+      const data = await createResponse.json();
 
       // If a non-'main' default branch is specified, create it
       if (props.defaultBranch && props.defaultBranch !== "main") {
@@ -362,7 +362,7 @@ export const Database = Resource(
             );
           }
 
-          const updatedData = await updateResponse.json<any>();
+          const updatedData = await updateResponse.json();
           return this({
             ...props,
             id: data.id,

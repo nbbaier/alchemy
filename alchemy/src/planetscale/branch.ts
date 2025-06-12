@@ -219,7 +219,7 @@ export const Branch = Resource(
           );
         }
 
-        const data = await getResponse.json<any>();
+        const data = await getResponse.json();
         const currentParentBranch = data.parent_branch || "main";
 
         // Check immutable properties
@@ -299,7 +299,7 @@ export const Branch = Resource(
         );
       }
 
-      const data = await createResponse.json<any>();
+      const data = await createResponse.json();
 
       // Handle safe migrations if specified
       if (props.safeMigrations !== undefined) {

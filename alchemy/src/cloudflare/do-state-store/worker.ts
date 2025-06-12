@@ -1,3 +1,4 @@
+import type { DurableObjectNamespace } from "@cloudflare/workers-types";
 import { DurableObject, WorkerEntrypoint } from "cloudflare:workers";
 import { Fs } from "dofs";
 import { timingSafeEqual } from "node:crypto";
@@ -20,6 +21,7 @@ export default class extends WorkerEntrypoint<Env> {
       const body: DOStateStoreAPI.Response = {
         success: true,
         status: 200,
+        // @ts-expect-error
         result: result ?? undefined,
       };
       return Response.json(body, { status: body.status });
@@ -78,7 +80,7 @@ export default class extends WorkerEntrypoint<Env> {
     }
     return this.env.DOFS_STATE_STORE.get(
       this.env.DOFS_STATE_STORE.idFromName(`${app}/${stage}`),
-    );
+    ) as any as DurableObjectStub<DOFSStateStore>;
   }
 
   private async parseBody(request: Request): Promise<DOStateStoreAPI.Request> {

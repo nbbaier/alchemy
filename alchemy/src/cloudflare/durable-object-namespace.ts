@@ -1,3 +1,4 @@
+import type { Rpc } from "@cloudflare/workers-types";
 import type { Binding } from "./bindings.ts";
 
 /**

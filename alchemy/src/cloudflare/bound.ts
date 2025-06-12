@@ -8,7 +8,6 @@ import type {
   Hyperdrive,
   ImagesBinding,
   KVNamespace,
-  Pipeline,
   Queue,
   R2Bucket,
   Rpc,
@@ -17,7 +16,6 @@ import type {
   WorkerVersionMetadata,
   Workflow,
 } from "@cloudflare/workers-types";
-import type { Pipeline } from "cloudflare:pipelines";
 import type { Secret } from "../secret.ts";
 import type { AiGatewayResource as _AiGateway } from "./ai-gateway.ts";
 import type { Ai as _Ai } from "./ai.ts";
@@ -81,7 +79,14 @@ export type Bound<T extends Binding> = T extends _DurableObjectNamespace<
                               : T extends _AnalyticsEngineDataset
                                 ? AnalyticsEngineDataset
                                 : T extends _Pipeline<infer R>
-                                  ? Pipeline<R>
+                                  ? {
+                                      /**
+                                       * The Pipeline interface represents the type of a binding to a Pipeline
+                                       *
+                                       * @param records The records to send to the pipeline
+                                       */
+                                      send(records: R[]): Promise<void>;
+                                    }
                                   : T extends string
                                     ? string
                                     : T extends BrowserRendering

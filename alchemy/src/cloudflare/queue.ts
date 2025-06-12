@@ -1,3 +1,4 @@
+import type { MessageBatch } from "@cloudflare/workers-types";
 import type { Context } from "../context.ts";
 import { Resource, ResourceKind } from "../resource.ts";
 import { bind } from "../runtime/bind.ts";

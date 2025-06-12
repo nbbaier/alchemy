@@ -42,7 +42,7 @@ export async function waitForDatabaseReady(
       throw new Error(`Failed to check database state: ${response.statusText}`);
     }
 
-    const data = await response.json<any>();
+    const data = await response.json();
     if (data.ready === true) {
       return;
     }
@@ -81,13 +81,13 @@ export async function waitForKeyspaceReady(
       );
     }
 
-    const ks = await res.json<{
+    const ks = (await res.json()) as {
       data: [
         {
           state: string;
         },
       ];
-    }>();
+    };
     // once it's fully ready, we can proceed
     if (ks.data.every((item) => item.state !== "resizing")) {
       return;
@@ -124,7 +124,7 @@ export async function fixClusterSize(
   if (!branchRes.ok) {
     throw new Error(`Unable to get branch data: ${branchRes.statusText}`);
   }
-  let branchData = await branchRes.json<any>();
+  let branchData = await branchRes.json();
   if (!branchData.production) {
     if (!branchData.ready) {
       await waitForDatabaseReady(api, organizationId, databaseName, branchName);
@@ -143,7 +143,7 @@ export async function fixClusterSize(
   if (!ksListRes.ok) {
     throw new Error(`Failed to list keyspaces: ${ksListRes.statusText}`);
   }
-  const ksList = (await ksListRes.json<any>()).data as Array<{
+  const ksList = (await ksListRes.json()).data as Array<{
     name: string;
     cluster_name: string;
   }>;

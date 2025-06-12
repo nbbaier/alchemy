@@ -1,3 +1,11 @@
+import type {
+  ExecutionContext,
+  MessageBatch,
+  Rpc,
+  Service,
+  SocketAddress,
+  SocketOptions,
+} from "@cloudflare/workers-types";
 import path from "node:path";
 import type { Context } from "../context.ts";
 import type { BundleProps } from "../esbuild/bundle.ts";
@@ -359,7 +367,7 @@ export type Worker<
   RPC extends Rpc.WorkerEntrypointBranded = Rpc.WorkerEntrypointBranded,
 > = Resource<"cloudflare::Worker"> &
   Omit<WorkerProps<B>, "url" | "script" | "routes"> &
-  globalThis.Service & {
+  Service & {
     /** @internal phantom property */
     __rpc__?: RPC;
 
@@ -603,7 +611,7 @@ export function Worker<const B extends Bindings, const E extends EventSource[]>(
   id: string,
   meta: ImportMeta,
   props: FetchWorkerProps<B, E>,
-): Promise<Worker<B>> & globalThis.Service;
+): Promise<Worker<B>> & Service;
 export function Worker<const B extends Bindings>(
   ...args:
     | [id: string, props: WorkerProps<B>]
@@ -801,6 +809,7 @@ export function Worker<const B extends Bindings>(
   return _Worker(id, props as WorkerProps<B>).then(async (worker) => {
     const binding = await tryGetBinding(worker);
     if (binding) {
+      // @ts-expect-error - mismatch between cloudflare types and our types
       worker.fetch = (request: Request) => binding.fetch(request);
       worker.connect = (address: SocketAddress, options: SocketOptions) =>
         binding.connect(address, options);
