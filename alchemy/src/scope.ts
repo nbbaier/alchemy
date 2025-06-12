@@ -181,28 +181,17 @@ export class Scope {
   }
 
   /**
-   * Get all child scopes recursively.
-   */
-  private getAllChildScopes(): Scope[] {
-    const scopes: Scope[] = [];
-    for (const child of this.children.values()) {
-      scopes.push(child);
-      scopes.push(...child.getAllChildScopes());
-    }
-    return scopes;
-  }
-
-  /**
    * Finalize the scope and clean up resources.
    * 
    * For root scopes (app scopes), this triggers finalization of all child scopes
-   * and then finalizes itself.
+   * in LIFO order and then finalizes itself.
    * 
-   * For child scopes, this method does nothing - they are finalized only when
-   * their root scope finalizes. This ensures resources marked for replacement
-   * aren't cleaned up prematurely.
+   * For child scopes, this method does nothing when called via alchemy.run() - 
+   * they are finalized only when their parent scope finalizes recursively.
+   * 
+   * @param fromParent - Internal parameter indicating if this is being called from parent scope
    */
-  public async finalize() {
+  public async finalize(fromParent = false) {
     if (this.phase === "read") {
       this.rootTelemetryClient?.record({
         event: "app.success",
@@ -214,28 +203,18 @@ export class Scope {
       return;
     }
     
-    // Only root scopes trigger finalization
-    if (this.parent === undefined) {
-      // Root scope: finalize all child scopes first
-      const allScopes = this.getAllChildScopes();
-      for (const childScope of allScopes) {
-        if (!childScope.finalized) {
-          await childScope.finalizeScope();
-        }
-      }
-      // Then finalize the root scope itself
-      await this.finalizeScope();
-    }
-    // Child scopes do nothing - they wait for root to finalize them
-  }
-
-  /**
-   * Internal method to actually perform finalization.
-   * This is called by the root scope during its finalization.
-   */
-  private async finalizeScope() {
-    if (this.finalized) {
+    // Child scopes only finalize when called from their parent
+    if (this.parent !== undefined && !fromParent) {
       return;
+    }
+    
+    // Mark as finalized early to prevent double finalization
+    this.finalized = true;
+    
+    // Finalize child scopes in LIFO order (reverse order of creation)
+    const childScopes = Array.from(this.children.values()).reverse();
+    for (const childScope of childScopes) {
+      await childScope.finalize(true);
     }
     
     if (this.parent === undefined && Scope.globals.length > 0) {
@@ -246,7 +225,7 @@ export class Scope {
         );
       }
     }
-    this.finalized = true;
+    
     // trigger and await all deferred promises
     await Promise.all(this.deferred.map((fn) => fn()));
     if (!this.isErrored) {

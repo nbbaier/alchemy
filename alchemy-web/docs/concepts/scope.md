@@ -165,10 +165,28 @@ This delayed finalization ensures:
 
 When the root scope finalizes:
 
-1. All child scopes are finalized recursively
-2. Replaced resources are cleaned up first
-3. Orphaned resources are cleaned up second
-4. The root scope itself is finalized last
+1. All child scopes are finalized recursively in LIFO (Last In, First Out) order
+2. Within each scope:
+   - Replaced resources are cleaned up first
+   - Orphaned resources are cleaned up second
+3. The scope itself is finalized last
+
+This LIFO ordering ensures that resources created later are cleaned up first, respecting potential dependencies between resources.
+
+```typescript
+const app = await alchemy("my-app");
+
+await alchemy.run("first", async () => {
+  await Resource1("r1", {});
+});
+
+await alchemy.run("second", async () => {
+  await Resource2("r2", {});
+});
+
+// When finalized, "second" scope is cleaned up before "first"
+await app.finalize();
+```
 
 ## Test Scope
 

@@ -187,6 +187,67 @@ describe("Resource Replacement", () => {
     }
   });
 
+  test("child scopes should be finalized in LIFO order", async () => {
+    const app = await alchemy(`${BRANCH_PREFIX}-lifo-test`);
+    const finalizationOrder: string[] = [];
+    
+    try {
+      // Create first scope
+      await alchemy.run("first", async (firstScope) => {
+        await TestResource("first-resource", {
+          value: "first",
+        });
+        
+        // Track finalization
+        const originalFinalize = firstScope.finalize.bind(firstScope);
+        firstScope.finalize = async (fromParent?: boolean) => {
+          await originalFinalize(fromParent);
+          finalizationOrder.push("first");
+        };
+      });
+      
+      // Create second scope
+      await alchemy.run("second", async (secondScope) => {
+        await TestResource("second-resource", {
+          value: "second",
+        });
+        
+        // Track finalization
+        const originalFinalize = secondScope.finalize.bind(secondScope);
+        secondScope.finalize = async (fromParent?: boolean) => {
+          await originalFinalize(fromParent);
+          finalizationOrder.push("second");
+        };
+      });
+      
+      // Create third scope
+      await alchemy.run("third", async (thirdScope) => {
+        await TestResource("third-resource", {
+          value: "third",
+        });
+        
+        // Track finalization
+        const originalFinalize = thirdScope.finalize.bind(thirdScope);
+        thirdScope.finalize = async (fromParent?: boolean) => {
+          await originalFinalize(fromParent);
+          finalizationOrder.push("third");
+        };
+      });
+      
+      // Before finalization, nothing should be finalized
+      expect(finalizationOrder).toEqual([]);
+      
+      // Finalize the app
+      await app.finalize();
+      
+      // Scopes should be finalized in LIFO order (third, second, first)
+      expect(finalizationOrder).toEqual(["third", "second", "first"]);
+    } catch (error) {
+      await app.finalize();
+      throw error;
+    }
+  });
+
   test("replaced resources should be destroyed with their original props and output", async () => {
     const app = await alchemy(`${BRANCH_PREFIX}-destroy-verification-test`);
     
