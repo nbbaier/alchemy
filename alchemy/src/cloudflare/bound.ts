@@ -1,3 +1,22 @@
+import type {
+  Ai,
+  AiGateway,
+  AnalyticsEngineDataset,
+  D1Database,
+  DurableObjectNamespace,
+  Fetcher,
+  Hyperdrive,
+  ImagesBinding,
+  KVNamespace,
+  Pipeline,
+  Queue,
+  R2Bucket,
+  Rpc,
+  Service,
+  VectorizeIndex,
+  WorkerVersionMetadata,
+  Workflow,
+} from "@cloudflare/workers-types";
 import type { Pipeline } from "cloudflare:pipelines";
 import type { Secret } from "../secret.ts";
 import type { AiGatewayResource as _AiGateway } from "./ai-gateway.ts";
