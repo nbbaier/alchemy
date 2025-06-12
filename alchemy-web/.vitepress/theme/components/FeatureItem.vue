@@ -81,7 +81,7 @@ const copied = ref(false);
 
 function copyCode() {
   if (window.isSecureContext) {
-    const codeElement = document.querySelector('.code-body pre code');
+    const codeElement = document.querySelector('.code-body .language-typescript pre code');
     const code = codeElement?.textContent || '';
     navigator.clipboard.writeText(code);
     copied.value = true;
@@ -274,6 +274,26 @@ function copyCode() {
 }
 
 .code-body :deep(code) {
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.9rem !important;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.code-body .language-typescript {
+  margin: 0;
+  border-radius: 0;
+  background: transparent !important;
+}
+
+.code-body .language-typescript pre {
+  margin: 0;
+  padding: 1.5rem;
+  overflow-x: auto;
+  background: transparent !important;
+}
+
+.code-body .language-typescript code {
   font-family: var(--vp-font-family-mono);
   font-size: 0.9rem !important;
   line-height: 1.6;

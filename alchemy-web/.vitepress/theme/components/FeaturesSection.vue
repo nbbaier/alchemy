@@ -12,21 +12,21 @@
         ctaLink="/docs/getting-started"
       >
         <template #code>
-```typescript
-import { D1Database, Worker } from "alchemy/cloudflare";
-import { Product, Customer } from "alchemy/stripe";
+          <div class="language-typescript vp-adaptive-theme">
+            <pre><code><span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">D1Database</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">Worker</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/cloudflare"</span><span style="color: #89ddff;">;</span>
+<span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Product</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">Customer</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/stripe"</span><span style="color: #89ddff;">;</span>
 
-// Type-safe resource definitions
-const database = await D1Database("app-db", {
-  name: "my-application-database"
-});
+<span style="color: #676e95;">// Type-safe resource definitions</span>
+<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">database</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">D1Database</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"app-db"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
+  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"my-application-database"</span>
+<span style="color: #89ddff;">});</span>
 
-const api = await Worker("api-server", {
-  name: "api",
-  bindings: { DB: database },
-  entrypoint: "./src/api.ts"
-});
-```
+<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">api</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Worker</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"api-server"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
+  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"api"</span><span style="color: #89ddff;">,</span>
+  <span style="color: #f07178;">bindings</span><span style="color: #89ddff;">:</span> <span style="color: #89ddff;">{</span> <span style="color: #f07178;">DB</span><span style="color: #89ddff;">:</span> <span style="color: #82aaff;">database</span> <span style="color: #89ddff;">},</span>
+  <span style="color: #f07178;">entrypoint</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"./src/api.ts"</span>
+<span style="color: #89ddff;">});</span></code></pre>
+          </div>
         </template>
       </FeatureItem>
 
@@ -39,24 +39,24 @@ const api = await Worker("api-server", {
         ctaLink="/docs/guides/cloudflare-worker"
       >
         <template #code>
-```typescript
-import { Worker, D1Database } from "alchemy/cloudflare";
-import { Bucket, Queue } from "alchemy/aws";
-import { Product, Price } from "alchemy/stripe";
+          <div class="language-typescript vp-adaptive-theme">
+            <pre><code><span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Worker</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">D1Database</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/cloudflare"</span><span style="color: #89ddff;">;</span>
+<span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Bucket</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">Queue</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/aws"</span><span style="color: #89ddff;">;</span>
+<span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Product</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">Price</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/stripe"</span><span style="color: #89ddff;">;</span>
 
-const storage = await Bucket("uploads", { 
-  bucketName: "my-app-uploads" 
-});
+<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">storage</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Bucket</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"uploads"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span> 
+  <span style="color: #f07178;">bucketName</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"my-app-uploads"</span> 
+<span style="color: #89ddff;">});</span>
 
-const database = await D1Database("main-db", {
-  name: "production-database"
-});
+<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">database</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">D1Database</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"main-db"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
+  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"production-database"</span>
+<span style="color: #89ddff;">});</span>
 
-const subscription = await Product("pro-plan", {
-  name: "Pro Plan",
-  description: "Advanced features for power users"
-});
-```
+<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">subscription</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Product</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"pro-plan"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
+  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"Pro Plan"</span><span style="color: #89ddff;">,</span>
+  <span style="color: #f07178;">description</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"Advanced features for power users"</span>
+<span style="color: #89ddff;">});</span></code></pre>
+          </div>
         </template>
       </FeatureItem>
 
@@ -69,23 +69,23 @@ const subscription = await Product("pro-plan", {
         ctaLink="/docs/guides/cloudflare-vitejs"
       >
         <template #code>
-```typescript
-import { Worker, Website } from "alchemy/cloudflare";
+          <div class="language-typescript vp-adaptive-theme">
+            <pre><code><span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Worker</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">Website</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/cloudflare"</span><span style="color: #89ddff;">;</span>
 
-// Deploy your Vite React app
-const frontend = await Website("my-app", {
-  name: "my-react-app",
-  buildCommand: "npm run build",
-  buildOutput: "./dist"
-});
+<span style="color: #676e95;">// Deploy your Vite React app</span>
+<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">frontend</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Website</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"my-app"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
+  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"my-react-app"</span><span style="color: #89ddff;">,</span>
+  <span style="color: #f07178;">buildCommand</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"npm run build"</span><span style="color: #89ddff;">,</span>
+  <span style="color: #f07178;">buildOutput</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"./dist"</span>
+<span style="color: #89ddff;">});</span>
 
-// Add API endpoints
-const api = await Worker("api", {
-  name: "my-api",
-  entrypoint: "./api/index.ts",
-  routes: [{ pattern: "*/api/*" }]
-});
-```
+<span style="color: #676e95;">// Add API endpoints</span>
+<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">api</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Worker</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"api"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
+  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"my-api"</span><span style="color: #89ddff;">,</span>
+  <span style="color: #f07178;">entrypoint</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"./api/index.ts"</span><span style="color: #89ddff;">,</span>
+  <span style="color: #f07178;">routes</span><span style="color: #89ddff;">:</span> <span style="color: #89ddff;">[{</span> <span style="color: #f07178;">pattern</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"*/api/*"</span> <span style="color: #89ddff;">}]</span>
+<span style="color: #89ddff;">});</span></code></pre>
+          </div>
         </template>
       </FeatureItem>
 
@@ -98,23 +98,23 @@ const api = await Worker("api", {
         ctaLink="/docs/guides/cloudflare-worker"
       >
         <template #code>
-```typescript
-// Update your worker with zero downtime
-const worker = await Worker("api", {
-  name: "api-v2",
-  entrypoint: "./src/api-v2.ts",
-  bindings: {
-    DATABASE: database,
-    CACHE: kvStore
-  }
-});
+          <div class="language-typescript vp-adaptive-theme">
+            <pre><code><span style="color: #676e95;">// Update your worker with zero downtime</span>
+<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">worker</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Worker</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"api"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
+  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"api-v2"</span><span style="color: #89ddff;">,</span>
+  <span style="color: #f07178;">entrypoint</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"./src/api-v2.ts"</span><span style="color: #89ddff;">,</span>
+  <span style="color: #f07178;">bindings</span><span style="color: #89ddff;">:</span> <span style="color: #89ddff;">{</span>
+    <span style="color: #f07178;">DATABASE</span><span style="color: #89ddff;">:</span> <span style="color: #82aaff;">database</span><span style="color: #89ddff;">,</span>
+    <span style="color: #f07178;">CACHE</span><span style="color: #89ddff;">:</span> <span style="color: #82aaff;">kvStore</span>
+  <span style="color: #89ddff;">}</span>
+<span style="color: #89ddff;">});</span>
 
-// Alchemy handles:
-// ✓ Gradual traffic shifting
-// ✓ Health checks
-// ✓ Automatic rollback
-// ✓ Atomic deployments
-```
+<span style="color: #676e95;">// Alchemy handles:</span>
+<span style="color: #676e95;">// ✓ Gradual traffic shifting</span>
+<span style="color: #676e95;">// ✓ Health checks</span>
+<span style="color: #676e95;">// ✓ Automatic rollback</span>
+<span style="color: #676e95;">// ✓ Atomic deployments</span></code></pre>
+          </div>
         </template>
       </FeatureItem>
     </div>
@@ -128,7 +128,6 @@ import FeatureItem from './FeatureItem.vue';
 <style scoped>
 .features-section {
   padding: 6rem 0 4rem;
-  background: var(--vp-c-bg);
   position: relative;
 }
 
@@ -148,6 +147,8 @@ import FeatureItem from './FeatureItem.vue';
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  line-height: 1.1;
+  padding: 0.25rem 0;
 }
 
 @media (max-width: 768px) {
