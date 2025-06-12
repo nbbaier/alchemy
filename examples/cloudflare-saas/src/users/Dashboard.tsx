@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import type { Note, Todo, User } from '../types';
-import { apiCall, ApiException } from '../utils/api';
+import { apiCall, ApiException } from '../auth/auth.api';
+import type { Note } from '../notes/note';
+import type { Todo } from '../todos/todo';
+import type { User, UserData } from './user';
 
 interface DashboardProps {
   user: User;
   setUser: (user: User | null) => void;
-}
-
-interface UserData {
-  todos: Todo[];
-  notes: Note[];
 }
 
 interface Stats {

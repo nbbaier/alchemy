@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import Dashboard from './components/Dashboard';
-import LoginPage from './components/LoginPage';
-import type { User } from './types';
-import { apiCall } from './utils/api';
+import { apiCall } from './auth/auth.api';
+import LoginPage from './auth/LoginPage';
+import Dashboard from './users/Dashboard';
+import type { User } from './users/user';
 
 interface SessionResponse {
   user: User | null;

@@ -2,7 +2,8 @@ import { DurableObject } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
-import { notes, todos } from "../shared/schema";
+import { notes } from "../notes/note";
+import { todos } from "../todos/todo";
 
 export class Users extends DurableObject {
   private db: ReturnType<typeof drizzle>;

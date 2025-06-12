@@ -146,6 +146,6 @@ app.get("/health", (c) => {
 });
 
 // Export the Durable Object class
-export { Users } from "./durable-objects/users";
+export { Users } from "./users/users.object";
 
 export default app;

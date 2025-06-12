@@ -1,4 +1,6 @@
-import type { ApiError } from '../types';
+export interface ApiError {
+  error: string;
+}
 
 export class ApiException extends Error {
   constructor(message: string, public status?: number) {

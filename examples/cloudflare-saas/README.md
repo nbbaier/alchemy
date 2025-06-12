@@ -8,7 +8,7 @@ This example demonstrates a multi-tenant SaaS architecture using:
 - **Drizzle ORM** with SQLite for user-specific schemas
 - **Vite + React** for the frontend
 
-## Project Structure
+## Project Structure (Domain-Driven Design)
 
 ```
 examples/cloudflare-saas/
@@ -17,17 +17,17 @@ examples/cloudflare-saas/
 │   ├── main.tsx              # Client entry point
 │   ├── App.tsx               # Root React component
 │   ├── index.css             # Global styles
-│   ├── components/           # React components
-│   │   ├── Dashboard.tsx     # Main app dashboard
-│   │   └── LoginPage.tsx     # Authentication page
-│   ├── durable-objects/      # Durable Object classes
-│   │   └── users.ts          # User data isolation logic
-│   ├── shared/               # Code shared between worker and client
-│   │   └── schema.ts         # Database schema definitions
-│   ├── types/                # TypeScript type definitions
-│   │   └── index.ts          # Shared types
-│   └── utils/                # Utility functions
-│       └── api.ts            # API helper functions
+│   ├── auth/                 # Authentication domain
+│   │   ├── auth.api.ts       # Auth API utilities
+│   │   └── LoginPage.tsx     # Login component
+│   ├── users/                # Users domain
+│   │   ├── user.ts           # User types and interfaces
+│   │   ├── users.object.ts   # Users Durable Object
+│   │   └── Dashboard.tsx     # User dashboard component
+│   ├── todos/                # Todos domain
+│   │   └── todo.ts           # Todo types and schema
+│   └── notes/                # Notes domain
+│       └── note.ts           # Note types and schema
 ├── alchemy.run.ts            # Infrastructure as code
 ├── index.html                # Vite entry HTML
 ├── vite.config.ts            # Vite configuration
@@ -44,6 +44,17 @@ examples/cloudflare-saas/
    - Per-user schema managed by Drizzle
    - Complete data isolation
 3. **Frontend**: React app served by Vite with hot module replacement
+
+## Domain Organization
+
+The codebase follows Domain-Driven Design principles:
+
+- **auth/**: Contains authentication logic, API utilities, and login UI
+- **users/**: User-related logic including the Durable Object and dashboard
+- **todos/**: Todo entity definition and database schema
+- **notes/**: Note entity definition and database schema
+
+Each domain is self-contained with its own types, schemas, and components.
 
 ## Setup
 
@@ -201,10 +212,10 @@ Each user's Durable Object:
 
 ### Database Schema
 
-The schema is defined in `src/shared/schema.ts` and includes two tables per user:
+The schema is organized by domain:
 
-- **todos**: Task management with title, description, and completion status
-- **notes**: Simple notes with title and content
+- **todos/todo.ts**: Todo table schema and types
+- **notes/note.ts**: Note table schema and types
 
 Both tables include automatic timestamps (createdAt, updatedAt).
 
@@ -235,17 +246,19 @@ npm run deploy
 
 ## Extending the Example
 
-### Adding New Tables
+### Adding New Domains
 
-1. Define new table schema in `src/shared/schema.ts`
-2. Add to schema initialization in `durable-objects/users.ts`
-3. Implement CRUD routes in `setupRoutes()`
+1. Create a new domain folder (e.g., `src/projects/`)
+2. Define types and schema in `projects/project.ts`
+3. Add schema initialization in `users/users.object.ts`
+4. Implement CRUD routes in the Durable Object
+5. Create UI components in the domain folder
 
 ### Adding New Auth Providers
 
 1. Configure provider in Better Auth setup
 2. Add OAuth app credentials
-3. Add login button to UI
+3. Add login button to `auth/LoginPage.tsx`
 
 ### Custom Business Logic
 
