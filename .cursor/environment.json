@@ -1,7 +1,7 @@
 {
   "name": "Alchemy Development Environment",
   "build": {
-    "dockerfile": "../Dockerfile.dev",
+    "dockerfile": "Dockerfile",
     "context": ".."
   },
   "terminals": [
