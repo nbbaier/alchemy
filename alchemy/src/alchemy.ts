@@ -45,8 +45,8 @@ function parseCliArgs(): Partial<AlchemyOptions> {
   }
 
   // Get password from environment variables
-  if (process.env.PASSWORD) {
-    options.password = process.env.PASSWORD;
+  if (process.env.ALCHEMY_PASSWORD) {
+    options.password = process.env.ALCHEMY_PASSWORD;
   }
 
   return options;
