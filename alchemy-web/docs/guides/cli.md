@@ -35,6 +35,8 @@ bun ./alchemy.run --read
 bun ./alchemy.run --destroy
 ```
 
+Learn more about phases in the [phase concepts guide](../concepts/phase.md).
+
 ### Output Control
 
 Control logging output:
@@ -54,6 +56,8 @@ bun ./alchemy.run --stage production
 bun ./alchemy.run --stage staging
 bun ./alchemy.run --stage dev
 ```
+
+By default, the stage is set to `process.env.USER` (your username). You can also use `ALCHEMY_STAGE` or `PASSWORD` environment variables to control staging behavior.
 
 ### Secret Management
 
@@ -89,7 +93,6 @@ const app = await alchemy("my-app", {
 Alchemy also supports these environment variables:
 
 - `ALCHEMY_PASSWORD` - Password for encrypting/decrypting secrets
-- `PASSWORD` - Alternative to ALCHEMY_PASSWORD (deprecated)
 - `ALCHEMY_STAGE` - Default stage name
 - `USER` - Fallback for stage name (uses your username)
 
@@ -152,5 +155,3 @@ Alchemy's approach has several advantages:
 - **Flexibility**: Easy to customize behavior with code
 - **Debugging**: Use any Node.js debugger or logging
 - **Integration**: Works naturally with existing build tools
-
-Instead of learning a new CLI syntax, you write TypeScript code that feels natural and integrates with your existing development workflow.
