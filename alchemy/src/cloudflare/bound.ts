@@ -25,30 +25,34 @@ import type { Workflow as _Workflow } from "./workflow.ts";
  */
 
 // Basic types
-interface Fetcher {
+export interface Fetcher {
   fetch(input: RequestInfo, init?: RequestInit): Promise<Response>;
-}
-
-interface Service<Methods = Record<string, unknown>> extends Fetcher {
   connect(address: SocketAddress | string, options?: SocketOptions): Socket;
 }
 
-interface SocketAddress {
+export interface Service<Methods = Record<string, unknown>> extends Fetcher {
+  connect(address: SocketAddress | string, options?: SocketOptions): Socket;
+}
+
+export interface SocketAddress {
   hostname: string;
   port: number;
 }
 
-interface SocketOptions {
-  secureTransport?: string;
+export interface SocketOptions {
+  secureTransport?: "off" | "on" | "starttls";
   allowHalfOpen?: boolean;
 }
 
-interface Socket {
+export interface Socket {
   readable: ReadableStream;
   writable: WritableStream;
   opened: Promise<SocketInfo>;
   closed: Promise<void>;
   close(): Promise<void>;
+  upgraded: boolean;
+  secureTransport?: "off" | "on" | "starttls";
+  startTls(): Socket;
 }
 
 interface SocketInfo {
@@ -242,6 +246,7 @@ interface D1Database {
   dump(): Promise<ArrayBuffer>;
   batch<T = unknown>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]>;
   exec(query: string): Promise<D1ExecResult>;
+  withSession<T>(callback: (db: D1Database) => Promise<T>): Promise<T>;
 }
 
 interface D1PreparedStatement {
@@ -402,6 +407,10 @@ interface AnalyticsEngineDataPoint {
 // AI Gateway
 interface AiGateway {
   get(options: AiGatewayGetOptions): Promise<AiGatewayLogEntry[]>;
+  getLog(options: AiGatewayGetOptions): Promise<AiGatewayLogEntry[]>;
+  getUrl(): string;
+  patchLog(id: string, data: any): Promise<void>;
+  run(input: any, options?: any): Promise<any>;
 }
 
 interface AiGatewayGetOptions {
@@ -483,7 +492,7 @@ interface WorkerVersionMetadata {
 
 // RPC types
 namespace Rpc {
-  type Provider<
+  export type Provider<
     Methods,
     WorkerInterface extends "fetch" | "connect" = "fetch" | "connect",
   > = {

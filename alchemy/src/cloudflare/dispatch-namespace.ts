@@ -8,6 +8,7 @@ import {
   type CloudflareApi,
   type CloudflareApiOptions,
 } from "./api.ts";
+import type { Fetcher } from "./bound.ts";
 
 /**
  * Properties for creating or updating a Dispatch Namespace

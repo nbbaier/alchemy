@@ -27,7 +27,7 @@ import {
   type WorkerBindingService,
   type WorkerBindingSpec,
 } from "./bindings.ts";
-import type { Bound } from "./bound.ts";
+import type { Bound, Service, SocketAddress, SocketOptions } from "./bound.ts";
 import { isBucket } from "./bucket.ts";
 import {
   type NoBundleResult,
@@ -359,7 +359,7 @@ export type Worker<
   RPC extends Rpc.WorkerEntrypointBranded = Rpc.WorkerEntrypointBranded,
 > = Resource<"cloudflare::Worker"> &
   Omit<WorkerProps<B>, "url" | "script" | "routes"> &
-  globalThis.Service & {
+  Service & {
     /** @internal phantom property */
     __rpc__?: RPC;
 
