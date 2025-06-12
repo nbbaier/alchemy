@@ -103,6 +103,8 @@ class ZeroDepTUI {
   private readonly headerRows = 6; // Fixed header size
   private readonly maxLogLines = 10; // Max log lines to show
   private tasksStartRow = 0; // Will be calculated based on screen layout
+  private taskRows: Map<string, number> = new Map(); // Track which row each task is on
+  private nextTaskRow = 0; // Next available row for tasks
 
   constructor(alchemyInfo: AlchemyInfo) {
     this.alchemyInfo = alchemyInfo;
@@ -196,8 +198,16 @@ class ZeroDepTUI {
   }
 
   private updateTask(id: string, data: Task) {
+    const wasNew = !this.tasks.has(id);
     this.tasks.set(id, data);
-    this.renderTasksSection();
+
+    if (wasNew) {
+      // New task - need to re-render entire tasks section
+      this.renderTasksSection();
+    } else {
+      // Existing task - update just this task line
+      this.updateSingleTask(id, data);
+    }
   }
 
   private renderTasksSection() {
@@ -210,14 +220,21 @@ class ZeroDepTUI {
     // Render tasks header
     process.stdout.write(`${this.colorize("Tasks", "green", true)}\n`);
 
-    // Render each task
+    // Reset task row tracking
+    this.taskRows.clear();
+    this.nextTaskRow = this.tasksStartRow + 2; // Header + 1 blank line
+
+    // Render each task and track its position
     const taskEntries = Array.from(this.tasks.entries());
-    for (const [_id, task] of taskEntries) {
-      this.renderTask(task);
+    for (const [id, task] of taskEntries) {
+      this.taskRows.set(id, this.nextTaskRow);
+      process.stdout.write(ANSI.moveCursor(this.nextTaskRow, 1));
+      this.renderTaskLine(task);
+      this.nextTaskRow++;
     }
   }
 
-  private renderTask(task: Task) {
+  private renderTaskLine(task: Task) {
     let statusIcon: string;
 
     if (!task.status || task.status === "pending") {
@@ -241,24 +258,33 @@ class ZeroDepTUI {
 
     line += ` ${this.colorize(task.message, "white", true)}`;
 
-    process.stdout.write(`${line}\n`);
+    process.stdout.write(`${ANSI.clearLine}${line}`);
+  }
+
+  private updateSingleTask(id: string, task: Task) {
+    const row = this.taskRows.get(id);
+    if (row === undefined) return;
+
+    // Move to this task's row and update it
+    process.stdout.write(ANSI.moveCursor(row, 1));
+    this.renderTaskLine(task);
   }
 
   private updateTasksInPlace() {
     if (!this.isRunning || this.tasks.size === 0) return;
 
-    // Only update spinner for pending tasks
-    let hasPendingTasks = false;
-    for (const task of this.tasks.values()) {
+    // Only update spinner for pending tasks, without full re-render
+    for (const [id, task] of this.tasks.entries()) {
       if (!task.status || task.status === "pending") {
-        hasPendingTasks = true;
-        break;
+        const row = this.taskRows.get(id);
+        if (row !== undefined) {
+          // Update just the spinner character for this task
+          process.stdout.write(ANSI.moveCursor(row, 2)); // Position at spinner
+          process.stdout.write(
+            this.colorize(SPINNER_FRAMES[this.spinnerIndex], "yellow"),
+          );
+        }
       }
-    }
-
-    if (hasPendingTasks) {
-      // Only re-render the tasks section, not the entire screen
-      this.renderTasksSection();
     }
   }
 
