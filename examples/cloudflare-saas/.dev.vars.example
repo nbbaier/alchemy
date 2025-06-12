@@ -1,0 +1,10 @@
+# Copy this file to .dev.vars and fill in your values
+
+# GitHub OAuth App credentials
+GITHUB_CLIENT_SECRET=your-github-client-secret-here
+
+# Google OAuth App credentials  
+GOOGLE_CLIENT_SECRET=your-google-client-secret-here
+
+# Better Auth secret key (generate a random 32+ character string)
+AUTH_SECRET=your-random-secret-key-at-least-32-chars-long

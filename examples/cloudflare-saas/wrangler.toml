@@ -1,0 +1,25 @@
+name = "cloudflare-saas"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Durable Objects configuration
+[[durable_objects.bindings]]
+name = "USER_DO"
+class_name = "UserDurableObject"
+
+# Migrations for Durable Objects
+[[migrations]]
+tag = "v1"
+new_classes = ["UserDurableObject"]
+
+# KV Namespace binding (will be created by Alchemy)
+[[kv_namespaces]]
+binding = "AUTH_KV"
+id = "placeholder" # This will be replaced by Alchemy
+
+# Environment variables (secrets will be managed by Alchemy)
+[vars]
+AUTH_URL = "http://localhost:8787"
+GITHUB_CLIENT_ID = "your-github-client-id"
+GOOGLE_CLIENT_ID = "your-google-client-id"
