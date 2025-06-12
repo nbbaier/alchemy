@@ -85,7 +85,10 @@ export async function uploadAssets(
     (await uploadSessionResponse.json()) as UploadSessionResponse;
 
   // If there are no buckets, assets are already uploaded or empty
-  if (!sessionData.result.buckets || sessionData.result.buckets.length === 0) {
+  if (
+    !sessionData?.result?.buckets ||
+    sessionData.result.buckets.length === 0
+  ) {
     return {
       completionToken: sessionData.result.jwt,
       assetConfig: processedConfig,
