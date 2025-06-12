@@ -180,8 +180,14 @@ async function _apply<Out extends Resource>(
         }
         isReplaced = true;
         
-        // Mark the resource as replaced in state
-        state.replaced = true;
+        // Store the complete replaced resource information
+        // This will be used during finalization to properly clean up the old resource
+        if (state.output && state.props) {
+          state.replacedResource = {
+            output: state.output,
+            props: state.props,
+          };
+        }
       },
     });
 

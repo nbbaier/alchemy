@@ -32,11 +32,14 @@ export type State<
   oldProps?: Props;
   output: Out;
   /**
-   * Indicates whether this resource has been replaced.
-   * Replaced resources are kept in state until finalization
-   * when they are cleaned up after new resources are created.
+   * Information about the replaced resource.
+   * When a resource is marked for replacement, we store its current state
+   * so it can be properly cleaned up during finalization.
    */
-  replaced?: boolean;
+  replacedResource?: {
+    output: Out;
+    props: Props;
+  };
 };
 
 export type StateStoreType = (scope: Scope) => StateStore;

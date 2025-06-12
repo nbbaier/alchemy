@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { Phase } from "./alchemy.ts";
 import { destroyAll } from "./destroy.ts";
 import { FileSystemStateStore } from "./fs/file-system-state-store.ts";
-import { ResourceID, type PendingResource } from "./resource.ts";
+import { ResourceID, ResourceScope, type PendingResource, type Resource } from "./resource.ts";
 import type { StateStore, StateStoreType } from "./state.ts";
 import {
   createDummyLogger,
@@ -255,9 +255,16 @@ export class Scope {
       const aliveIds = new Set(this.resources.keys());
       
       // First, clean up replaced resources
-      const replacedResources = Object.entries(allStates)
-        .filter(([_, state]) => state.replaced === true)
-        .map(([_, state]) => state.output);
+      const replacedResources: Resource[] = [];
+      for (const [id, state] of Object.entries(allStates)) {
+        if (state.replacedResource) {
+          // Use the stored output and props from when the resource was replaced
+          replacedResources.push({
+            ...state.replacedResource.output,
+            [ResourceScope]: this,
+          } as Resource);
+        }
+      }
       
       if (replacedResources.length > 0) {
         this.logger.log(`Cleaning up ${replacedResources.length} replaced resources`);
@@ -269,7 +276,7 @@ export class Scope {
       
       // Then, clean up orphaned resources (resources in state but not in current code)
       const orphanIds = Object.keys(allStates).filter(
-        (id) => !aliveIds.has(id) && !allStates[id].replaced
+        (id) => !aliveIds.has(id) && !allStates[id].replacedResource
       );
       const orphans = orphanIds.map((id) => allStates[id].output);
       

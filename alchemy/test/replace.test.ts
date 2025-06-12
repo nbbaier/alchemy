@@ -1,4 +1,4 @@
-import { describe, expect } from "vitest";
+import { beforeEach, describe, expect } from "vitest";
 import { alchemy } from "../src/alchemy";
 import type { Context } from "../src/context";
 import { Resource } from "../src/resource";
@@ -18,7 +18,15 @@ interface TestResourceProps {
 interface TestResource extends Resource<"test::Resource">, TestResourceProps {
   id: string;
   createdAt: number;
+  destroyed?: boolean;
+  destroyedWith?: {
+    output: TestResource;
+    props: TestResourceProps;
+  };
 }
+
+// Track destroyed resources for testing
+const destroyedResources = new Map<string, { output: TestResource; props: TestResourceProps }>();
 
 const TestResource = Resource(
   "test::Resource",
@@ -28,6 +36,13 @@ const TestResource = Resource(
     props: TestResourceProps,
   ): Promise<TestResource> {
     if (this.phase === "delete") {
+      // Store information about what was destroyed
+      if (this.output && this.props) {
+        destroyedResources.set(id, {
+          output: this.output,
+          props: this.props as TestResourceProps,
+        });
+      }
       return this.destroy();
     }
 
@@ -51,6 +66,11 @@ const TestResource = Resource(
 );
 
 describe("Resource Replacement", () => {
+  beforeEach(() => {
+    // Clear destroyed resources before each test
+    destroyedResources.clear();
+  });
+
   test("should mark resource as replaced when replacement is triggered", async (scope) => {
     // Create initial resource
     const resource1 = await TestResource("test-resource", {
@@ -70,10 +90,18 @@ describe("Resource Replacement", () => {
     expect(resource2.value).toBe("updated");
     expect(resource2.immutableProp).toBe("v2");
     
-    // The old resource should still exist in state but marked as replaced
+    // The old resource should still exist in state with its complete information
     const state = await scope.state.get("test-resource");
     expect(state).toBeDefined();
-    expect(state?.replaced).toBe(true);
+    expect(state?.replacedResource).toBeDefined();
+    if (state?.replacedResource) {
+      const replacedOutput = state.replacedResource.output as TestResource;
+      const replacedProps = state.replacedResource.props as TestResourceProps;
+      expect(replacedOutput.value).toBe("initial");
+      expect(replacedOutput.immutableProp).toBe("v1");
+      expect(replacedProps.value).toBe("initial");
+      expect(replacedProps.immutableProp).toBe("v1");
+    }
   });
 
   test("replaced resources should be cleaned up during app finalization", async () => {
@@ -94,7 +122,11 @@ describe("Resource Replacement", () => {
       
       // Get the state before finalization
       const stateBeforeFinalize = await app.state.get("replace-me");
-      expect(stateBeforeFinalize?.replaced).toBe(true);
+      expect(stateBeforeFinalize?.replacedResource).toBeDefined();
+      if (stateBeforeFinalize?.replacedResource) {
+        const replacedOutput = stateBeforeFinalize.replacedResource.output as TestResource;
+        expect(replacedOutput.value).toBe("initial");
+      }
       
       // Finalize the app - this should clean up replaced resources
       await app.finalize();
@@ -149,6 +181,52 @@ describe("Resource Replacement", () => {
       // Now all scopes should be finalized
       expect(childFinalized).toBe(true);
       expect(parentFinalized).toBe(true);
+    } catch (error) {
+      await app.finalize();
+      throw error;
+    }
+  });
+
+  test("replaced resources should be destroyed with their original props and output", async () => {
+    const app = await alchemy(`${BRANCH_PREFIX}-destroy-verification-test`);
+    
+    try {
+      // Create initial resource
+      const resource1 = await TestResource("verify-destroy", {
+        value: "original-value",
+        immutableProp: "v1",
+      });
+      const originalCreatedAt = resource1.createdAt;
+      
+      // Update with changed immutable property - should trigger replacement
+      const resource2 = await TestResource("verify-destroy", {
+        value: "new-value", 
+        immutableProp: "v2",
+      });
+      
+      // Verify the resource was replaced
+      const state = await app.state.get("verify-destroy");
+      expect(state?.replacedResource).toBeDefined();
+      
+      // Clear the map before finalization to ensure we only capture finalization destroys
+      destroyedResources.clear();
+      
+      // Finalize the app - this should destroy the replaced resource with its original state
+      await app.finalize();
+      
+      // Verify the replaced resource was destroyed with its original props and output
+      const destroyedInfo = destroyedResources.get("verify-destroy");
+      expect(destroyedInfo).toBeDefined();
+      if (destroyedInfo) {
+        // Should have been destroyed with the original output
+        expect(destroyedInfo.output.value).toBe("original-value");
+        expect(destroyedInfo.output.immutableProp).toBe("v1");
+        expect(destroyedInfo.output.createdAt).toBe(originalCreatedAt);
+        
+        // Should have been destroyed with the original props
+        expect(destroyedInfo.props.value).toBe("original-value");
+        expect(destroyedInfo.props.immutableProp).toBe("v1");
+      }
     } catch (error) {
       await app.finalize();
       throw error;
