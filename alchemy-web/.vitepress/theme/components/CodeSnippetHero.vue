@@ -4,7 +4,19 @@
     <div class="vp-hero-content">
       <div class="left">
         <h1 class="name">{{ name }}</h1>
-        <p class="text">{{ text }}</p>
+        <p class="text">
+          <span class="rotating-word-container">
+            <span
+              v-for="(word, index) in variants"
+              :key="word"
+              class="rotating-word"
+              :class="{ active: currentVariantIndex === index }"
+            >
+              {{ word }}
+            </span>
+          </span>
+          {{ textAfterVariant }}
+        </p>
         <p class="tagline">{{ tagline }}</p>
         <div class="actions">
           <div v-for="action in actions" :key="action.link" class="action">
@@ -61,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 
 const props = defineProps<{
   name: string;
@@ -75,6 +87,43 @@ const props = defineProps<{
 }>();
 
 const copied = ref(false);
+const currentVariantIndex = ref(0);
+
+// Word variants to rotate through
+const variants = ["Wrangle", "Control", "Orchestrate", "Provision"];
+
+// Extract the part of the text after the variant word
+const textAfterVariant = computed(() => {
+  // Find the first variant word in the text and return everything after it
+  for (const variant of variants) {
+    const index = props.text.indexOf(variant);
+    if (index !== -1) {
+      return props.text.substring(index + variant.length);
+    }
+  }
+  // Fallback: return everything after the first word
+  const firstSpaceIndex = props.text.indexOf(" ");
+  return firstSpaceIndex !== -1 ? props.text.substring(firstSpaceIndex) : "";
+});
+
+// Rotation interval
+let intervalId: number | undefined;
+
+onMounted(() => {
+  // Start rotation after 1 second
+  setTimeout(() => {
+    intervalId = window.setInterval(() => {
+      currentVariantIndex.value =
+        (currentVariantIndex.value + 1) % variants.length;
+    }, 2500); // Change word every 2.5 seconds
+  }, 1000);
+});
+
+onUnmounted(() => {
+  if (intervalId) {
+    clearInterval(intervalId);
+  }
+});
 
 function copyCode() {
   if (window.isSecureContext) {
@@ -199,6 +248,34 @@ function copyCode() {
   white-space: normal;
 }
 
+.rotating-word-container {
+  display: inline-block;
+  position: relative;
+  vertical-align: baseline;
+  min-width: 10rem; /* Adjust based on longest word */
+}
+
+.rotating-word {
+  position: absolute;
+  left: 0;
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  transition: all 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+  background: linear-gradient(135deg, #bd34fe, #41d1ff);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+  white-space: nowrap;
+  filter: blur(2px);
+}
+
+.rotating-word.active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
 .tagline {
   font-size: 1.5rem;
   font-weight: 500;
@@ -220,10 +297,7 @@ function copyCode() {
   text-align: center;
   font-weight: 500;
   white-space: nowrap;
-  transition:
-    color 0.25s,
-    border-color 0.25s,
-    background-color 0.25s,
+  transition: color 0.25s, border-color 0.25s, background-color 0.25s,
     transform 0.25s;
   border-radius: 1.25rem;
   padding: 0 1.5rem;
@@ -270,15 +344,13 @@ function copyCode() {
 .code-snippet {
   background: var(--vp-c-bg-alt);
   border-radius: 1rem;
-  box-shadow:
-    0 0.625rem 1.875rem var(--vp-shadow-3),
+  box-shadow: 0 0.625rem 1.875rem var(--vp-shadow-3),
     0 0.3125rem 0.9375rem var(--vp-shadow-2),
     0 0 0 0.0625rem var(--vp-c-border) inset;
   overflow: hidden;
   position: relative;
   transform: perspective(75rem) rotateY(-5deg) rotateX(2deg);
-  transition:
-    transform 0.4s cubic-bezier(0.17, 0.67, 0.83, 0.67),
+  transition: transform 0.4s cubic-bezier(0.17, 0.67, 0.83, 0.67),
     box-shadow 0.4s ease;
   max-width: 100%;
   z-index: 1;
@@ -287,8 +359,7 @@ function copyCode() {
 .code-snippet:hover {
   transform: perspective(75rem) rotateY(0deg) rotateX(0deg)
     translateY(-0.3125rem);
-  box-shadow:
-    0 0.9375rem 2.5rem var(--vp-shadow-5),
+  box-shadow: 0 0.9375rem 2.5rem var(--vp-shadow-5),
     0 0.5rem 1.25rem var(--vp-shadow-3),
     0 0 0 0.0625rem var(--vp-c-border) inset;
 }
@@ -347,9 +418,7 @@ function copyCode() {
   padding: 0.375rem;
   color: var(--vp-c-text-3);
   border-radius: 0.375rem;
-  transition:
-    color 0.25s,
-    background-color 0.25s;
+  transition: color 0.25s, background-color 0.25s;
   z-index: 2;
 }
 
@@ -403,8 +472,7 @@ function copyCode() {
   border-radius: 0.375rem;
   font-size: 0.8rem;
   font-weight: 500;
-  box-shadow:
-    0 0.25rem 0.75rem rgba(189, 52, 254, 0.3),
+  box-shadow: 0 0.25rem 0.75rem rgba(189, 52, 254, 0.3),
     0 0.125rem 0.375rem rgba(65, 209, 255, 0.2);
   animation: fadeIn 0.2s ease;
   z-index: 10;
@@ -489,6 +557,10 @@ function copyCode() {
   .text {
     font-size: 2.8rem;
   }
+
+  .rotating-word-container {
+    min-width: 8rem;
+  }
 }
 
 /* Tablets and Small Laptops (768px - 991px) */
@@ -522,6 +594,10 @@ function copyCode() {
     font-size: 1.25rem;
     max-width: 100%;
   }
+
+  .rotating-word-container {
+    min-width: 7rem;
+  }
 }
 
 /* Large Phones and Small Tablets (576px - 767px) */
@@ -554,6 +630,10 @@ function copyCode() {
   .tagline {
     font-size: 1.125rem;
     max-width: 100%;
+  }
+
+  .rotating-word-container {
+    min-width: 6rem;
   }
 
   .code-snippet {
@@ -596,6 +676,10 @@ function copyCode() {
     font-size: 1rem;
     line-height: 1.4;
     margin-bottom: 1rem;
+  }
+
+  .rotating-word-container {
+    min-width: 5rem;
   }
 
   .actions {
@@ -655,6 +739,14 @@ function copyCode() {
     margin-bottom: 0.875rem;
   }
 
+  .rotating-word-container {
+    min-width: 4rem;
+  }
+
+  .rotating-word {
+    font-size: inherit;
+  }
+
   .actions {
     flex-direction: column;
     width: 100%;
@@ -676,8 +768,7 @@ function copyCode() {
 
   .code-snippet {
     transform: none !important;
-    box-shadow:
-      0 0.375rem 1rem rgba(0, 0, 0, 0.2),
+    box-shadow: 0 0.375rem 1rem rgba(0, 0, 0, 0.2),
       0 0.25rem 0.5rem rgba(0, 0, 0, 0.1),
       0 0 0 0.0625rem rgba(255, 255, 255, 0.05) inset;
   }
