@@ -6,6 +6,7 @@ This example demonstrates a multi-tenant SaaS architecture using:
 - **Better Auth** for social authentication (GitHub & Google)
 - **Durable Objects** for per-user data isolation
 - **Drizzle ORM** with SQLite for user-specific schemas
+- **Vite + React** for the frontend
 
 ## Architecture
 
@@ -14,6 +15,7 @@ This example demonstrates a multi-tenant SaaS architecture using:
    - Separate SQLite database
    - Per-user schema managed by Drizzle
    - Complete data isolation
+3. **Frontend**: React app served by Vite with hot module replacement
 
 ## Setup
 
@@ -44,13 +46,7 @@ bun install
 
 ### 3. Set Environment Variables
 
-Copy the example environment file:
-
-```bash
-cp .dev.vars.example .dev.vars
-```
-
-Edit `.dev.vars` and add your secrets:
+Create `.dev.vars` file:
 
 ```bash
 GITHUB_CLIENT_SECRET=your-github-client-secret
@@ -77,18 +73,22 @@ BRANCH_PREFIX=feature-123 npm run alchemy
 
 ### 5. Local Development
 
+Start both the Worker and Vite dev server:
+
 ```bash
-# Start the development server
+# Terminal 1 - Start the Worker
+npm run dev:worker
+
+# Terminal 2 - Start Vite (React frontend)
 npm run dev
 ```
 
-Visit http://localhost:8787 to see the login page.
+Visit http://localhost:3000 to see the app. The Vite dev server proxies API requests to the Worker.
 
 ## API Endpoints
 
 ### Authentication
 
-- `GET /` - Login page
 - `GET /auth/sign-in/social?provider=github` - GitHub login
 - `GET /auth/sign-in/social?provider=google` - Google login
 - `GET /auth/*` - Better Auth routes
@@ -166,18 +166,25 @@ Better Auth is configured with:
 Each user's Durable Object:
 
 - Has its own SQLite database instance
-- Initializes schema lazily on first request
+- Uses `blockConcurrencyWhile` to initialize schema safely
+- Prevents race conditions during first request
 - Uses Drizzle ORM for type-safe database operations
 - Implements a Hono API for handling data operations
 
 ### Database Schema
 
-The example includes two tables per user:
+The schema is defined in `src/schema.ts` and includes two tables per user:
 
 - **todos**: Task management with title, description, and completion status
 - **notes**: Simple notes with title and content
 
 Both tables include automatic timestamps (createdAt, updatedAt).
+
+### Frontend Stack
+
+- **Vite**: Fast build tool with hot module replacement
+- **React**: UI framework with TypeScript
+- **Proxy Configuration**: Vite proxies `/auth` and `/api` to the Worker
 
 ## Security Features
 
@@ -186,21 +193,24 @@ Both tables include automatic timestamps (createdAt, updatedAt).
 - Authorization checks on every request
 - CORS enabled for API access
 - Secrets managed by Alchemy
-- XSS protection in the demo UI
+- XSS protection in the React UI
 
-## Deployment to Production
+## Building for Production
 
-1. Update OAuth callback URLs to your production domain
-2. Set production environment variables
-3. Update `AUTH_URL` in alchemy.run.ts
-4. Run `npm run deploy`
+```bash
+# Build the frontend
+npm run build
+
+# Deploy everything
+npm run deploy
+```
 
 ## Extending the Example
 
 ### Adding New Tables
 
-1. Define new table schema in `durable-object.ts`
-2. Add to schema initialization in `initializeSchema()`
+1. Define new table schema in `src/schema.ts`
+2. Add to schema initialization in `durable-object.ts`
 3. Implement CRUD routes in `setupRoutes()`
 
 ### Adding New Auth Providers
@@ -238,3 +248,9 @@ Both tables include automatic timestamps (createdAt, updatedAt).
 - Verify callback URLs match exactly
 - Check OAuth app is not in test/development mode
 - Ensure secrets are correctly set
+
+### Vite proxy issues
+
+- Ensure Worker is running on port 8787
+- Check proxy configuration in `vite.config.ts`
+- Verify CORS is enabled in the Worker

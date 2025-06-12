@@ -3,7 +3,6 @@ import { betterAuth } from "better-auth";
 import { cloudflareKVAdapter } from "better-auth/adapters/kv";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { demoPageHtml } from "./demo-page";
 
 export interface Env {
   // Auth environment
@@ -52,7 +51,7 @@ app.all("/auth/*", async (c) => {
   return auth.handler(c.req.raw);
 });
 
-// Session endpoint for the demo page
+// Session endpoint for the frontend
 app.get("/api/session", async (c) => {
   const auth = initAuth(c.env);
   const session = await auth.api.getSession({
@@ -70,20 +69,6 @@ app.get("/api/session", async (c) => {
       name: session.user.name,
     }
   });
-});
-
-// Serve demo page for authenticated users
-app.get("/demo", async (c) => {
-  const auth = initAuth(c.env);
-  const session = await auth.api.getSession({
-    headers: c.req.raw.headers,
-  });
-
-  if (!session) {
-    return c.redirect("/");
-  }
-
-  return c.html(demoPageHtml);
 });
 
 // Protected API route to get user data
@@ -158,72 +143,6 @@ app.all("/api/user/:userId/data/*", async (c) => {
 // Health check
 app.get("/health", (c) => {
   return c.json({ status: "ok" });
-});
-
-// Home route
-app.get("/", async (c) => {
-  const auth = initAuth(c.env);
-  const session = await auth.api.getSession({
-    headers: c.req.raw.headers,
-  });
-
-  // If user is already logged in, redirect to demo
-  if (session) {
-    return c.redirect("/demo");
-  }
-
-  return c.html(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Cloudflare SaaS Example</title>
-        <style>
-          body {
-            font-family: system-ui, -apple-system, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 20px;
-          }
-          .auth-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-          }
-          .auth-button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            background: #333;
-            color: white;
-            text-decoration: none;
-            cursor: pointer;
-          }
-          .auth-button:hover {
-            background: #555;
-          }
-          .github { background: #24292e; }
-          .google { background: #4285f4; }
-        </style>
-      </head>
-      <body>
-        <h1>Cloudflare SaaS Example</h1>
-        <p>This example demonstrates Better Auth with Durable Objects for per-user data isolation.</p>
-        
-        <div class="auth-buttons">
-          <a href="/auth/sign-in/social?provider=github" class="auth-button github">
-            Login with GitHub
-          </a>
-          <a href="/auth/sign-in/social?provider=google" class="auth-button google">
-            Login with Google
-          </a>
-        </div>
-        
-        <p style="margin-top: 30px;">
-          After logging in, you'll have access to your isolated data stored in a Durable Object.
-        </p>
-      </body>
-    </html>
-  `);
 });
 
 // Export the Durable Object class

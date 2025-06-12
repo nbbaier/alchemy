@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 import alchemy from "alchemy";
 import { DurableObjectNamespace, KvNamespace, Worker } from "alchemy/cloudflare";
 

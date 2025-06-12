@@ -1,27 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { Hono } from "hono";
-
-// Define the schema for user data
-const todos = sqliteTable("todos", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  title: text("title").notNull(),
-  description: text("description"),
-  completed: integer("completed", { mode: "boolean" }).notNull().default(false),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-});
-
-// Define the notes table
-const notes = sqliteTable("notes", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  title: text("title").notNull(),
-  content: text("content"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-});
+import { notes, todos } from "./schema";
 
 export class UserDurableObject extends DurableObject {
   private db: ReturnType<typeof drizzle>;
@@ -32,21 +13,26 @@ export class UserDurableObject extends DurableObject {
     super(ctx, env);
     
     // Initialize Drizzle with the Durable Object's SQL storage
-    this.db = drizzle(this.ctx.storage.sql);
+    this.db = drizzle(ctx.storage.sql);
     
     // Initialize Hono for handling requests
     this.app = new Hono();
     
-    // Set up routes
-    this.setupRoutes();
+    // Use blockConcurrencyWhile to ensure schema initialization happens before any requests
+    // This prevents race conditions during the first request to a new Durable Object
+    ctx.blockConcurrencyWhile(async () => {
+      await this.initializeSchema(ctx);
+      this.setupRoutes();
+      this.initialized = true;
+    });
   }
 
-  async initializeSchema() {
+  async initializeSchema(ctx: DurableObjectState) {
     if (this.initialized) return;
     
     try {
       // Create tables if they don't exist
-      await this.ctx.storage.sql.exec(`
+      await ctx.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS todos (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           title TEXT NOT NULL,
@@ -65,7 +51,7 @@ export class UserDurableObject extends DurableObject {
         );
       `);
       
-      this.initialized = true;
+      console.log("Schema initialized successfully");
     } catch (error) {
       console.error("Error initializing schema:", error);
       throw error;
@@ -75,8 +61,6 @@ export class UserDurableObject extends DurableObject {
   setupRoutes() {
     // Get all user data
     this.app.get("/data", async (c) => {
-      await this.initializeSchema();
-      
       const [userTodos, userNotes] = await Promise.all([
         this.db.select().from(todos),
         this.db.select().from(notes),
@@ -90,8 +74,6 @@ export class UserDurableObject extends DurableObject {
 
     // Create a new todo
     this.app.post("/data/todos", async (c) => {
-      await this.initializeSchema();
-      
       const body = await c.req.json();
       const { title, description } = body;
       
@@ -109,8 +91,6 @@ export class UserDurableObject extends DurableObject {
 
     // Update a todo
     this.app.put("/data/todos/:id", async (c) => {
-      await this.initializeSchema();
-      
       const id = parseInt(c.req.param("id"));
       const body = await c.req.json();
       
@@ -132,8 +112,6 @@ export class UserDurableObject extends DurableObject {
 
     // Delete a todo
     this.app.delete("/data/todos/:id", async (c) => {
-      await this.initializeSchema();
-      
       const id = parseInt(c.req.param("id"));
       
       const deleted = await this.db
@@ -150,8 +128,6 @@ export class UserDurableObject extends DurableObject {
 
     // Create a new note
     this.app.post("/data/notes", async (c) => {
-      await this.initializeSchema();
-      
       const body = await c.req.json();
       const { title, content } = body;
       
@@ -169,8 +145,6 @@ export class UserDurableObject extends DurableObject {
 
     // Update a note
     this.app.put("/data/notes/:id", async (c) => {
-      await this.initializeSchema();
-      
       const id = parseInt(c.req.param("id"));
       const body = await c.req.json();
       
@@ -192,8 +166,6 @@ export class UserDurableObject extends DurableObject {
 
     // Delete a note
     this.app.delete("/data/notes/:id", async (c) => {
-      await this.initializeSchema();
-      
       const id = parseInt(c.req.param("id"));
       
       const deleted = await this.db
@@ -210,10 +182,10 @@ export class UserDurableObject extends DurableObject {
 
     // Get stats
     this.app.get("/data/stats", async (c) => {
-      await this.initializeSchema();
-      
-      const todoCount = await this.db.select({ count: todos.id }).from(todos);
-      const noteCount = await this.db.select({ count: notes.id }).from(notes);
+      const [todoCount, noteCount] = await Promise.all([
+        this.db.select({ value: todos.id }).from(todos),
+        this.db.select({ value: notes.id }).from(notes),
+      ]);
       
       return c.json({
         totalTodos: todoCount.length,
@@ -223,6 +195,12 @@ export class UserDurableObject extends DurableObject {
   }
 
   async fetch(request: Request): Promise<Response> {
+    // Wait for initialization to complete if not ready
+    if (!this.initialized) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return this.fetch(request);
+    }
+    
     return this.app.fetch(request);
   }
 }
