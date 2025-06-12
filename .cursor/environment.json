@@ -1,11 +1,14 @@
 {
-  "snapshot": "POPULATED_FROM_SETTINGS",
-  "install": "# Install Bun if not already installed\nif ! command -v bun &> /dev/null; then\n  curl -fsSL https://bun.sh/install | bash\n  export BUN_INSTALL=\"$HOME/.bun\"\n  export PATH=\"$BUN_INSTALL/bin:$PATH\"\nfi\n\n# Install dependencies\nbun install\ncd examples/cloudflare-tanstack-start && bun install && cd ../..",
-  "start": "# Ensure Bun is in PATH\nexport BUN_INSTALL=\"$HOME/.bun\"\nexport PATH=\"$BUN_INSTALL/bin:$PATH\"",
+  "name": "Alchemy Development Environment",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
   "terminals": [
     {
       "name": "Tanstack Dev Server",
-      "command": "cd examples/cloudflare-tanstack-start && bun run dev"
+      "command": "cd /workspace/examples/cloudflare-tanstack-start && bun run dev",
+      "description": "Runs the Tanstack Start development server for the example application"
     }
   ]
 }
