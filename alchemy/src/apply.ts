@@ -42,7 +42,7 @@ async function _apply<Out extends Resource>(
   const start = performance.now();
   try {
     logger.task(resource[ResourceFQN], {
-      prefix: "SETUP",
+      prefix: "setup",
       prefixColor: "cyanBright",
       resource: formatFQN(resource[ResourceFQN]),
       message: "Setting up Resource...",
@@ -112,7 +112,7 @@ async function _apply<Out extends Resource>(
       ) {
         if (!quiet) {
           logger.task(resource[ResourceFQN], {
-            prefix: "SKIPPED",
+            prefix: "skipped",
             prefixColor: "yellowBright",
             resource: formatFQN(resource[ResourceFQN]),
             message: "Skipped Resource (no changes)",
@@ -141,7 +141,7 @@ async function _apply<Out extends Resource>(
 
     if (!quiet) {
       logger.task(resource[ResourceFQN], {
-        prefix: phase === "create" ? "CREATING" : "UPDATING",
+        prefix: phase === "create" ? "creating" : "updating",
         prefixColor: "magenta",
         resource: formatFQN(resource[ResourceFQN]),
         message: `${phase === "create" ? "Creating" : "Updating"} Resource...`,
@@ -191,7 +191,7 @@ async function _apply<Out extends Resource>(
     );
     if (!quiet) {
       logger.task(resource[ResourceFQN], {
-        prefix: phase === "create" ? "CREATED" : "UPDATED",
+        prefix: phase === "create" ? "created" : "updated",
         prefixColor: "greenBright",
         resource: formatFQN(resource[ResourceFQN]),
         message: `${phase === "create" ? "Created" : "Updated"} Resource`,
