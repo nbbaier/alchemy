@@ -7,7 +7,7 @@
       <FeatureItem
         :reverse="false"
         title="TypeScript-first Infrastructure"
-        description="Define your entire cloud infrastructure with type-safe TypeScript. Get autocomplete, refactoring, and error checking for your infrastructure code."
+        description="Write cloud infrastructure as simple async functions, not complicated graph abstractions. Get autocomplete, refactoring, and error checking with native TypeScript."
         ctaText="Get Started"
         ctaLink="/docs/getting-started"
       >
@@ -30,90 +30,91 @@
         </template>
       </FeatureItem>
 
-      <!-- Feature 2: Multi-cloud (code-left, description-right) -->
+      <!-- Feature 2: AI-friendly (code-left, description-right) -->
       <FeatureItem
         :reverse="true"
-        title="Multi-cloud by Design"
-        description="Deploy across Cloudflare, AWS, Stripe, and more with a unified API. Mix and match providers to build the perfect stack for your needs."
-        ctaText="View Providers"
-        ctaLink="/docs/guides/cloudflare-worker"
+        title="AI-friendly Architecture"
+        description="Generate new cloud resource providers in minutes with Alchemy's llms.txt and vibe-rules. Built from the ground up to work seamlessly with AI assistants."
+        ctaText="Learn More"
+        ctaLink="/docs/getting-started"
       >
         <template #code>
           <div class="language-typescript vp-adaptive-theme">
-            <pre><code><span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Worker</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">D1Database</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/cloudflare"</span><span style="color: #89ddff;">;</span>
-<span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Bucket</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">Queue</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/aws"</span><span style="color: #89ddff;">;</span>
-<span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Product</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">Price</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/stripe"</span><span style="color: #89ddff;">;</span>
+            <pre><code><span style="color: #676e95;">// llms.txt enables instant resource generation</span>
+<span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Resource</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy"</span><span style="color: #89ddff;">;</span>
 
-<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">storage</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Bucket</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"uploads"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span> 
-  <span style="color: #f07178;">bucketName</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"my-app-uploads"</span> 
-<span style="color: #89ddff;">});</span>
-
-<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">database</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">D1Database</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"main-db"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
-  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"production-database"</span>
-<span style="color: #89ddff;">});</span>
-
-<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">subscription</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Product</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"pro-plan"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
-  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"Pro Plan"</span><span style="color: #89ddff;">,</span>
-  <span style="color: #f07178;">description</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"Advanced features for power users"</span>
-<span style="color: #89ddff;">});</span></code></pre>
+<span style="color: #c792ea;">export</span> <span style="color: #c792ea;">const</span> <span style="color: #82aaff;">CustomResource</span> <span style="color: #89ddff;">=</span> <span style="color: #82aaff;">Resource</span><span style="color: #89ddff;">(</span>
+  <span style="color: #c3e88d;">"provider::resource"</span><span style="color: #89ddff;">,</span>
+  <span style="color: #c792ea;">async</span> <span style="color: #c792ea;">function</span> <span style="color: #89ddff;">(</span><span style="color: #f07178;">id</span><span style="color: #89ddff;">,</span> <span style="color: #f07178;">props</span><span style="color: #89ddff;">)</span> <span style="color: #89ddff;">{</span>
+    <span style="color: #676e95;">// AI generates this implementation</span>
+    <span style="color: #c792ea;">const</span> <span style="color: #82aaff;">resource</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">createResource</span><span style="color: #89ddff;">(</span><span style="color: #f07178;">props</span><span style="color: #89ddff;">);</span>
+    
+    <span style="color: #c792ea;">return</span> <span style="color: #89ddff;">{</span>
+      <span style="color: #f07178;">id</span><span style="color: #89ddff;">,</span>
+      <span style="color: #f07178;">urn</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">`provider::resource::${id}`</span><span style="color: #89ddff;">,</span>
+      <span style="color: #f07178;">resourceId</span><span style="color: #89ddff;">:</span> <span style="color: #82aaff;">resource</span><span style="color: #89ddff;">.</span><span style="color: #82aaff;">id</span>
+    <span style="color: #89ddff;">};</span>
+  <span style="color: #89ddff;">}</span>
+<span style="color: #89ddff;">);</span></code></pre>
           </div>
         </template>
       </FeatureItem>
 
-      <!-- Feature 3: Framework Integration (description-left, code-right) -->
+      <!-- Feature 3: Cloudflare Support (description-left, code-right) -->
       <FeatureItem
         :reverse="false"
-        title="Framework Integration"
-        description="First-class support for React, Vue, Astro, SvelteKit, and more. Deploy full-stack applications with just a few lines of code."
+        title="First-class Cloudflare Support"
+        description="Native Cloudflare integration without code generation. Get complete type safety between your infrastructure and runtime code."
+        ctaText="Try Cloudflare"
+        ctaLink="/docs/guides/cloudflare-worker"
+      >
+        <template #code>
+          <div class="language-typescript vp-adaptive-theme">
+            <pre><code><span style="color: #676e95;">// worker.ts - your runtime code</span>
+<span style="color: #c792ea;">import</span> <span style="color: #c792ea;">type</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">worker</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"../alchemy.run.ts"</span><span style="color: #89ddff;">;</span>
+
+<span style="color: #c792ea;">export</span> <span style="color: #c792ea;">default</span> <span style="color: #89ddff;">{</span>
+  <span style="color: #c792ea;">async</span> <span style="color: #82aaff;">fetch</span><span style="color: #89ddff;">(</span>
+    <span style="color: #f07178;">request</span><span style="color: #89ddff;">:</span> <span style="color: #f78c6c;">Request</span><span style="color: #89ddff;">,</span>
+    <span style="color: #f07178;">env</span><span style="color: #89ddff;">:</span> <span style="color: #c792ea;">typeof</span> <span style="color: #82aaff;">worker</span><span style="color: #89ddff;">.</span><span style="color: #f78c6c;">Env</span>
+  <span style="color: #89ddff;">)</span> <span style="color: #89ddff;">{</span>
+    <span style="color: #676e95;">// Full type safety for all bindings</span>
+    <span style="color: #c792ea;">const</span> <span style="color: #82aaff;">users</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">env</span><span style="color: #89ddff;">.</span><span style="color: #f78c6c;">DB</span><span style="color: #89ddff;">.</span><span style="color: #82aaff;">prepare</span><span style="color: #89ddff;">(</span>
+      <span style="color: #c3e88d;">"SELECT * FROM users"</span>
+    <span style="color: #89ddff;">).</span><span style="color: #82aaff;">all</span><span style="color: #89ddff;">();</span>
+    
+    <span style="color: #c792ea;">return</span> <span style="color: #82aaff;">Response</span><span style="color: #89ddff;">.</span><span style="color: #82aaff;">json</span><span style="color: #89ddff;">(</span><span style="color: #82aaff;">users</span><span style="color: #89ddff;">);</span>
+  <span style="color: #89ddff;">}</span>
+<span style="color: #89ddff;">};</span></code></pre>
+          </div>
+        </template>
+      </FeatureItem>
+
+      <!-- Feature 4: Web Framework Support (code-left, description-right) -->
+      <FeatureItem
+        :reverse="true"
+        title="Deploy Any Web Framework"
+        description="Deploy Vite, TanStack Start, Redwood, React Router, and more to Cloudflare with just a few lines. Full-stack apps made simple."
         ctaText="Try with Vite"
         ctaLink="/docs/guides/cloudflare-vitejs"
       >
         <template #code>
           <div class="language-typescript vp-adaptive-theme">
-            <pre><code><span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Worker</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">Website</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/cloudflare"</span><span style="color: #89ddff;">;</span>
+            <pre><code><span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Website</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">Worker</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/cloudflare"</span><span style="color: #89ddff;">;</span>
 
-<span style="color: #676e95;">// Deploy your Vite React app</span>
-<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">frontend</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Website</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"my-app"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
-  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"my-react-app"</span><span style="color: #89ddff;">,</span>
+<span style="color: #676e95;">// Deploy any web framework</span>
+<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">app</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Website</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"my-app"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
+  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"react-router-app"</span><span style="color: #89ddff;">,</span>
   <span style="color: #f07178;">buildCommand</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"npm run build"</span><span style="color: #89ddff;">,</span>
   <span style="color: #f07178;">buildOutput</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"./dist"</span>
 <span style="color: #89ddff;">});</span>
 
-<span style="color: #676e95;">// Add API endpoints</span>
+<span style="color: #676e95;">// Works with: Vite, TanStack Start,</span>
+<span style="color: #676e95;">// Redwood, Remix, SvelteKit, Astro</span>
 <span style="color: #c792ea;">const</span> <span style="color: #82aaff;">api</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Worker</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"api"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
-  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"my-api"</span><span style="color: #89ddff;">,</span>
-  <span style="color: #f07178;">entrypoint</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"./api/index.ts"</span><span style="color: #89ddff;">,</span>
-  <span style="color: #f07178;">routes</span><span style="color: #89ddff;">:</span> <span style="color: #89ddff;">[{</span> <span style="color: #f07178;">pattern</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"*/api/*"</span> <span style="color: #89ddff;">}]</span>
+  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"backend"</span><span style="color: #89ddff;">,</span>
+  <span style="color: #f07178;">entrypoint</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"./api/index.ts"</span>
 <span style="color: #89ddff;">});</span></code></pre>
-          </div>
-        </template>
-      </FeatureItem>
-
-      <!-- Feature 4: Zero-downtime (code-left, description-right) -->
-      <FeatureItem
-        :reverse="true"
-        title="Zero-downtime Deployments"
-        description="Deploy changes instantly with atomic updates. Your infrastructure changes are applied safely with automatic rollback on failures."
-        ctaText="Learn More"
-        ctaLink="/docs/guides/cloudflare-worker"
-      >
-        <template #code>
-          <div class="language-typescript vp-adaptive-theme">
-            <pre><code><span style="color: #676e95;">// Update your worker with zero downtime</span>
-<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">worker</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Worker</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"api"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
-  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"api-v2"</span><span style="color: #89ddff;">,</span>
-  <span style="color: #f07178;">entrypoint</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"./src/api-v2.ts"</span><span style="color: #89ddff;">,</span>
-  <span style="color: #f07178;">bindings</span><span style="color: #89ddff;">:</span> <span style="color: #89ddff;">{</span>
-    <span style="color: #f07178;">DATABASE</span><span style="color: #89ddff;">:</span> <span style="color: #82aaff;">database</span><span style="color: #89ddff;">,</span>
-    <span style="color: #f07178;">CACHE</span><span style="color: #89ddff;">:</span> <span style="color: #82aaff;">kvStore</span>
-  <span style="color: #89ddff;">}</span>
-<span style="color: #89ddff;">});</span>
-
-<span style="color: #676e95;">// Alchemy handles:</span>
-<span style="color: #676e95;">// ✓ Gradual traffic shifting</span>
-<span style="color: #676e95;">// ✓ Health checks</span>
-<span style="color: #676e95;">// ✓ Automatic rollback</span>
-<span style="color: #676e95;">// ✓ Atomic deployments</span></code></pre>
           </div>
         </template>
       </FeatureItem>
@@ -127,7 +128,7 @@ import FeatureItem from './FeatureItem.vue';
 
 <style scoped>
 .features-section {
-  padding: 6rem 0 4rem;
+  padding: 3rem 0 4rem;
   position: relative;
 }
 
