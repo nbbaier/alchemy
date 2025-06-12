@@ -1,0 +1,156 @@
+---
+order: 7
+title: CLI Arguments
+description: Learn how Alchemy automatically parses CLI arguments for common operations like destroy, read, quiet mode, and staging without requiring a traditional CLI tool.
+---
+
+# CLI Arguments
+
+Alchemy doesn't have a traditional CLI tool like `wrangler` or `terraform`. Instead, it provides automatic CLI argument parsing when you initialize an alchemy application, making it easy to run your infrastructure scripts with common options.
+
+## No CLI, but CLI Arguments
+
+Rather than building a separate CLI tool, Alchemy automatically parses CLI arguments when you call:
+
+```ts
+const app = await alchemy("my-app");
+```
+
+This design choice keeps Alchemy simple while still providing the convenience of CLI arguments for common operations.
+
+## Supported Arguments
+
+### Phase Control
+
+Control what phase your infrastructure script runs in:
+
+```sh
+# Deploy/update resources (default)
+bun ./alchemy.run
+
+# Read-only mode - doesn't modify resources
+bun ./alchemy.run --read
+
+# Destroy all resources
+bun ./alchemy.run --destroy
+```
+
+### Output Control
+
+Control logging output:
+
+```sh
+# Quiet mode - suppress Create/Update/Delete messages  
+bun ./alchemy.run --quiet
+```
+
+### Environment Control
+
+Specify which stage/environment to target:
+
+```sh
+# Deploy to a specific stage
+bun ./alchemy.run --stage production
+bun ./alchemy.run --stage staging
+bun ./alchemy.run --stage dev
+```
+
+### Secret Management
+
+Provide encryption password via environment variable:
+
+```sh
+# Set password for encrypting/decrypting secrets
+PASSWORD=my-secret-key bun ./alchemy.run
+```
+
+## How It Works
+
+When you call `alchemy("my-app")`, it automatically:
+
+1. Parses `process.argv` for supported arguments
+2. Merges CLI options with any explicit options you provide
+3. Explicit options always take precedence over CLI arguments
+
+```ts
+// CLI args are parsed automatically
+const app = await alchemy("my-app");
+
+// Explicit options override CLI args
+const app = await alchemy("my-app", {
+  phase: "up", // This overrides --destroy or --read
+  stage: "prod", // This overrides --stage
+  quiet: false, // This overrides --quiet
+});
+```
+
+## Environment Variables
+
+Alchemy also supports these environment variables:
+
+- `PASSWORD` - Password for encrypting/decrypting secrets
+- `ALCHEMY_PASSWORD` - Alternative to PASSWORD
+- `ALCHEMY_STAGE` - Default stage name
+- `USER` - Fallback for stage name (uses your username)
+
+## Complete Example
+
+Here's how you might use CLI arguments in practice:
+
+```ts
+// alchemy.run.ts
+import alchemy from "alchemy";
+import { Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("my-app");
+
+const worker = await Worker("api", {
+  script: "export default { fetch() { return new Response('Hello'); } }",
+});
+
+console.log({ url: worker.url });
+
+await app.finalize();
+```
+
+Deploy commands:
+
+::: code-group
+
+```sh [Deploy]
+bun ./alchemy.run
+```
+
+```sh [Deploy to Production]
+bun ./alchemy.run --stage production
+```
+
+```sh [Read-only Check]
+bun ./alchemy.run --read
+```
+
+```sh [Quiet Deploy]
+bun ./alchemy.run --quiet
+```
+
+```sh [Destroy Everything]
+bun ./alchemy.run --destroy
+```
+
+```sh [Deploy with Secrets]
+PASSWORD=my-secret-key bun ./alchemy.run
+```
+
+:::
+
+## Why No CLI Tool?
+
+Alchemy's approach has several advantages:
+
+- **Simplicity**: Your infrastructure is just a TypeScript script
+- **Type Safety**: Full TypeScript intellisense and error checking  
+- **Flexibility**: Easy to customize behavior with code
+- **Debugging**: Use any Node.js debugger or logging
+- **Integration**: Works naturally with existing build tools
+
+Instead of learning a new CLI syntax, you write TypeScript code that feels natural and integrates with your existing development workflow.
