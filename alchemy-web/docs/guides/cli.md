@@ -61,7 +61,7 @@ Provide encryption password via environment variable:
 
 ```sh
 # Set password for encrypting/decrypting secrets
-PASSWORD=my-secret-key bun ./alchemy.run
+ALCHEMY_PASSWORD=my-secret-key bun ./alchemy.run
 ```
 
 ## How It Works
@@ -88,8 +88,8 @@ const app = await alchemy("my-app", {
 
 Alchemy also supports these environment variables:
 
-- `PASSWORD` - Password for encrypting/decrypting secrets
-- `ALCHEMY_PASSWORD` - Alternative to PASSWORD
+- `ALCHEMY_PASSWORD` - Password for encrypting/decrypting secrets
+- `PASSWORD` - Alternative to ALCHEMY_PASSWORD (deprecated)
 - `ALCHEMY_STAGE` - Default stage name
 - `USER` - Fallback for stage name (uses your username)
 
@@ -138,7 +138,7 @@ bun ./alchemy.run --destroy
 ```
 
 ```sh [Deploy with Secrets]
-PASSWORD=my-secret-key bun ./alchemy.run
+ALCHEMY_PASSWORD=my-secret-key bun ./alchemy.run
 ```
 
 :::
