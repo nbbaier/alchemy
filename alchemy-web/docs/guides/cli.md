@@ -6,7 +6,7 @@ description: Learn how Alchemy automatically parses CLI arguments for common ope
 
 # CLI Arguments
 
-Alchemy doesn't have a traditional CLI tool like `wrangler` or `terraform`. Instead, it provides automatic CLI argument parsing when you initialize an alchemy application, making it easy to run your infrastructure scripts with common options.
+Alchemy doesn't have a traditional CLI tool like `wrangler` or `terraform` because it's designed to be an embeddable TypeScript library. Instead, it provides automatic CLI argument parsing when you initialize an alchemy application, making it easy to run your infrastructure scripts with common options.
 
 ## No CLI, but CLI Arguments
 
@@ -146,12 +146,3 @@ ALCHEMY_PASSWORD=my-secret-key bun ./alchemy.run
 
 :::
 
-## Why No CLI Tool?
-
-Alchemy's approach has several advantages:
-
-- **Simplicity**: Your infrastructure is just a TypeScript script
-- **Type Safety**: Full TypeScript intellisense and error checking  
-- **Flexibility**: Easy to customize behavior with code
-- **Debugging**: Use any Node.js debugger or logging
-- **Integration**: Works naturally with existing build tools
