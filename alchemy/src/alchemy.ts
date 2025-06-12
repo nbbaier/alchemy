@@ -17,6 +17,7 @@ import { secret } from "./secret.ts";
 import type { StateStoreType } from "./state.ts";
 import { logger } from "./util/logger.ts";
 import { TelemetryClient } from "./util/telemetry/client.ts";
+import type { LoggerApi } from "./util/cli.ts";
 
 /**
  * Parses CLI arguments to extract alchemy options
@@ -364,6 +365,11 @@ export interface AlchemyOptions {
    * @default true
    */
   telemetry?: boolean;
+  /**
+   * A custom logger instance to use for this scope.
+   * If not provided, the default fallback logger will be used.
+   */
+  logger?: LoggerApi;
 }
 
 export interface ScopeOptions extends AlchemyOptions {
