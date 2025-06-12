@@ -141,24 +141,28 @@ await app.finalize(); // Manual finalization
 
 ### Child Scope Finalization
 
-Child scopes (created via `alchemy.run()` or as resource scopes) **do not finalize immediately** when their execution completes. Instead, they wait for the root application scope to finalize them:
+Child scopes (created via `alchemy.run()` or as resource scopes) **never finalize on their own**. When `alchemy.run()` completes, the scope remains active and its resources are preserved. Child scopes are only finalized when the root application scope finalizes:
 
 ```typescript
 const app = await alchemy("my-app");
 
 await alchemy.run("backend", async () => {
   await ApiGateway("api", {});
-  // This scope will NOT finalize here
+  // When this function completes, the scope is NOT finalized
+  // Resources remain active and in state
 });
+
+// The backend scope and its resources are still active here
 
 // Child scopes only finalize when the root scope finalizes
 await app.finalize(); // This finalizes all child scopes
 ```
 
-This delayed finalization ensures:
+This behavior ensures:
 
 - Resources marked for replacement aren't cleaned up prematurely
 - All resources have a chance to complete their lifecycle
+- Resources remain available throughout the application's lifetime
 - Cleanup happens in the correct order (replaced resources first, then orphans)
 
 ### Finalization Order

@@ -145,6 +145,8 @@ describe("Resource Replacement", () => {
     const app = await alchemy(`${BRANCH_PREFIX}-nested-finalize-test`);
     let childFinalized = false;
     let parentFinalized = false;
+    let childFinalizeCount = 0;
+    let parentFinalizeCount = 0;
     
     try {
       await alchemy.run("parent", async (parentScope) => {
@@ -157,16 +159,18 @@ describe("Resource Replacement", () => {
           
           // Override finalize to track when it's called
           const originalFinalize = childScope.finalize.bind(childScope);
-          childScope.finalize = async () => {
-            await originalFinalize();
+          childScope.finalize = async (fromParent?: boolean) => {
+            childFinalizeCount++;
+            await originalFinalize(fromParent);
             childFinalized = true;
           };
         });
         
         // Override parent finalize to track when it's called
         const originalFinalize = parentScope.finalize.bind(parentScope);
-        parentScope.finalize = async () => {
-          await originalFinalize();
+        parentScope.finalize = async (fromParent?: boolean) => {
+          parentFinalizeCount++;
+          await originalFinalize(fromParent);
           parentFinalized = true;
         };
       });
@@ -174,6 +178,8 @@ describe("Resource Replacement", () => {
       // After alchemy.run completes, child scopes should not be finalized
       expect(childFinalized).toBe(false);
       expect(parentFinalized).toBe(false);
+      expect(childFinalizeCount).toBe(0);
+      expect(parentFinalizeCount).toBe(0);
       
       // Finalize the app - this should finalize all scopes
       await app.finalize();
@@ -181,6 +187,9 @@ describe("Resource Replacement", () => {
       // Now all scopes should be finalized
       expect(childFinalized).toBe(true);
       expect(parentFinalized).toBe(true);
+      // Each scope should only be finalized once
+      expect(childFinalizeCount).toBe(1);
+      expect(parentFinalizeCount).toBe(1);
     } catch (error) {
       await app.finalize();
       throw error;
@@ -242,6 +251,45 @@ describe("Resource Replacement", () => {
       
       // Scopes should be finalized in LIFO order (third, second, first)
       expect(finalizationOrder).toEqual(["third", "second", "first"]);
+    } catch (error) {
+      await app.finalize();
+      throw error;
+    }
+  });
+
+  test("alchemy.run should not finalize scopes", async () => {
+    const app = await alchemy(`${BRANCH_PREFIX}-no-auto-finalize-test`);
+    let scopeFinalized = false;
+    
+    try {
+      // Create a scope with alchemy.run
+      await alchemy.run("test-scope", async (scope) => {
+        // Create a resource
+        await TestResource("test-resource", {
+          value: "test",
+        });
+        
+        // Override finalize to track if it's called
+        const originalFinalize = scope.finalize.bind(scope);
+        scope.finalize = async (fromParent?: boolean) => {
+          scopeFinalized = true;
+          await originalFinalize(fromParent);
+        };
+      });
+      
+      // After alchemy.run completes, the scope should NOT be finalized
+      expect(scopeFinalized).toBe(false);
+      
+      // Verify the resource still exists in state (not cleaned up)
+      const state = await app.state.get("test-scope/test-resource");
+      expect(state).toBeDefined();
+      expect(state?.output).toBeDefined();
+      
+      // Now finalize the app
+      await app.finalize();
+      
+      // Now the scope should be finalized
+      expect(scopeFinalized).toBe(true);
     } catch (error) {
       await app.finalize();
       throw error;

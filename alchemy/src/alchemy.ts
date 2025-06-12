@@ -354,17 +354,10 @@ async function run<T>(
           RunOptions,
           (this: Scope, scope: Scope) => Promise<T>,
         ]);
-  const telemetryClient =
-    options?.parent?.telemetryClient ??
-    TelemetryClient.create({
-      phase: isRuntime ? "read" : (options?.phase ?? "up"),
-      enabled: options?.telemetry ?? true,
-      quiet: options?.quiet ?? false,
-    });
+
   const _scope = new Scope({
     ...options,
     scopeName: id,
-    telemetryClient,
   });
   try {
     if (options?.isResource !== true && _scope.parent) {
@@ -406,7 +399,5 @@ async function run<T>(
       _scope.fail();
     }
     throw error;
-  } finally {
-    await _scope.finalize();
   }
 }
