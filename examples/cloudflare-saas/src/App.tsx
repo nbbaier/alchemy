@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { apiCall } from './auth/auth.api';
-import LoginPage from './auth/LoginPage';
-import Dashboard from './users/Dashboard';
+import { apiCall } from './lib/api';
+import Dashboard from './pages/Dashboard';
+import LoginPage from './pages/LoginPage';
 import type { User } from './users/user';
 
 interface SessionResponse {

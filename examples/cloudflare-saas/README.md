@@ -8,7 +8,7 @@ This example demonstrates a multi-tenant SaaS architecture using:
 - **Drizzle ORM** with SQLite for user-specific schemas
 - **Vite + React** for the frontend
 
-## Project Structure (Domain-Driven Design)
+## Project Structure
 
 ```
 examples/cloudflare-saas/
@@ -17,16 +17,20 @@ examples/cloudflare-saas/
 │   ├── main.tsx              # Client entry point
 │   ├── App.tsx               # Root React component
 │   ├── index.css             # Global styles
-│   ├── auth/                 # Authentication domain
-│   │   ├── auth.api.ts       # Auth API utilities
-│   │   └── LoginPage.tsx     # Login component
-│   ├── users/                # Users domain
+│   │
+│   ├── pages/                # Page components
+│   │   ├── LoginPage.tsx     # Login page
+│   │   └── Dashboard.tsx     # User dashboard page
+│   ├── components/           # Reusable UI components
+│   ├── lib/                  # Frontend utilities
+│   │   └── api.ts            # API client utilities
+│   │
+│   ├── users/                # Users domain (backend)
 │   │   ├── user.ts           # User types and interfaces
-│   │   ├── users.object.ts   # Users Durable Object
-│   │   └── Dashboard.tsx     # User dashboard component
-│   ├── todos/                # Todos domain
+│   │   └── users.object.ts   # Users Durable Object
+│   ├── todos/                # Todos domain (backend)
 │   │   └── todo.ts           # Todo types and schema
-│   └── notes/                # Notes domain
+│   └── notes/                # Notes domain (backend)
 │       └── note.ts           # Note types and schema
 ├── alchemy.run.ts            # Infrastructure as code
 ├── index.html                # Vite entry HTML
@@ -45,16 +49,23 @@ examples/cloudflare-saas/
    - Complete data isolation
 3. **Frontend**: React app served by Vite with hot module replacement
 
-## Domain Organization
+## Code Organization
 
-The codebase follows Domain-Driven Design principles:
+The codebase uses a hybrid organization approach:
 
-- **auth/**: Contains authentication logic, API utilities, and login UI
-- **users/**: User-related logic including the Durable Object and dashboard
-- **todos/**: Todo entity definition and database schema
-- **notes/**: Note entity definition and database schema
+### Frontend (UI Layer)
 
-Each domain is self-contained with its own types, schemas, and components.
+- **pages/**: Page-level components (LoginPage, Dashboard)
+- **components/**: Reusable UI components
+- **lib/**: Frontend utilities and API client
+
+### Backend (Domain Layer)
+
+- **users/**: User domain with types and Durable Object
+- **todos/**: Todo entity types and database schema
+- **notes/**: Note entity types and database schema
+
+This separation allows UI components to easily work across multiple domains while keeping backend logic organized by business concepts.
 
 ## Setup
 
@@ -246,19 +257,24 @@ npm run deploy
 
 ## Extending the Example
 
-### Adding New Domains
+### Adding New Backend Domains
 
 1. Create a new domain folder (e.g., `src/projects/`)
 2. Define types and schema in `projects/project.ts`
 3. Add schema initialization in `users/users.object.ts`
 4. Implement CRUD routes in the Durable Object
-5. Create UI components in the domain folder
+
+### Adding New UI Pages
+
+1. Create a new page component in `src/pages/`
+2. Add routing logic in `App.tsx`
+3. Import domain types as needed
 
 ### Adding New Auth Providers
 
 1. Configure provider in Better Auth setup
 2. Add OAuth app credentials
-3. Add login button to `auth/LoginPage.tsx`
+3. Add login button to `pages/LoginPage.tsx`
 
 ### Custom Business Logic
 

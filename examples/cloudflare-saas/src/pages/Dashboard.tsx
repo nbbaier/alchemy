@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { apiCall, ApiException } from '../auth/auth.api';
+import { apiCall, ApiException } from '../lib/api';
 import type { Note } from '../notes/note';
 import type { Todo } from '../todos/todo';
-import type { User, UserData } from './user';
+import type { User, UserData } from '../users/user';
 
 interface DashboardProps {
   user: User;
