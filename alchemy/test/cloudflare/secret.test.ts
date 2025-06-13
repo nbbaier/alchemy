@@ -14,8 +14,8 @@ const test = alchemy.test(import.meta, {
 
 describe("Secret Resource", () => {
   test("create and delete secret in store", async (scope) => {
-    // Generate random secret name to avoid conflicts in parallel test execution
-    const secretName = `${BRANCH_PREFIX}-test-secret-${Math.floor(Math.random() * 10000)}`;
+    // Use deterministic secret name unique to this test
+    const secretName = `${BRANCH_PREFIX}-secret-basic`;
     let secretsStore: SecretsStore | undefined;
     let secretResource: Secret | undefined;
 
@@ -50,8 +50,8 @@ describe("Secret Resource", () => {
   });
 
   test("create secret with string value", async (scope) => {
-    // Generate random secret name to avoid conflicts in parallel test execution
-    const secretName = `${BRANCH_PREFIX}-test-secret-string-${Math.floor(Math.random() * 10000)}`;
+    // Use deterministic secret name unique to this test
+    const secretName = `${BRANCH_PREFIX}-secret-string`;
     let secretsStore: SecretsStore | undefined;
     let secretResource: Secret | undefined;
 
@@ -83,8 +83,8 @@ describe("Secret Resource", () => {
   });
 
   test("update secret value", async (scope) => {
-    // Generate random secret name to avoid conflicts in parallel test execution
-    const secretName = `${BRANCH_PREFIX}-test-secret-update-${Math.floor(Math.random() * 10000)}`;
+    // Use deterministic secret name unique to this test
+    const secretName = `${BRANCH_PREFIX}-secret-update`;
     let secretsStore: SecretsStore | undefined;
     let secretResource: Secret | undefined;
 
@@ -122,8 +122,8 @@ describe("Secret Resource", () => {
   });
 
   test("create secret with delete false", async (scope) => {
-    // Generate random secret name to avoid conflicts in parallel test execution
-    const secretName = `${BRANCH_PREFIX}-test-secret-preserve-${Math.floor(Math.random() * 10000)}`;
+    // Use deterministic secret name unique to this test
+    const secretName = `${BRANCH_PREFIX}-secret-preserve`;
     let secretsStore: SecretsStore | undefined;
     let secretResource: Secret | undefined;
 
