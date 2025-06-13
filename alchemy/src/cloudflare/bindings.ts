@@ -303,8 +303,8 @@ export interface WorkerBindingSecretText {
 export interface WorkerBindingSecretsStore {
   /** The name of the binding */
   name: string;
-  /** Type identifier for Secrets Store binding */
-  type: "secrets_store";
+  /** Type identifier for Secrets Store Secret binding */
+  type: "secrets_store_secret";
   /** Store ID */
   store_id: string;
   /** Secret name */
