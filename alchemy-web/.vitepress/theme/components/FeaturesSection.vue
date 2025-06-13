@@ -128,7 +128,7 @@ import FeatureItem from './FeatureItem.vue';
 
 <style scoped>
 .features-section {
-  padding: 3rem 0 4rem;
+  padding: 4.5rem 0 4rem;
   position: relative;
 }
 
