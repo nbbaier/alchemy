@@ -11,6 +11,7 @@ import {
   type CloudflareApiOptions,
 } from "./api.ts";
 import type { SecretsStore } from "./secrets-store.ts";
+import { listSecrets } from "./secrets-store.ts";
 
 /**
  * Properties for creating or updating a Secret in a Secrets Store (internal interface)
@@ -216,6 +217,16 @@ export async function insertSecret(
   secretName: string,
   secretValue: AlchemySecret,
 ): Promise<void> {
+  // Check if the secret already exists
+  const existingSecrets = await listSecrets(api, storeId);
+  const secretExists = existingSecrets.includes(secretName);
+
+  if (secretExists) {
+    // Secret exists - update it by deleting and recreating
+    await deleteSecret(api, storeId, secretName);
+  }
+
+  // Create the secret (either new or replacing the deleted one)
   const response = await api.post(
     `/accounts/${api.accountId}/secrets_store/stores/${storeId}/secrets`,
     [
