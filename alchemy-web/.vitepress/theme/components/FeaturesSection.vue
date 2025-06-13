@@ -12,21 +12,23 @@
         ctaLink="/docs/getting-started"
       >
         <template #code>
-          <div class="language-typescript vp-adaptive-theme">
-            <pre><code><span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">D1Database</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">Worker</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/cloudflare"</span><span style="color: #89ddff;">;</span>
-<span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Product</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">Customer</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/stripe"</span><span style="color: #89ddff;">;</span>
 
-<span style="color: #676e95;">// Type-safe resource definitions</span>
-<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">database</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">D1Database</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"app-db"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
-  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"my-application-database"</span>
-<span style="color: #89ddff;">});</span>
+```typescript
+import { D1Database, Worker } from "alchemy/cloudflare";
+import { Product, Customer } from "alchemy/stripe";
 
-<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">api</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Worker</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"api-server"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
-  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"api"</span><span style="color: #89ddff;">,</span>
-  <span style="color: #f07178;">bindings</span><span style="color: #89ddff;">:</span> <span style="color: #89ddff;">{</span> <span style="color: #f07178;">DB</span><span style="color: #89ddff;">:</span> <span style="color: #82aaff;">database</span> <span style="color: #89ddff;">},</span>
-  <span style="color: #f07178;">entrypoint</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"./src/api.ts"</span>
-<span style="color: #89ddff;">});</span></code></pre>
-          </div>
+// Type-safe resource definitions
+const database = await D1Database("app-db", {
+  name: "my-application-database"
+});
+
+const api = await Worker("api-server", {
+  name: "api",
+  bindings: { DB: database },
+  entrypoint: "./src/api.ts"
+});
+```
+
         </template>
       </FeatureItem>
 
@@ -39,24 +41,26 @@
         ctaLink="/docs/getting-started"
       >
         <template #code>
-          <div class="language-typescript vp-adaptive-theme">
-            <pre><code><span style="color: #676e95;">// llms.txt enables instant resource generation</span>
-<span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Resource</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy"</span><span style="color: #89ddff;">;</span>
 
-<span style="color: #c792ea;">export</span> <span style="color: #c792ea;">const</span> <span style="color: #82aaff;">CustomResource</span> <span style="color: #89ddff;">=</span> <span style="color: #82aaff;">Resource</span><span style="color: #89ddff;">(</span>
-  <span style="color: #c3e88d;">"provider::resource"</span><span style="color: #89ddff;">,</span>
-  <span style="color: #c792ea;">async</span> <span style="color: #c792ea;">function</span> <span style="color: #89ddff;">(</span><span style="color: #f07178;">id</span><span style="color: #89ddff;">,</span> <span style="color: #f07178;">props</span><span style="color: #89ddff;">)</span> <span style="color: #89ddff;">{</span>
-    <span style="color: #676e95;">// AI generates this implementation</span>
-    <span style="color: #c792ea;">const</span> <span style="color: #82aaff;">resource</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">createResource</span><span style="color: #89ddff;">(</span><span style="color: #f07178;">props</span><span style="color: #89ddff;">);</span>
+```typescript
+// llms.txt enables instant resource generation
+import { Resource } from "alchemy";
+
+export const CustomResource = Resource(
+  "provider::resource",
+  async function (id, props) {
+    // AI generates this implementation
+    const resource = await createResource(props);
     
-    <span style="color: #c792ea;">return</span> <span style="color: #89ddff;">{</span>
-      <span style="color: #f07178;">id</span><span style="color: #89ddff;">,</span>
-      <span style="color: #f07178;">urn</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">`provider::resource::${id}`</span><span style="color: #89ddff;">,</span>
-      <span style="color: #f07178;">resourceId</span><span style="color: #89ddff;">:</span> <span style="color: #82aaff;">resource</span><span style="color: #89ddff;">.</span><span style="color: #82aaff;">id</span>
-    <span style="color: #89ddff;">};</span>
-  <span style="color: #89ddff;">}</span>
-<span style="color: #89ddff;">);</span></code></pre>
-          </div>
+    return {
+      id,
+      urn: `provider::resource::${id}`,
+      resourceId: resource.id
+    };
+  }
+);
+```
+
         </template>
       </FeatureItem>
 
@@ -69,24 +73,26 @@
         ctaLink="/docs/guides/cloudflare-worker"
       >
         <template #code>
-          <div class="language-typescript vp-adaptive-theme">
-            <pre><code><span style="color: #676e95;">// worker.ts - your runtime code</span>
-<span style="color: #c792ea;">import</span> <span style="color: #c792ea;">type</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">worker</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"../alchemy.run.ts"</span><span style="color: #89ddff;">;</span>
 
-<span style="color: #c792ea;">export</span> <span style="color: #c792ea;">default</span> <span style="color: #89ddff;">{</span>
-  <span style="color: #c792ea;">async</span> <span style="color: #82aaff;">fetch</span><span style="color: #89ddff;">(</span>
-    <span style="color: #f07178;">request</span><span style="color: #89ddff;">:</span> <span style="color: #f78c6c;">Request</span><span style="color: #89ddff;">,</span>
-    <span style="color: #f07178;">env</span><span style="color: #89ddff;">:</span> <span style="color: #c792ea;">typeof</span> <span style="color: #82aaff;">worker</span><span style="color: #89ddff;">.</span><span style="color: #f78c6c;">Env</span>
-  <span style="color: #89ddff;">)</span> <span style="color: #89ddff;">{</span>
-    <span style="color: #676e95;">// Full type safety for all bindings</span>
-    <span style="color: #c792ea;">const</span> <span style="color: #82aaff;">users</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">env</span><span style="color: #89ddff;">.</span><span style="color: #f78c6c;">DB</span><span style="color: #89ddff;">.</span><span style="color: #82aaff;">prepare</span><span style="color: #89ddff;">(</span>
-      <span style="color: #c3e88d;">"SELECT * FROM users"</span>
-    <span style="color: #89ddff;">).</span><span style="color: #82aaff;">all</span><span style="color: #89ddff;">();</span>
+```typescript
+// worker.ts - your runtime code
+import type { worker } from "../alchemy.run.ts";
+
+export default {
+  async fetch(
+    request: Request,
+    env: typeof worker.Env
+  ) {
+    // Full type safety for all bindings
+    const users = await env.DB.prepare(
+      "SELECT * FROM users"
+    ).all();
     
-    <span style="color: #c792ea;">return</span> <span style="color: #82aaff;">Response</span><span style="color: #89ddff;">.</span><span style="color: #82aaff;">json</span><span style="color: #89ddff;">(</span><span style="color: #82aaff;">users</span><span style="color: #89ddff;">);</span>
-  <span style="color: #89ddff;">}</span>
-<span style="color: #89ddff;">};</span></code></pre>
-          </div>
+    return Response.json(users);
+  }
+};
+```
+
         </template>
       </FeatureItem>
 
@@ -99,23 +105,25 @@
         ctaLink="/docs/guides/cloudflare-vitejs"
       >
         <template #code>
-          <div class="language-typescript vp-adaptive-theme">
-            <pre><code><span style="color: #c792ea;">import</span> <span style="color: #89ddff;">{</span> <span style="color: #f78c6c;">Website</span><span style="color: #89ddff;">,</span> <span style="color: #f78c6c;">Worker</span> <span style="color: #89ddff;">}</span> <span style="color: #c792ea;">from</span> <span style="color: #c3e88d;">"alchemy/cloudflare"</span><span style="color: #89ddff;">;</span>
 
-<span style="color: #676e95;">// Deploy any web framework</span>
-<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">app</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Website</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"my-app"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
-  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"react-router-app"</span><span style="color: #89ddff;">,</span>
-  <span style="color: #f07178;">buildCommand</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"npm run build"</span><span style="color: #89ddff;">,</span>
-  <span style="color: #f07178;">buildOutput</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"./dist"</span>
-<span style="color: #89ddff;">});</span>
+```typescript
+import { Website, Worker } from "alchemy/cloudflare";
 
-<span style="color: #676e95;">// Works with: Vite, TanStack Start,</span>
-<span style="color: #676e95;">// Redwood, Remix, SvelteKit, Astro</span>
-<span style="color: #c792ea;">const</span> <span style="color: #82aaff;">api</span> <span style="color: #89ddff;">=</span> <span style="color: #c792ea;">await</span> <span style="color: #82aaff;">Worker</span><span style="color: #89ddff;">(</span><span style="color: #c3e88d;">"api"</span><span style="color: #89ddff;">,</span> <span style="color: #89ddff;">{</span>
-  <span style="color: #f07178;">name</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"backend"</span><span style="color: #89ddff;">,</span>
-  <span style="color: #f07178;">entrypoint</span><span style="color: #89ddff;">:</span> <span style="color: #c3e88d;">"./api/index.ts"</span>
-<span style="color: #89ddff;">});</span></code></pre>
-          </div>
+// Deploy any web framework
+const app = await Website("my-app", {
+  name: "react-router-app",
+  buildCommand: "npm run build",
+  buildOutput: "./dist"
+});
+
+// Works with: Vite, TanStack Start,
+// Redwood, Remix, SvelteKit, Astro
+const api = await Worker("api", {
+  name: "backend",
+  entrypoint: "./api/index.ts"
+});
+```
+
         </template>
       </FeatureItem>
     </div>
