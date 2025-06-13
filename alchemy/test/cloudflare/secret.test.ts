@@ -12,86 +12,91 @@ const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
 });
 
-// skip because Cloudflare only allows one Secret Store per account ...
-describe.skip("Secret Resource", () => {
-  const testId = `${BRANCH_PREFIX}-test-secret`;
-  const storeId = `${BRANCH_PREFIX}-test-secret-store`;
-
+describe("Secret Resource", () => {
   test("create and delete secret in store", async (scope) => {
+    // Generate random secret name to avoid conflicts in parallel test execution
+    const secretName = `${BRANCH_PREFIX}-test-secret-${Math.floor(Math.random() * 10000)}`;
     let secretsStore: SecretsStore | undefined;
     let secretResource: Secret | undefined;
 
     try {
-      // First create a secrets store
-      secretsStore = await SecretsStore(storeId, {
-        name: `${BRANCH_PREFIX}-test-store-for-secret`,
+      // Adopt the default secrets store
+      secretsStore = await SecretsStore("secret-store", {
+        adopt: true,
+        name: "default_secrets_store",
       });
 
       expect(secretsStore).toBeTruthy();
 
       // Create a secret in the store
-      secretResource = await Secret(testId, {
+      secretResource = await Secret(secretName, {
         store: secretsStore,
         value: secret("test-secret-value"),
       });
 
       expect(secretResource).toBeTruthy();
-      expect(secretResource!.name).toEqual(testId);
+      expect(secretResource!.name).toEqual(secretName);
       expect(secretResource!.storeId).toEqual(secretsStore!.id);
       expect(secretResource!.value.unencrypted).toEqual("test-secret-value");
 
       // Verify the secret exists in the store
-      await assertSecretExists(secretsStore!.id, testId);
+      await assertSecretExists(secretsStore!.id, secretName);
     } finally {
       await alchemy.destroy(scope);
       if (secretsStore && secretResource) {
-        await assertSecretNotExists(secretsStore.id, testId);
+        await assertSecretNotExists(secretsStore.id, secretName);
       }
     }
   });
 
   test("create secret with string value", async (scope) => {
+    // Generate random secret name to avoid conflicts in parallel test execution
+    const secretName = `${BRANCH_PREFIX}-test-secret-string-${Math.floor(Math.random() * 10000)}`;
     let secretsStore: SecretsStore | undefined;
     let secretResource: Secret | undefined;
 
     try {
-      // First create a secrets store
-      secretsStore = await SecretsStore(`${storeId}-string`, {
-        name: `${BRANCH_PREFIX}-test-store-string`,
+      // Adopt the default secrets store
+      secretsStore = await SecretsStore("secret-store", {
+        adopt: true,
+        name: "default_secrets_store",
       });
 
       // Create a secret with string value (should be converted to Secret)
-      secretResource = await Secret(`${testId}-string`, {
+      secretResource = await Secret(secretName, {
         store: secretsStore,
         value: "plain-string-value",
       });
 
       expect(secretResource).toBeTruthy();
-      expect(secretResource!.name).toEqual(`${testId}-string`);
+      expect(secretResource!.name).toEqual(secretName);
       expect(secretResource!.value.unencrypted).toEqual("plain-string-value");
 
       // Verify the secret exists in the store
-      await assertSecretExists(secretsStore!.id, `${testId}-string`);
+      await assertSecretExists(secretsStore!.id, secretName);
     } finally {
       await alchemy.destroy(scope);
       if (secretsStore && secretResource) {
-        await assertSecretNotExists(secretsStore.id, `${testId}-string`);
+        await assertSecretNotExists(secretsStore.id, secretName);
       }
     }
   });
 
   test("update secret value", async (scope) => {
+    // Generate random secret name to avoid conflicts in parallel test execution
+    const secretName = `${BRANCH_PREFIX}-test-secret-update-${Math.floor(Math.random() * 10000)}`;
     let secretsStore: SecretsStore | undefined;
     let secretResource: Secret | undefined;
 
     try {
-      // First create a secrets store
-      secretsStore = await SecretsStore(`${storeId}-update`, {
-        name: `${BRANCH_PREFIX}-test-store-update`,
+      // Adopt the default secrets store
+      secretsStore = await SecretsStore("secret-store", {
+        adopt: true,
+        name: "default_secrets_store",
       });
 
       // Create initial secret
-      secretResource = await Secret(`${testId}-update`, {
+      secretResource = await Secret(secretName, {
         store: secretsStore,
         value: secret("initial-value"),
       });
@@ -99,7 +104,7 @@ describe.skip("Secret Resource", () => {
       expect(secretResource!.value.unencrypted).toEqual("initial-value");
 
       // Update the secret value
-      secretResource = await Secret(`${testId}-update`, {
+      secretResource = await Secret(secretName, {
         store: secretsStore,
         value: secret("updated-value"),
       });
@@ -107,28 +112,31 @@ describe.skip("Secret Resource", () => {
       expect(secretResource!.value.unencrypted).toEqual("updated-value");
 
       // Verify the secret exists with updated value
-      await assertSecretExists(secretsStore!.id, `${testId}-update`);
+      await assertSecretExists(secretsStore!.id, secretName);
     } finally {
       await alchemy.destroy(scope);
       if (secretsStore && secretResource) {
-        await assertSecretNotExists(secretsStore.id, `${testId}-update`);
+        await assertSecretNotExists(secretsStore.id, secretName);
       }
     }
   });
 
   test("create secret with delete false", async (scope) => {
+    // Generate random secret name to avoid conflicts in parallel test execution
+    const secretName = `${BRANCH_PREFIX}-test-secret-preserve-${Math.floor(Math.random() * 10000)}`;
     let secretsStore: SecretsStore | undefined;
     let secretResource: Secret | undefined;
 
     try {
-      // First create a secrets store
-      secretsStore = await SecretsStore(`${storeId}-preserve`, {
-        name: `${BRANCH_PREFIX}-test-store-preserve`,
+      // Adopt the default secrets store
+      secretsStore = await SecretsStore("secret-store", {
+        adopt: true,
+        name: "default_secrets_store",
       });
 
       await alchemy.run("nested", async (scope) => {
         // Create a secret with delete: false
-        secretResource = await Secret(`${testId}-preserve`, {
+        secretResource = await Secret(secretName, {
           store: secretsStore!,
           value: secret("preserved-value"),
           delete: false,
@@ -138,7 +146,7 @@ describe.skip("Secret Resource", () => {
         await alchemy.destroy(scope);
 
         // Secret should still exist after destroying the scope
-        await assertSecretExists(secretsStore!.id, `${testId}-preserve`);
+        await assertSecretExists(secretsStore!.id, secretName);
       });
     } finally {
       await alchemy.destroy(scope);
@@ -148,7 +156,7 @@ describe.skip("Secret Resource", () => {
         await api.delete(
           `/accounts/${api.accountId}/secrets_store/stores/${secretsStore.id}/secrets`,
           {
-            body: JSON.stringify([`${testId}-preserve`]),
+            body: JSON.stringify([secretName]),
             headers: {
               "Content-Type": "application/json",
             },
