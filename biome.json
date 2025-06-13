@@ -1,33 +1,29 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.0.0-beta.5/schema.json",
   "files": {
-    "includes": [
-      "./**/package.json",
-      "./**/biome.json",
-      "./alchemy/src/**/*.ts",
-      "./alchemy/src/**/*.tsx",
-      "./alchemy/src/**/*.js",
-      "./alchemy/test/**/*.ts",
-      "./alchemy-web/.vitepress/**/*.ts",
-      "./scripts/**/*.ts",
-      "./stacks/**/*.ts",
-      "./examples/*/src/**/*.ts",
-      "./examples/*/*.ts",
-      "!**/node_modules",
-      "!examples/cloudflare-tanstack-start/src/routeTree.gen.ts",
-      "!examples/cloudflare-redwood/worker-configuration.d.ts",
-      "!./alchemy/src/aws/control/types.d.ts",
-      "!examples/cloudflare-tanstack-start/.output/**",
-      "!examples/cloudflare-nuxt-pipeline/.output/**"
+    "include": [
+      "**/*.json",
+      "alchemy/src/**/*.ts",
+      "alchemy/src/**/*.tsx", 
+      "alchemy/src/**/*.js",
+      "alchemy/test/**/*.ts",
+      "alchemy-web/.vitepress/**/*.ts",
+      "scripts/**/*.ts",
+      "stacks/**/*.ts",
+      "examples/*/src/**/*.ts",
+      "examples/*/*.ts"
+    ],
+    "ignore": [
+      "node_modules",
+      "examples/cloudflare-tanstack-start/src/routeTree.gen.ts",
+      "examples/cloudflare-redwood/worker-configuration.d.ts",
+      "alchemy/src/aws/control/types.d.ts",
+      "examples/cloudflare-tanstack-start/.output",
+      "examples/cloudflare-nuxt-pipeline/.output",
+      "alchemy/src/cloudflare/workerd/default.ts",
+      "alchemy/src/cloudflare/workerd/default.d.ts"
     ],
     "maxSize": 10000000
-  },
-  "assist": {
-    "actions": {
-      "source": {
-        "organizeImports": "off"
-      }
-    }
   },
   "linter": {
     "enabled": true,
@@ -35,10 +31,7 @@
       "recommended": true,
       "correctness": {
         "useImportExtensions": {
-          "level": "error",
-          "options": {
-            "forceJsExtensions": false
-          }
+          "level": "error"
         },
         "noUnsafeFinally": "off",
         "noChildrenProp": "off"
@@ -91,7 +84,7 @@
     "indentWidth": 2,
     "lineWidth": 80,
     "lineEnding": "lf",
-    "includes": ["**", "!**/node_modules/**", "!**/*.d.ts"]
+    "include": ["**"]
   },
   "javascript": {
     "formatter": {
