@@ -75,6 +75,11 @@ export interface Secret
   extends Resource<"cloudflare::Secret">,
     Omit<_SecretProps, "delete"> {
   /**
+   * The binding type for Cloudflare Workers
+   */
+  type: "secret";
+
+  /**
    * The name of the secret
    */
   name: string;
@@ -126,16 +131,17 @@ export interface Secret
  * });
  *
  * @example
- * // Use in a Worker binding
+ * // Use individual secrets as Worker bindings
  * const worker = await Worker("my-worker", {
  *   bindings: {
- *     SECRETS: store
+ *     API_KEY: apiKey,
+ *     DATABASE_URL: dbUrl
  *   },
  *   code: `
  *     export default {
  *       async fetch(request, env) {
- *         const apiKey = await env.SECRETS.get("api-key");
- *         const dbUrl = await env.SECRETS.get("database-url");
+ *         const apiKey = env.API_KEY;
+ *         const dbUrl = env.DATABASE_URL;
  *         return new Response(\`API: \${apiKey ? "set" : "unset"}\`);
  *       }
  *     }
@@ -190,6 +196,7 @@ const _Secret = Resource(
     await insertSecret(api, props.store.id, name, props.value);
 
     return this({
+      type: "secret",
       name,
       storeId: props.store.id,
       store: props.store,
