@@ -345,7 +345,7 @@ export async function insertSecrets<
       const bulkPayload = batch.map(([name, secretValue]) => ({
         name,
         value: (secretValue as Secret).unencrypted,
-        scopes: ["worker"],
+        scopes: ["workers"],
       }));
 
       const bulkResponse = await api.post(

@@ -215,7 +215,7 @@ export async function insertSecret(
       {
         name: secretName,
         value: secretValue.unencrypted,
-        scopes: ["worker"],
+        scopes: ["workers"],
       },
     ],
   );
