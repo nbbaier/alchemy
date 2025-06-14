@@ -7,7 +7,6 @@ import { isRuntime } from "../runtime/global.ts";
 import { bootstrapPlugin } from "../runtime/plugin.ts";
 import { Scope } from "../scope.ts";
 import { Secret, secret } from "../secret.ts";
-import { isSecret } from "./secret.ts";
 import { serializeScope } from "../serde.ts";
 import type { type } from "../type.ts";
 import { getContentType } from "../util/content-type.ts";
@@ -656,7 +655,7 @@ export function Worker<const B extends Bindings>(
           isPipeline(resource) ||
           isVectorizeIndex(resource) ||
           isKVNamespace(resource) ||
-          isSecret(resource)
+          resource instanceof Secret
         ) {
           // TODO(sam): make this generic/pluggable
           autoBindings[getBindKey(resource)] = resource;

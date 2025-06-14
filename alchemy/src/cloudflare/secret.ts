@@ -246,10 +246,6 @@ export async function insertSecret(
       );
       
       if (!retryResponse.ok) {
-        const retryErrorData: any = await retryResponse.json().catch(() => ({
-          errors: [{ message: retryResponse.statusText }],
-        }));
-        const retryErrorMessage = retryErrorData.errors?.[0]?.message || retryResponse.statusText;
         await handleApiError(retryResponse, "create", "secret", secretName);
       }
     } else {

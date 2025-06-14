@@ -4,6 +4,7 @@
  * https://developers.cloudflare.com/api/resources/workers/subresources/scripts/methods/update/
  */
 import type { Secret } from "./secret.ts";
+import type { Secret as AlchemySecret } from "../secret.ts";
 import type { AiGatewayResource } from "./ai-gateway.ts";
 import type { Ai } from "./ai.ts";
 import type { AnalyticsEngineDataset } from "./analytics-engine.ts";
@@ -41,6 +42,7 @@ export declare namespace Bindings {
 export type Binding =
   | Ai
   | AiGatewayResource
+  | AlchemySecret
   | Assets
   | D1DatabaseResource
   | DispatchNamespaceResource
