@@ -217,25 +217,13 @@ export async function insertSecret(
   secretName: string,
   secretValue: AlchemySecret,
 ): Promise<void> {
-  // Check if the secret already exists
-  const existingSecrets = await listSecrets(api, storeId);
-  const secretExists = existingSecrets.includes(secretName);
-
-  if (secretExists) {
-    // Secret exists - update it by deleting and recreating
-    await deleteSecret(api, storeId, secretName);
-  }
-
-  // Create the secret (either new or replacing the deleted one)
-  const response = await api.post(
-    `/accounts/${api.accountId}/secrets_store/stores/${storeId}/secrets`,
-    [
-      {
-        name: secretName,
-        value: secretValue.unencrypted,
-        scopes: ["workers"],
-      },
-    ],
+  // Use PUT endpoint for idempotent create/update operation
+  const response = await api.put(
+    `/accounts/${api.accountId}/secrets_store/stores/${storeId}/secrets/${secretName}`,
+    {
+      value: secretValue.unencrypted,
+      scopes: ["workers"],
+    },
   );
 
   if (!response.ok) {
