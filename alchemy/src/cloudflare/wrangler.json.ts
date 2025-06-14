@@ -5,7 +5,6 @@ import { formatJson } from "../fs/static-json-file.ts";
 import { Resource } from "../resource.ts";
 import { assertNever } from "../util/assert-never.ts";
 import { Self, type Bindings } from "./bindings.ts";
-import { Secret as AlchemySecret } from "../secret.ts";
 import type { DurableObjectNamespace } from "./durable-object-namespace.ts";
 import type { EventSource } from "./event-source.ts";
 import { isQueueEventSource } from "./event-source.ts";
@@ -511,9 +510,6 @@ function processBindings(
         binding: bindingName,
         bucket_name: binding.name,
       });
-    } else if (binding instanceof AlchemySecret) {
-      // Generic alchemy secret binding - add to secrets array for wrangler secret handling
-      secrets.push(bindingName);
     } else if (binding.type === "secrets_store_secret") {
       // Secrets Store Secret binding
       secretsStoreSecrets.push({
@@ -609,6 +605,10 @@ function processBindings(
         binding: bindingName,
         namespace: binding.namespaceName,
       });
+    } else if (binding.type === "secret") {
+      // Generic alchemy secret - handled as environment variable
+      // These are converted to secret_text bindings in worker metadata
+      // No specific wrangler.json configuration needed
     } else {
       // biome-ignore lint/correctness/noVoidTypeReturn: it returns never
       return assertNever(binding);

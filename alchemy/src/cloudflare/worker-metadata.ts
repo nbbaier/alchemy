@@ -8,7 +8,6 @@ import {
   type WorkerBindingDurableObjectNamespace,
   type WorkerBindingSpec,
 } from "./bindings.ts";
-import { Secret as AlchemySecret } from "../secret.ts";
 import {
   isDurableObjectNamespace,
   type DurableObjectNamespace,
@@ -393,8 +392,8 @@ export async function prepareWorkerMetadata<B extends Bindings>(
         type: "assets",
         name: bindingName,
       });
-    } else if (binding instanceof AlchemySecret) {
-      // Generic alchemy secret binding
+    } else if (binding.type === "secret") {
+      // For generic alchemy secrets, bind as secret_text
       meta.bindings.push({
         type: "secret_text",
         name: bindingName,
