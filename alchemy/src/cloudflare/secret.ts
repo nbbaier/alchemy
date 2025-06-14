@@ -217,13 +217,16 @@ export async function insertSecret(
   secretName: string,
   secretValue: AlchemySecret,
 ): Promise<void> {
-  // Use PUT endpoint for idempotent create/update operation
-  const response = await api.put(
-    `/accounts/${api.accountId}/secrets_store/stores/${storeId}/secrets/${secretName}`,
-    {
-      value: secretValue.unencrypted,
-      scopes: ["workers"],
-    },
+  // Use bulk POST endpoint for oauth_token compatibility
+  const bulkPayload = [{
+    name: secretName,
+    value: secretValue.unencrypted,
+    scopes: ["workers"],
+  }];
+
+  const response = await api.post(
+    `/accounts/${api.accountId}/secrets_store/stores/${storeId}/secrets`,
+    bulkPayload,
   );
 
   if (!response.ok) {
@@ -231,7 +234,27 @@ export async function insertSecret(
       errors: [{ message: response.statusText }],
     }));
     const errorMessage = errorData.errors?.[0]?.message || response.statusText;
-    throw new Error(`Error creating secret '${secretName}': ${errorMessage}`);
+    
+    // If secret already exists, delete it first then recreate
+    if (errorMessage.includes("secret_name_already_exists")) {
+      await deleteSecret(api, storeId, secretName);
+      
+      // Retry creation after deletion
+      const retryResponse = await api.post(
+        `/accounts/${api.accountId}/secrets_store/stores/${storeId}/secrets`,
+        bulkPayload,
+      );
+      
+      if (!retryResponse.ok) {
+        const retryErrorData: any = await retryResponse.json().catch(() => ({
+          errors: [{ message: retryResponse.statusText }],
+        }));
+        const retryErrorMessage = retryErrorData.errors?.[0]?.message || retryResponse.statusText;
+        throw new Error(`Error creating secret '${secretName}' after retry: ${retryErrorMessage}`);
+      }
+    } else {
+      throw new Error(`Error creating secret '${secretName}': ${errorMessage}`);
+    }
   }
 }
 
