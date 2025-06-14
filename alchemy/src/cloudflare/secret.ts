@@ -256,13 +256,7 @@ export async function deleteSecret(
   secretName: string,
 ): Promise<void> {
   const response = await api.delete(
-    `/accounts/${api.accountId}/secrets_store/stores/${storeId}/secrets`,
-    {
-      body: JSON.stringify([secretName]),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
+    `/accounts/${api.accountId}/secrets_store/stores/${storeId}/secrets/${secretName}`,
   );
 
   if (!response.ok && response.status !== 404) {
