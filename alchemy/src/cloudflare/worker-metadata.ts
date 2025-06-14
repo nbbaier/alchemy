@@ -392,7 +392,7 @@ export async function prepareWorkerMetadata<B extends Bindings>(
         type: "assets",
         name: bindingName,
       });
-    } else if (binding.type === "secret") {
+    } else if (binding.type === "secrets_store_secret") {
       // For secrets from a secrets store, bind to the store with the specific secret name
       meta.bindings.push({
         type: "secrets_store_secret",

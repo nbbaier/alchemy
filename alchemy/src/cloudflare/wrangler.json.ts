@@ -510,9 +510,13 @@ function processBindings(
         binding: bindingName,
         bucket_name: binding.name,
       });
-    } else if (binding.type === "secret") {
-      // Secret binding
-      secrets.push(bindingName);
+    } else if (binding.type === "secrets_store_secret") {
+      // Secrets Store Secret binding
+      secretsStoreSecrets.push({
+        binding: bindingName,
+        store_id: binding.storeId,
+        secret_name: binding.name,
+      });
     } else if (binding.type === "assets") {
       spec.assets = {
         directory: binding.path,

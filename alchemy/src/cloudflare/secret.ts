@@ -78,7 +78,7 @@ export interface Secret
   /**
    * The binding type for Cloudflare Workers
    */
-  type: "secret";
+  type: "secrets_store_secret";
 
   /**
    * The name of the secret
@@ -197,7 +197,7 @@ const _Secret = Resource(
     await insertSecret(api, props.store.id, name, props.value);
 
     return this({
-      type: "secret",
+      type: "secrets_store_secret",
       name,
       storeId: props.store.id,
       store: props.store,
@@ -250,10 +250,10 @@ export async function insertSecret(
           errors: [{ message: retryResponse.statusText }],
         }));
         const retryErrorMessage = retryErrorData.errors?.[0]?.message || retryResponse.statusText;
-        throw new Error(`Error creating secret '${secretName}' after retry: ${retryErrorMessage}`);
+        await handleApiError(retryResponse, "create", "secret", secretName);
       }
     } else {
-      throw new Error(`Error creating secret '${secretName}': ${errorMessage}`);
+      await handleApiError(response, "create", "secret", secretName);
     }
   }
 }
