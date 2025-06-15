@@ -50,7 +50,7 @@ Examples:
   return { inputFile, outputFile };
 }
 
-async function loadWranglerJson(filePath: string): Promise<WranglerJsonSpec> {
+async function _loadWranglerJson(filePath: string): Promise<WranglerJsonSpec> {
   try {
     const content = await fs.readFile(filePath, "utf-8");
     return JSON.parse(content) as WranglerJsonSpec;
@@ -146,6 +146,10 @@ function generateImports(spec: WranglerJsonSpec): string[] {
 
   if (spec.version_metadata) {
     cloudflareImports.add("VersionMetadata");
+  }
+
+  if (spec.routes && spec.routes.length > 0) {
+    cloudflareImports.add("Route");
   }
 
   if (cloudflareImports.size > 0) {
@@ -414,63 +418,83 @@ function generateWorkerConfig(
   return config.join("\n");
 }
 
-async function generateAlchemyFile(spec: WranglerJsonSpec): Promise<string> {
-  const lines: string[] = [];
+/**
+ * Pure function to convert wrangler.json string to alchemy.run.ts string
+ *
+ * @param wranglerJsonString - The raw wrangler.json content as a string
+ * @returns The generated alchemy.run.ts content as a string
+ * @throws Error if the JSON is invalid or conversion fails
+ */
+export function convertWranglerToAlchemy(wranglerJsonString: string): string {
+  try {
+    const spec = JSON.parse(wranglerJsonString) as WranglerJsonSpec;
 
-  // Add imports
-  const imports = generateImports(spec);
-  lines.push(...imports);
-  lines.push("");
+    if (!spec.name) {
+      throw new Error("wrangler.json must have a 'name' field");
+    }
 
-  // Add secret import if needed (for hyperdrive passwords)
-  if (spec.hyperdrive && spec.hyperdrive.length > 0) {
-    lines.push('import { secret } from "alchemy";');
+    const lines: string[] = [];
+
+    // Add imports
+    const imports = generateImports(spec);
+    lines.push(...imports);
     lines.push("");
-  }
 
-  // Add app initialization
-  lines.push(`const app = await alchemy("${spec.name}", {
+    // Add secret import if needed (for hyperdrive passwords)
+    if (spec.hyperdrive && spec.hyperdrive.length > 0) {
+      lines.push('import { secret } from "alchemy";');
+      lines.push("");
+    }
+
+    // Add app initialization
+    lines.push(`const app = await alchemy("${spec.name}", {
   // Configure your app here
 });`);
-  lines.push("");
-
-  // Generate resources and bindings
-  const { bindings, resources } = generateBindings(spec);
-
-  if (resources.length > 0) {
-    lines.push("// Resources");
-    lines.push(...resources);
     lines.push("");
-  }
 
-  // Generate event sources
-  const eventSources = generateEventSources(spec);
+    // Generate resources and bindings
+    const { bindings, resources } = generateBindings(spec);
 
-  // Generate worker configuration
-  lines.push("// Worker");
-  lines.push(generateWorkerConfig(spec, bindings, eventSources));
-  lines.push("");
+    if (resources.length > 0) {
+      lines.push("// Resources");
+      lines.push(...resources);
+      lines.push("");
+    }
 
-  // Add routes if present
-  if (spec.routes && spec.routes.length > 0) {
-    lines.push("// Routes");
-    spec.routes.forEach((route, index) => {
-      lines.push(`await Route("route-${index}", {
+    // Generate event sources
+    const eventSources = generateEventSources(spec);
+
+    // Generate worker configuration
+    lines.push("// Worker");
+    lines.push(generateWorkerConfig(spec, bindings, eventSources));
+    lines.push("");
+
+    // Add routes if present
+    if (spec.routes && spec.routes.length > 0) {
+      lines.push("// Routes");
+      spec.routes.forEach((route, index) => {
+        lines.push(`await Route("route-${index}", {
   pattern: "${route}",
   worker,
 });`);
-    });
+      });
+      lines.push("");
+    }
+
+    // Log the worker URL
+    lines.push("console.log(worker.url);");
     lines.push("");
+
+    // Finalize the app
+    lines.push("await app.finalize();");
+
+    return lines.join("\n");
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error(`Invalid JSON: ${error.message}`);
+    }
+    throw error;
   }
-
-  // Log the worker URL
-  lines.push("console.log(worker.url);");
-  lines.push("");
-
-  // Finalize the app
-  lines.push("await app.finalize();");
-
-  return lines.join("\n");
 }
 
 async function main() {
@@ -479,11 +503,11 @@ async function main() {
 
     console.log(`Converting ${inputFile} to ${outputFile}...`);
 
-    // Load and parse wrangler.json
-    const spec = await loadWranglerJson(inputFile);
+    // Load wrangler.json content as string
+    const wranglerJsonContent = await fs.readFile(inputFile, "utf-8");
 
-    // Generate alchemy.run.ts content
-    const content = await generateAlchemyFile(spec);
+    // Generate alchemy.run.ts content using pure function
+    const content = convertWranglerToAlchemy(wranglerJsonContent);
 
     // Write output file
     await fs.writeFile(outputFile, content, "utf-8");
