@@ -11,15 +11,25 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain('import alchemy from "alchemy";');
-    expect(output).toContain('import { Worker } from "alchemy/cloudflare";');
-    expect(output).toContain('const app = await alchemy("my-worker"');
-    expect(output).toContain('await Worker("my-worker"');
-    expect(output).toContain('entrypoint: "src/index.ts"');
-    expect(output).toContain('compatibilityDate: "2023-12-01"');
-    expect(output).toContain("adopt: true");
-    expect(output).toContain("console.log(worker.url);");
-    expect(output).toContain("await app.finalize();");
+    const expectedOutput = `import alchemy from "alchemy";
+import { Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("my-worker", {
+  // Configure your app here
+});
+
+// Worker
+export const worker = await Worker("my-worker", {
+  entrypoint: "src/index.ts",
+  compatibilityDate: "2023-12-01",
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with KV namespace", () => {
@@ -30,11 +40,32 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain("KVNamespace");
-    expect(output).toContain('await KVNamespace("MY_KV"');
-    expect(output).toContain('title: "MY_KV"');
-    expect(output).toContain("MY_KV: my_kv");
-    expect(output).toContain("// Resources");
+    const expectedOutput = `import alchemy from "alchemy";
+import { KVNamespace, Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("kv-worker", {
+  // Configure your app here
+});
+
+// Resources
+export const my_kv = await KVNamespace("MY_KV", {
+  title: "MY_KV",
+  adopt: true,
+});
+
+// Worker
+export const worker = await Worker("kv-worker", {
+  bindings: {
+    MY_KV: my_kv,
+  },
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with R2 bucket", () => {
@@ -45,10 +76,32 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain("R2Bucket");
-    expect(output).toContain('await R2Bucket("my-bucket"');
-    expect(output).toContain('name: "my-bucket"');
-    expect(output).toContain("MY_BUCKET: my_bucket");
+    const expectedOutput = `import alchemy from "alchemy";
+import { R2Bucket, Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("r2-worker", {
+  // Configure your app here
+});
+
+// Resources
+export const my_bucket = await R2Bucket("my-bucket", {
+  name: "my-bucket",
+  adopt: true,
+});
+
+// Worker
+export const worker = await Worker("r2-worker", {
+  bindings: {
+    MY_BUCKET: my_bucket,
+  },
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with D1 database", () => {
@@ -61,10 +114,32 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain("D1Database");
-    expect(output).toContain('await D1Database("my-db"');
-    expect(output).toContain('name: "my-db"');
-    expect(output).toContain("DB: db");
+    const expectedOutput = `import alchemy from "alchemy";
+import { D1Database, Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("d1-worker", {
+  // Configure your app here
+});
+
+// Resources
+export const db = await D1Database("my-db", {
+  name: "my-db",
+  adopt: true,
+});
+
+// Worker
+export const worker = await Worker("d1-worker", {
+  bindings: {
+    DB: db,
+  },
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with durable objects", () => {
@@ -84,12 +159,33 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain("DurableObjectNamespace");
-    expect(output).toContain('new DurableObjectNamespace("MY_DO"');
-    expect(output).toContain('className: "MyDurableObject"');
-    expect(output).toContain('scriptName: "do-script"');
-    expect(output).toContain('environment: "production"');
-    expect(output).toContain("MY_DO: my_do");
+    const expectedOutput = `import alchemy from "alchemy";
+import { DurableObjectNamespace, Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("do-worker", {
+  // Configure your app here
+});
+
+// Resources
+export const my_do = new DurableObjectNamespace("MY_DO", {
+  className: "MyDurableObject",
+  scriptName: "do-script",
+  environment: "production",
+});
+
+// Worker
+export const worker = await Worker("do-worker", {
+  bindings: {
+    MY_DO: my_do,
+  },
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with queues", () => {
@@ -103,11 +199,33 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain("Queue");
-    expect(output).toContain('await Queue("my-queue"');
-    expect(output).toContain('name: "my-queue"');
-    expect(output).toContain("MY_QUEUE: my_queue");
-    expect(output).toContain("eventSources: [my_queue]");
+    const expectedOutput = `import alchemy from "alchemy";
+import { Queue, Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("queue-worker", {
+  // Configure your app here
+});
+
+// Resources
+export const my_queue = await Queue("my-queue", {
+  name: "my-queue",
+  adopt: true,
+});
+
+// Worker
+export const worker = await Worker("queue-worker", {
+  bindings: {
+    MY_QUEUE: my_queue,
+  },
+  eventSources: [my_queue],
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with workflows", () => {
@@ -125,12 +243,33 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain("Workflow");
-    expect(output).toContain('new Workflow("my-workflow"');
-    expect(output).toContain('className: "MyWorkflow"');
-    expect(output).toContain('workflowName: "my-workflow"');
-    expect(output).toContain('scriptName: "workflow-script"');
-    expect(output).toContain("MY_WORKFLOW: my_workflow");
+    const expectedOutput = `import alchemy from "alchemy";
+import { Worker, Workflow } from "alchemy/cloudflare";
+
+const app = await alchemy("workflow-worker", {
+  // Configure your app here
+});
+
+// Resources
+export const my_workflow = new Workflow("my-workflow", {
+  className: "MyWorkflow",
+  workflowName: "my-workflow",
+  scriptName: "workflow-script",
+});
+
+// Worker
+export const worker = await Worker("workflow-worker", {
+  bindings: {
+    MY_WORKFLOW: my_workflow,
+  },
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with AI binding", () => {
@@ -141,9 +280,29 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain("Ai");
-    expect(output).toContain("export const ai = new Ai();");
-    expect(output).toContain("AI: ai");
+    const expectedOutput = `import alchemy from "alchemy";
+import { Ai, Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("ai-worker", {
+  // Configure your app here
+});
+
+// Resources
+export const ai = new Ai();
+
+// Worker
+export const worker = await Worker("ai-worker", {
+  bindings: {
+    AI: ai,
+  },
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with browser binding", () => {
@@ -154,11 +313,29 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain("BrowserRendering");
-    expect(output).toContain(
-      'export const browser = { type: "browser" as const }',
-    );
-    expect(output).toContain("BROWSER: browser");
+    const expectedOutput = `import alchemy from "alchemy";
+import { BrowserRendering, Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("browser-worker", {
+  // Configure your app here
+});
+
+// Resources
+export const browser = { type: "browser" as const };
+
+// Worker
+export const worker = await Worker("browser-worker", {
+  bindings: {
+    BROWSER: browser,
+  },
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with images binding", () => {
@@ -169,11 +346,29 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain("Images");
-    expect(output).toContain(
-      'export const images = { type: "images" as const }',
-    );
-    expect(output).toContain("IMAGES: images");
+    const expectedOutput = `import alchemy from "alchemy";
+import { Images, Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("images-worker", {
+  // Configure your app here
+});
+
+// Resources
+export const images = { type: "images" as const };
+
+// Worker
+export const worker = await Worker("images-worker", {
+  bindings: {
+    IMAGES: images,
+  },
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with version metadata binding", () => {
@@ -184,11 +379,29 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain("VersionMetadata");
-    expect(output).toContain(
-      'export const versionMetadata = { type: "version_metadata" as const }',
-    );
-    expect(output).toContain("VERSION: versionMetadata");
+    const expectedOutput = `import alchemy from "alchemy";
+import { VersionMetadata, Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("version-worker", {
+  // Configure your app here
+});
+
+// Resources
+export const versionMetadata = { type: "version_metadata" as const };
+
+// Worker
+export const worker = await Worker("version-worker", {
+  bindings: {
+    VERSION: versionMetadata,
+  },
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with hyperdrive", () => {
@@ -205,15 +418,42 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain('import { secret } from "alchemy";');
-    expect(output).toContain("Hyperdrive");
-    expect(output).toContain('await Hyperdrive("hyperdrive-id-123"');
-    expect(output).toContain('scheme: "postgres"');
-    expect(output).toContain('host: "localhost"');
-    expect(output).toContain("port: 5432");
-    expect(output).toContain('database: "mydb"');
-    expect(output).toContain('user: "user"');
-    expect(output).toContain('password: secret("USER_PASSWORD")');
+    const expectedOutput = `import alchemy from "alchemy";
+import { Hyperdrive, Worker } from "alchemy/cloudflare";
+
+import { secret } from "alchemy";
+
+const app = await alchemy("hyperdrive-worker", {
+  // Configure your app here
+});
+
+// Resources
+export const hyperdrive = await Hyperdrive("hyperdrive-id-123", {
+  name: "hyperdrive-id-123",
+  origin: {
+    scheme: "postgres",
+    host: "localhost",
+    port: 5432,
+    database: "mydb",
+    user: "user",
+    password: secret("USER_PASSWORD"),
+  },
+  adopt: true,
+});
+
+// Worker
+export const worker = await Worker("hyperdrive-worker", {
+  bindings: {
+    HYPERDRIVE: hyperdrive,
+  },
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with vectorize", () => {
@@ -224,10 +464,32 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain("VectorizeIndex");
-    expect(output).toContain('await VectorizeIndex("my-index"');
-    expect(output).toContain('name: "my-index"');
-    expect(output).toContain("VECTORIZE: vectorize");
+    const expectedOutput = `import alchemy from "alchemy";
+import { VectorizeIndex, Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("vectorize-worker", {
+  // Configure your app here
+});
+
+// Resources
+export const vectorize = await VectorizeIndex("my-index", {
+  name: "my-index",
+  adopt: true,
+});
+
+// Worker
+export const worker = await Worker("vectorize-worker", {
+  bindings: {
+    VECTORIZE: vectorize,
+  },
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with environment variables", () => {
@@ -241,9 +503,27 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain('"API_URL": "https://api.example.com"');
-    expect(output).toContain('"DEBUG": "true"');
-    expect(output).toContain("env: {");
+    const expectedOutput = `import alchemy from "alchemy";
+import { Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("env-worker", {
+  // Configure your app here
+});
+
+// Worker
+export const worker = await Worker("env-worker", {
+  env: {
+      "API_URL": "https://api.example.com",
+      "DEBUG": "true"
+  },
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with cron triggers", () => {
@@ -256,7 +536,24 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain('crons: ["0 0 * * *","0 12 * * *"]');
+    const expectedOutput = `import alchemy from "alchemy";
+import { Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("cron-worker", {
+  // Configure your app here
+});
+
+// Worker
+export const worker = await Worker("cron-worker", {
+  crons: ["0 0 * * *","0 12 * * *"],
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with routes", () => {
@@ -267,12 +564,33 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain("Route");
-    expect(output).toContain("// Routes");
-    expect(output).toContain('await Route("route-0"');
-    expect(output).toContain('pattern: "example.com/*"');
-    expect(output).toContain('await Route("route-1"');
-    expect(output).toContain('pattern: "*.example.com/api/*"');
+    const expectedOutput = `import alchemy from "alchemy";
+import { Route, Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("route-worker", {
+  // Configure your app here
+});
+
+// Worker
+export const worker = await Worker("route-worker", {
+  adopt: true,
+});
+
+// Routes
+await Route("route-0", {
+  pattern: "example.com/*",
+  worker,
+});
+await Route("route-1", {
+  pattern: "*.example.com/api/*",
+  worker,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with compatibility flags", () => {
@@ -283,9 +601,24 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain(
-      'compatibilityFlags: ["nodejs_compat","experimental_flag"]',
-    );
+    const expectedOutput = `import alchemy from "alchemy";
+import { Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("compat-worker", {
+  // Configure your app here
+});
+
+// Worker
+export const worker = await Worker("compat-worker", {
+  compatibilityFlags: ["nodejs_compat","experimental_flag"],
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert worker with workers_dev", () => {
@@ -296,7 +629,24 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    expect(output).toContain("url: true");
+    const expectedOutput = `import alchemy from "alchemy";
+import { Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("dev-worker", {
+  // Configure your app here
+});
+
+// Worker
+export const worker = await Worker("dev-worker", {
+  url: true,
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   it("should convert complex worker with multiple bindings", () => {
@@ -324,44 +674,59 @@ describe("wrangler-to-alchemy conversion", () => {
 
     const output = convertWranglerToAlchemy(input);
 
-    // Check imports
-    expect(output).toContain('import alchemy from "alchemy";');
-    expect(output).toContain(
-      "Ai, D1Database, KVNamespace, R2Bucket, Route, Worker",
-    );
+    const expectedOutput = `import alchemy from "alchemy";
+import { Ai, D1Database, KVNamespace, R2Bucket, Route, Worker } from "alchemy/cloudflare";
 
-    // Check app initialization
-    expect(output).toContain('const app = await alchemy("complex-worker"');
+const app = await alchemy("complex-worker", {
+  // Configure your app here
+});
 
-    // Check resources
-    expect(output).toContain("// Resources");
-    expect(output).toContain('await KVNamespace("CACHE"');
-    expect(output).toContain('await R2Bucket("my-storage"');
-    expect(output).toContain('await D1Database("my-db"');
-    expect(output).toContain("export const ai = new Ai();");
+// Resources
+export const cache = await KVNamespace("CACHE", {
+  title: "CACHE",
+  adopt: true,
+});
+export const storage = await R2Bucket("my-storage", {
+  name: "my-storage",
+  adopt: true,
+});
+export const db = await D1Database("my-db", {
+  name: "my-db",
+  adopt: true,
+});
+export const ai = new Ai();
 
-    // Check worker config
-    expect(output).toContain("// Worker");
-    expect(output).toContain('await Worker("complex-worker"');
-    expect(output).toContain('entrypoint: "src/index.ts"');
-    expect(output).toContain('compatibilityDate: "2023-12-01"');
-    expect(output).toContain('compatibilityFlags: ["nodejs_compat"]');
-    expect(output).toContain("url: true");
-    expect(output).toContain("CACHE: cache");
-    expect(output).toContain("STORAGE: storage");
-    expect(output).toContain("DB: db");
-    expect(output).toContain("AI: ai");
-    expect(output).toContain('"API_URL": "https://api.example.com"');
-    expect(output).toContain('"ENV": "production"');
-    expect(output).toContain('crons: ["0 */6 * * *"]');
+// Worker
+export const worker = await Worker("complex-worker", {
+  entrypoint: "src/index.ts",
+  compatibilityDate: "2023-12-01",
+  compatibilityFlags: ["nodejs_compat"],
+  bindings: {
+    CACHE: cache,
+    STORAGE: storage,
+    DB: db,
+    AI: ai,
+  },
+  env: {
+      "API_URL": "https://api.example.com",
+      "ENV": "production"
+  },
+  crons: ["0 */6 * * *"],
+  url: true,
+  adopt: true,
+});
 
-    // Check routes
-    expect(output).toContain("// Routes");
-    expect(output).toContain('pattern: "*.example.com/*"');
+// Routes
+await Route("route-0", {
+  pattern: "*.example.com/*",
+  worker,
+});
 
-    // Check finalization
-    expect(output).toContain("console.log(worker.url);");
-    expect(output).toContain("await app.finalize();");
+console.log(worker.url);
+
+await app.finalize();`;
+
+    expect(output).toBe(expectedOutput);
   });
 
   describe("error handling", () => {
@@ -388,10 +753,23 @@ describe("wrangler-to-alchemy conversion", () => {
 
       const output = convertWranglerToAlchemy(input);
 
-      expect(output).toContain('const app = await alchemy("empty-worker"');
-      expect(output).toContain('await Worker("empty-worker"');
-      expect(output).toContain("adopt: true");
-      expect(output).toContain("await app.finalize();");
+      const expectedOutput = `import alchemy from "alchemy";
+import { Worker } from "alchemy/cloudflare";
+
+const app = await alchemy("empty-worker", {
+  // Configure your app here
+});
+
+// Worker
+export const worker = await Worker("empty-worker", {
+  adopt: true,
+});
+
+console.log(worker.url);
+
+await app.finalize();`;
+
+      expect(output).toBe(expectedOutput);
     });
   });
 });
