@@ -29,6 +29,7 @@ import {
 } from "./bindings.ts";
 import type { Bound } from "./bound.ts";
 import { isBucket } from "./bucket.ts";
+import { createWorkerDevContext } from "./bundle/bundle-worker-dev.ts";
 import {
   type NoBundleResult,
   bundleWorkerScript,
@@ -62,6 +63,8 @@ import {
 } from "./worker-metadata.ts";
 import type { SingleStepMigration } from "./worker-migration.ts";
 import { WorkerStub, isWorkerStub } from "./worker-stub.ts";
+import type { MiniflareWorkerOptions } from "./worker/miniflare-worker-options.ts";
+import { miniflareServer } from "./worker/miniflare.ts";
 import { getAccountSubdomain } from "./worker/subdomain.ts";
 import { Workflow, isWorkflow, upsertWorkflow } from "./workflow.ts";
 
@@ -299,6 +302,15 @@ export interface EntrypointWorkerProps<
   rules?: {
     globs: string[];
   }[];
+
+  /**
+   * Whether to enable dev mode for the worker
+   * @default false
+   */
+  dev?: {
+    port?: number;
+    mixedMode?: boolean;
+  };
 }
 
 /**
@@ -826,15 +838,92 @@ export const _Worker = Resource(
       throw new Error("entrypoint must be provided when noBundle is true");
     }
 
-    // Create Cloudflare API client with automatic account discovery
-    const api = await createCloudflareApi(props);
-
     // Use the provided name
     const workerName = props.name ?? id;
 
     const compatibilityDate =
       props.compatibilityDate ?? DEFAULT_COMPATIBILITY_DATE;
     const compatibilityFlags = props.compatibilityFlags ?? [];
+
+    if (this.phase === "dev") {
+      // Get current timestamp
+      const now = Date.now();
+
+      const sharedOptions: Omit<MiniflareWorkerOptions, "script"> = {
+        name: workerName,
+        compatibilityDate,
+        compatibilityFlags,
+        bindings: props.bindings ?? ({} as B),
+        remote: "dev" in props ? (props.dev?.mixedMode ?? false) : false,
+        port: "dev" in props ? (props.dev?.port ?? 3000) : 3000,
+      };
+
+      const url = `http://localhost:${sharedOptions.port}`;
+
+      // If entrypoint is provided, set up hot reloading with esbuild context
+      if (props.entrypoint) {
+        const context = await createWorkerDevContext(
+          workerName,
+          {
+            ...props,
+            entrypoint: props.entrypoint,
+            compatibilityDate,
+            compatibilityFlags,
+          },
+          async (newScript: string) => {
+            // Hot reload callback - update the miniflare worker
+            console.log(`🔥 Hot reloading worker: ${workerName}`);
+            await miniflareServer.push({
+              ...sharedOptions,
+              script: newScript,
+            });
+          },
+        );
+        this.scope.defer(context.dispose);
+      } else {
+        // Fallback to one-time bundling for inline scripts
+        const scriptContent =
+          props.script ??
+          (await bundleWorkerScript({
+            ...props,
+            compatibilityDate,
+            compatibilityFlags,
+          }));
+        await miniflareServer.push({
+          ...sharedOptions,
+          script:
+            typeof scriptContent === "string"
+              ? scriptContent
+              : scriptContent[props.entrypoint!].toString(),
+        });
+      }
+
+      return this({
+        type: "service",
+        id,
+        entrypoint: props.entrypoint,
+        name: workerName,
+        compatibilityDate,
+        compatibilityFlags,
+        format: props.format || "esm", // Include format in the output
+        bindings: props.bindings ?? ({} as B),
+        env: props.env,
+        observability: props.observability,
+        createdAt: now,
+        updatedAt: now,
+        eventSources: props.eventSources,
+        url,
+        // Include assets configuration in the output
+        assets: props.assets,
+        // Include cron triggers in the output
+        crons: props.crons,
+        // phantom property
+        Env: undefined!,
+      } as unknown as Worker<B>);
+    }
+
+    // Create Cloudflare API client with automatic account discovery
+    const api = await createCloudflareApi(props);
 
     const uploadWorkerScript = async (props: WorkerProps<B>) => {
       const [oldBindings, oldMetadata] = await Promise.all([

@@ -16,7 +16,7 @@ export type MiniflareWorkerOptions = Pick<
   | "format"
 > & {
   name: string;
-  scriptPath: string;
+  script: string;
   remote: boolean;
   port: number;
 };
@@ -182,7 +182,7 @@ function buildRemoteBinding(
 
 export function buildMiniflareWorkerOptions({
   name,
-  scriptPath,
+  script,
   bindings,
   format,
   eventSources,
@@ -195,7 +195,7 @@ export function buildMiniflareWorkerOptions({
 }): WorkerOptions {
   const options: WorkerOptions = {
     name,
-    scriptPath,
+    script,
     modules: format !== "cjs",
     compatibilityDate,
     compatibilityFlags,

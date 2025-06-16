@@ -20,9 +20,17 @@ class MiniflareServer {
   servers = new Map<string, Bun.Server>();
   mixedModeProxies = new Map<string, MixedModeProxy>();
 
-  stream = new WritableStream<MiniflareWorkerOptions>({
-    write: async (chunk) => {
-      await this.set(chunk);
+  stream = new WritableStream<{
+    worker: MiniflareWorkerOptions;
+    promise: PromiseWithResolvers<Bun.Server>;
+  }>({
+    write: async ({ worker, promise }) => {
+      try {
+        const server = await this.set(worker);
+        promise.resolve(server);
+      } catch (error) {
+        promise.reject(error);
+      }
     },
     close: async () => {
       await this.dispose();
@@ -31,7 +39,12 @@ class MiniflareServer {
   writer = this.stream.getWriter();
 
   async push(worker: MiniflareWorkerOptions) {
-    await this.writer.write(worker);
+    const promise = Promise.withResolvers<Bun.Server>();
+    const [, server] = await Promise.all([
+      this.writer.write({ worker, promise }),
+      promise.promise,
+    ]);
+    return server;
   }
 
   async close() {
@@ -52,14 +65,17 @@ class MiniflareServer {
       this.miniflare = new Miniflare(this.miniflareOptions());
       await this.miniflare.ready;
     }
-    if (!this.servers.has(worker.name as string)) {
-      // TODO: Use node:http for runtime compatibility
-      const server = Bun.serve({
-        port: worker.port,
-        fetch: this.createRequestHandler(worker.name as string),
-      });
-      this.servers.set(worker.name as string, server);
+    const existing = this.servers.get(worker.name);
+    if (existing) {
+      return existing;
     }
+    // TODO: Use node:http for runtime compatibility
+    const server = Bun.serve({
+      port: worker.port,
+      fetch: this.createRequestHandler(worker.name as string),
+    });
+    this.servers.set(worker.name, server);
+    return server;
   }
 
   private async dispose() {
