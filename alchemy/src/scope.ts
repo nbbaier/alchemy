@@ -31,7 +31,15 @@ declare global {
   var __ALCHEMY_STORAGE__: AsyncLocalStorage<Scope>;
 }
 
+const ScopeSymbol = Symbol.for("alchemy::Scope");
+
+export function isScope(value: any): value is Scope {
+  return value instanceof Scope || value?.[ScopeSymbol] === true;
+}
+
 export class Scope {
+  readonly [ScopeSymbol] = true;
+
   public static readonly KIND = "alchemy::Scope" as const;
 
   public static storage = (globalThis.__ALCHEMY_STORAGE__ ??=
