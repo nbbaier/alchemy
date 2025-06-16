@@ -32,10 +32,10 @@ export interface QueueConsumerSettings {
   maxRetries?: number;
 
   /**
-   * Maximum time in milliseconds to wait for batch to fill
-   * @default 500
+   * Maximum time in seconds to wait for batch to fill
+   * @default 1
    */
-  maxWaitTimeMs?: number;
+  maxBatchTimeout?: number;
 
   /**
    * Time in seconds to delay retry after a failure
@@ -134,7 +134,7 @@ export interface QueueConsumer
  *     batchSize: 50,         // Process 50 messages at once
  *     maxConcurrency: 10,    // Allow 10 concurrent invocations
  *     maxRetries: 5,         // Retry failed messages up to 5 times
- *     maxWaitTimeMs: 2000,   // Wait up to 2 seconds to fill a batch
+ *     maxBatchTimeout: 2,     // Wait up to 2 seconds to fill a batch
  *     retryDelay: 60         // Wait 60 seconds before retrying failed messages
  *   }
  * });
@@ -193,7 +193,7 @@ export const QueueConsumer = Resource(
             batchSize: consumerData.result.settings.batch_size,
             maxConcurrency: consumerData.result.settings.max_concurrency,
             maxRetries: consumerData.result.settings.max_retries,
-            maxWaitTimeMs: consumerData.result.settings.max_wait_time_ms,
+            maxBatchTimeout: consumerData.result.settings.max_batch_timeout,
             retryDelay: consumerData.result.settings.retry_delay,
             deadLetterQueue: consumerData.result.settings.dead_letter_queue,
           }
@@ -215,7 +215,7 @@ interface CloudflareQueueConsumerResponse {
       batch_size?: number;
       max_concurrency?: number;
       max_retries?: number;
-      max_wait_time_ms?: number;
+      max_batch_timeout?: number;
       retry_delay?: number;
       dead_letter_queue?: string;
     };
@@ -258,8 +258,8 @@ export async function createQueueConsumer(
       createPayload.settings.max_retries = props.settings.maxRetries;
     }
 
-    if (props.settings.maxWaitTimeMs !== undefined) {
-      createPayload.settings.max_wait_time_ms = props.settings.maxWaitTimeMs;
+    if (props.settings.maxBatchTimeout !== undefined) {
+      createPayload.settings.max_batch_timeout = props.settings.maxBatchTimeout;
     }
 
     if (props.settings.retryDelay !== undefined) {
@@ -346,8 +346,8 @@ async function updateQueueConsumer(
       updatePayload.settings.max_retries = props.settings.maxRetries;
     }
 
-    if (props.settings.maxWaitTimeMs !== undefined) {
-      updatePayload.settings.max_wait_time_ms = props.settings.maxWaitTimeMs;
+    if (props.settings.maxBatchTimeout !== undefined) {
+      updatePayload.settings.max_batch_timeout = props.settings.maxBatchTimeout;
     }
 
     if (props.settings.retryDelay !== undefined) {
@@ -420,7 +420,7 @@ export async function listQueueConsumers(
         batch_size?: number;
         max_concurrency?: number;
         max_retries?: number;
-        max_wait_time_ms?: number;
+        max_batch_timeout?: number;
         retry_delay?: number;
         dead_letter_queue?: string;
       };
@@ -444,7 +444,7 @@ export async function listQueueConsumers(
           batchSize: consumer.settings.batch_size,
           maxConcurrency: consumer.settings.max_concurrency,
           maxRetries: consumer.settings.max_retries,
-          maxWaitTimeMs: consumer.settings.max_wait_time_ms,
+          maxBatchTimeout: consumer.settings.max_batch_timeout,
           retryDelay: consumer.settings.retry_delay,
           deadLetterQueue: consumer.settings.dead_letter_queue,
         }
@@ -479,7 +479,7 @@ export async function listQueueConsumersForWorker(
       settings?: {
         batch_size?: number;
         max_retries?: number;
-        max_wait_time_ms?: number;
+        max_batch_timeout?: number;
         retry_delay?: number;
         dead_letter_queue?: string;
       };

@@ -38,7 +38,7 @@ const consumer = await QueueConsumer("batch-processor", {
     batchSize: 50, // Process 50 messages at once
     maxConcurrency: 10, // Allow 10 concurrent invocations
     maxRetries: 5, // Retry failed messages up to 5 times
-    maxWaitTimeMs: 2000, // Wait up to 2 seconds to fill a batch
+    maxBatchTimeout: 2, // Wait up to 2 seconds to fill a batch
     retryDelay: 60, // Wait 60 seconds before retrying failed messages
   },
 });

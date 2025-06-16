@@ -250,7 +250,7 @@ export interface WranglerJsonSpec {
       max_batch_size?: number;
       max_concurrency?: number;
       max_retries?: number;
-      max_wait_time_ms?: number;
+      max_batch_timeout?: number;
       retry_delay?: number;
     }[];
   };
@@ -413,7 +413,7 @@ function processBindings(
       max_batch_size?: number;
       max_concurrency?: number;
       max_retries?: number;
-      max_wait_time_ms?: number;
+      max_batch_timeout?: number;
       retry_delay?: number;
     }[];
   } = {
@@ -449,7 +449,7 @@ function processBindings(
         max_batch_size: eventSource.settings?.batchSize,
         max_concurrency: eventSource.settings?.maxConcurrency,
         max_retries: eventSource.settings?.maxRetries,
-        max_wait_time_ms: eventSource.settings?.maxWaitTimeMs,
+        max_batch_timeout: eventSource.settings?.maxBatchTimeout,
         retry_delay: eventSource.settings?.retryDelay,
       });
     } else if (isQueue(eventSource)) {
