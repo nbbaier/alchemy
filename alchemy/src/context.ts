@@ -14,7 +14,11 @@ import type { State } from "./state.ts";
 export type Context<
   Out extends Resource,
   Props extends ResourceProps = ResourceProps,
-> = CreateContext<Out> | UpdateContext<Out, Props> | DeleteContext<Out, Props>;
+> =
+  | CreateContext<Out>
+  | UpdateContext<Out, Props>
+  | DeleteContext<Out, Props>
+  | DevContext<Out, Props>;
 
 export interface CreateContext<Out extends Resource> extends BaseContext<Out> {
   phase: "create";
@@ -36,6 +40,15 @@ export interface DeleteContext<
   Props extends ResourceProps = ResourceProps,
 > extends BaseContext<Out> {
   phase: "delete";
+  output: Out;
+  props: Props;
+}
+
+export interface DevContext<
+  Out extends Resource,
+  Props extends ResourceProps = ResourceProps,
+> extends BaseContext<Out> {
+  phase: "dev";
   output: Out;
   props: Props;
 }
