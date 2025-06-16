@@ -577,6 +577,30 @@ export function WorkerRef<
  * })
  *
  * @example
+ * // Create a worker that consumes queue messages with custom settings:
+ * const queue = await Queue("task-queue", {
+ *   name: "task-queue"
+ * });
+ *
+ * const queueWorker = await Worker("queue-processor", {
+ *   name: "queue-processor",
+ *   entrypoint: "./src/queue-processor.ts",
+ *   eventSources: [{
+ *     queue,
+ *     settings: {
+ *       batchSize: 50,           // Process 50 messages at once
+ *       maxConcurrency: 10,      // Allow 10 concurrent invocations
+ *       maxRetries: 3,           // Retry failed messages up to 3 times
+ *       maxBatchTimeout: 2,      // Wait up to 2 seconds to fill a batch
+ *       retryDelay: 60,          // Wait 60 seconds before retrying failed messages
+ *     }
+ *   }],
+ *   bindings: {
+ *     TASK_QUEUE: queue        // Also bind for sending messages
+ *   }
+ * })
+ *
+ * @example
  * // Create cross-script durable object binding where one worker
  * // defines the durable object and another worker accesses it:
  * const dataWorker = await Worker("data-worker", {

@@ -44,9 +44,36 @@ const consumer = await QueueConsumer("batch-processor", {
 });
 ```
 
-## Bind to a Worker
+## Configure via Worker EventSources
 
-Bind a queue consumer to a worker.
+Configure queue consumer settings directly through the Worker's eventSources (recommended approach).
+
+```ts
+import { Worker, Queue } from "alchemy/cloudflare";
+
+const queue = await Queue("notifications", {
+  name: "notifications",
+});
+
+await Worker("notification-worker", {
+  name: "notification-worker",
+  entrypoint: "./src/worker.ts",
+  eventSources: [{
+    queue, 
+    settings: {
+      batchSize: 25,           // Process 25 messages at once
+      maxConcurrency: 5,       // Allow 5 concurrent invocations
+      maxRetries: 3,           // Retry failed messages up to 3 times
+      maxBatchTimeout: 2,      // Wait up to 2 seconds to fill a batch
+      retryDelay: 30,          // Wait 30 seconds before retrying failed messages
+    }
+  }],
+});
+```
+
+## Manual QueueConsumer Resource
+
+Alternatively, create a QueueConsumer resource directly (for advanced use cases).
 
 ```ts
 import { Worker, QueueConsumer } from "alchemy/cloudflare";

@@ -56,6 +56,33 @@ await Worker("my-worker", {
 });
 ```
 
+## Configure as Event Source
+
+Register a queue as an event source for a worker to consume messages with custom settings.
+
+```ts
+import { Worker, Queue } from "alchemy/cloudflare";
+
+const queue = await Queue("my-queue", {
+  name: "my-queue",
+});
+
+await Worker("my-worker", {
+  name: "my-worker",
+  script: "console.log('Hello, world!')",
+  eventSources: [{
+    queue,
+    settings: {
+      batchSize: 50,           // Process 50 messages at once
+      maxConcurrency: 10,      // Allow 10 concurrent invocations
+      maxRetries: 5,           // Retry failed messages up to 5 times
+      maxBatchTimeout: 2,      // Wait up to 2 seconds to fill a batch
+      retryDelay: 60,          // Wait 60 seconds before retrying failed messages
+    }
+  }],
+});
+```
+
 ## Queue with Dead Letter Queue
 
 Configure a dead letter queue for handling failed messages.

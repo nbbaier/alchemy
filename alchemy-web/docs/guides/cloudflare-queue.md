@@ -85,6 +85,27 @@ export const worker = await Worker("my-worker", {
 });
 ```
 
+## Configure Queue Consumer with Settings
+
+Customize how your Worker processes queue messages by providing consumer settings.
+
+```ts
+import { Worker } from "alchemy/cloudflare";
+
+export const worker = await Worker("my-worker", {
+  eventSources: [{
+    queue,
+    settings: {
+      batchSize: 25,           // Process 25 messages at once
+      maxConcurrency: 5,       // Allow 5 concurrent invocations  
+      maxRetries: 3,           // Retry failed messages up to 3 times
+      maxBatchTimeout: 2,      // Wait up to 2 seconds to fill a batch
+      retryDelay: 30,          // Wait 30 seconds before retrying failed messages
+    }
+  }],
+});
+```
+
 ## Process Messages Using Consumer
 
 Implement the queue handler using a type-safe batch parameter.
