@@ -72,7 +72,7 @@ export class Secret {
 export function isSecret(binding: any): binding is Secret {
   return (
     binding instanceof Secret ||
-    (typeof binding === "object" && binding.type === "secret")
+    (typeof binding === "object" && binding?.type === "secret")
   );
 }
 

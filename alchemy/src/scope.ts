@@ -29,6 +29,7 @@ const DEFAULT_STAGE = process.env.ALCHEMY_STAGE ?? process.env.USER ?? "dev";
 
 declare global {
   var __ALCHEMY_STORAGE__: AsyncLocalStorage<Scope>;
+  var __ALCHEMY_GLOBALS__: Scope[];
 }
 
 const ScopeSymbol = Symbol.for("alchemy::Scope");
@@ -44,7 +45,7 @@ export class Scope {
 
   public static storage = (globalThis.__ALCHEMY_STORAGE__ ??=
     new AsyncLocalStorage<Scope>());
-  public static globals: Scope[] = [];
+  public static globals: Scope[] = (globalThis.__ALCHEMY_GLOBALS__ ??= []);
 
   public static get(): Scope | undefined {
     const scope = Scope.storage.getStore();
