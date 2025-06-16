@@ -1,7 +1,7 @@
 import type { MixedModeConnectionString } from "miniflare";
 import path from "node:path";
 import { bundle } from "../../esbuild/bundle.ts";
-import type { CloudflareApi } from "../api.ts";
+import { createCloudflareApi, type CloudflareApi } from "../api.ts";
 import type { WorkerBindingSpec } from "../bindings.ts";
 import type { WorkerMetadata } from "../worker-metadata.ts";
 import { getAccountSubdomain } from "./subdomain.ts";
@@ -46,6 +46,7 @@ export async function createMixedModeProxy(input: {
   name: string;
   bindings: WorkerBindingSpec[];
 }) {
+  const api = await createCloudflareApi();
   const script = await bundleWorkerScript();
   const [token, subdomain] = await Promise.all([
     createWorkersPreviewToken(api, {
