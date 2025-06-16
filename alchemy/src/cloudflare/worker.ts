@@ -62,6 +62,7 @@ import {
 } from "./worker-metadata.ts";
 import type { SingleStepMigration } from "./worker-migration.ts";
 import { WorkerStub, isWorkerStub } from "./worker-stub.ts";
+import { getAccountSubdomain } from "./worker/subdomain.ts";
 import { Workflow, isWorkflow, upsertWorkflow } from "./workflow.ts";
 
 /**
@@ -1291,21 +1292,7 @@ export async function configureURL<B extends Bindings>(
     );
 
     // Get the account's workers.dev subdomain
-    const subdomainResponse = await api.get(
-      `/accounts/${api.accountId}/workers/subdomain`,
-    );
-
-    if (!subdomainResponse.ok) {
-      throw new Error(
-        `Could not fetch workers.dev subdomain: ${subdomainResponse.status} ${subdomainResponse.statusText}`,
-      );
-    }
-    const subdomainData: {
-      result: {
-        subdomain: string;
-      };
-    } = await subdomainResponse.json();
-    const subdomain = subdomainData.result?.subdomain;
+    const subdomain = await getAccountSubdomain(api);
 
     if (subdomain) {
       workerUrl = `https://${workerName}.${subdomain}.workers.dev`;
