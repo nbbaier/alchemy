@@ -1,31 +1,11 @@
 import { Effect } from "effect";
-import type { Context } from "../context.ts";
-import { Resource } from "../resource.ts";
 import { logger } from "../util/logger.ts";
 import {
   createAwsClient,
   AwsResourceNotFoundError,
   AwsError,
 } from "./client.ts";
-
-/**
- * Creates a Resource that uses Effect throughout the entire lifecycle
- */
-function EffectResource<T extends Resource<string>, P>(
-  type: string,
-  effectHandler: (
-    context: Context<T>,
-    id: string,
-    props: P,
-  ) => Effect.Effect<T, any>,
-) {
-  return Resource(
-    type,
-    async function (this: Context<T>, id: string, props: P): Promise<T> {
-      return Effect.runPromise(effectHandler(this, id, props));
-    },
-  );
-}
+import { EffectResource } from "./effect-resource.ts";
 
 /**
  * Properties for creating or updating an SQS queue
@@ -155,9 +135,7 @@ export const Queue = EffectResource<Queue, QueueProps>(
   "sqs::Queue",
   (context, _id, props) =>
     Effect.gen(function* () {
-      const client = yield* Effect.promise(() =>
-        createAwsClient({ service: "sqs" }),
-      );
+      const client = yield* createAwsClient({ service: "sqs" });
       const queueName = props.queueName;
 
       // Validate that FIFO queues have .fifo suffix
@@ -193,7 +171,7 @@ export const Queue = EffectResource<Queue, QueueProps>(
               Version: "2012-11-05",
             })
             .pipe(
-              Effect.flatMap(() => Effect.sleep("1 second")),
+              Effect.flatMap(() => Effect.sleep("1 seconds")),
               Effect.repeat({
                 until: () => false, // Keep trying until it fails
               }),
@@ -202,7 +180,7 @@ export const Queue = EffectResource<Queue, QueueProps>(
                   error instanceof AwsResourceNotFoundError ||
                   isQueueDoesNotExist(error)
                 ) {
-                  return Effect.succeed(void 0); // Queue is deleted
+                  return Effect.succeed(null); // Queue is deleted
                 }
                 return Effect.fail(error);
               }),
@@ -215,15 +193,15 @@ export const Queue = EffectResource<Queue, QueueProps>(
               error instanceof AwsResourceNotFoundError ||
               isQueueDoesNotExist(error)
             ) {
-              return Effect.succeed(void 0);
+              return Effect.unit;
             }
             return Effect.sync(() => logger.log(error.message)).pipe(
-              Effect.flatMap(() => Effect.succeed(void 0)),
+              Effect.flatMap(() => Effect.unit),
             );
           }),
         );
 
-        return context.destroy();
+        return null;
       }
 
       // Create queue with attributes
@@ -327,8 +305,7 @@ export const Queue = EffectResource<Queue, QueueProps>(
               Effect.flatMap(() => createQueue),
               Effect.retry({
                 times: 60,
-                schedule: Effect.Schedule.spaced("1 second"),
-                until: (err) => !isQueueDeletedRecently(err),
+                schedule: Effect.Schedule.spaced("1 seconds"),
               }),
             );
           }

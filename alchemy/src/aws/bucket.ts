@@ -1,26 +1,6 @@
 import { Effect } from "effect";
-import type { Context } from "../context.ts";
-import { Resource } from "../resource.ts";
 import { createAwsClient, AwsResourceNotFoundError } from "./client.ts";
-
-/**
- * Creates a Resource that uses Effect throughout the entire lifecycle
- */
-function EffectResource<T extends Resource<string>, P>(
-  type: string,
-  effectHandler: (
-    context: Context<T>,
-    id: string,
-    props: P,
-  ) => Effect.Effect<T, any>,
-) {
-  return Resource(
-    type,
-    async function (this: Context<T>, id: string, props: P): Promise<T> {
-      return Effect.runPromise(effectHandler(this, id, props));
-    },
-  );
-}
+import { EffectResource } from "./effect-resource.ts";
 
 /**
  * Properties for creating or updating an S3 bucket
@@ -138,15 +118,13 @@ export const Bucket = EffectResource<Bucket, BucketProps>(
   "s3::Bucket",
   (context, _id, props) =>
     Effect.gen(function* () {
-      const client = yield* Effect.promise(() =>
-        createAwsClient({ service: "s3" }),
-      );
+      const client = yield* createAwsClient({ service: "s3" });
 
       if (context.phase === "delete") {
         yield* client
           .delete(`/${props.bucketName}`)
-          .pipe(Effect.catchAll(() => Effect.succeed(void 0)));
-        return context.destroy();
+          .pipe(Effect.catchAll(() => Effect.unit));
+        return null;
       }
 
       // Helper function to create tagging XML

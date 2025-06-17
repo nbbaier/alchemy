@@ -6,14 +6,24 @@ export type AccountId = string & {
 };
 
 /**
- * Helper to get the current AWS account ID
+ * Helper to get the current AWS account ID using Effect-based API
  */
-export async function AccountId(): Promise<AccountId> {
-  const client = await createAwsClient({ service: "sts" });
-  const effect = client.postJson<{ GetCallerIdentityResult: { Account: string } }>("/", {
-    Action: "GetCallerIdentity",
-    Version: "2011-06-15",
+export function AccountId(): Effect.Effect<AccountId, any> {
+  return Effect.gen(function* () {
+    const client = yield* createAwsClient({ service: "sts" });
+    const identity = yield* client.postJson<{
+      GetCallerIdentityResult: { Account: string };
+    }>("/", {
+      Action: "GetCallerIdentity",
+      Version: "2011-06-15",
+    });
+    return identity.GetCallerIdentityResult.Account as AccountId;
   });
-  const identity = await Effect.runPromise(effect);
-  return identity.GetCallerIdentityResult.Account as AccountId;
+}
+
+/**
+ * Helper to get the current AWS account ID as a Promise (for backwards compatibility)
+ */
+export async function getAccountId(): Promise<AccountId> {
+  return Effect.runPromise(AccountId());
 }

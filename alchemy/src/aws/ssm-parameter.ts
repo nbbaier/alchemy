@@ -1,28 +1,8 @@
 import { Effect } from "effect";
-import type { Context } from "../context.ts";
-import { Resource } from "../resource.ts";
 import { type Secret, isSecret } from "../secret.ts";
 import { logger } from "../util/logger.ts";
 import { createAwsClient, AwsError } from "./client.ts";
-
-/**
- * Creates a Resource that uses Effect throughout the entire lifecycle
- */
-function EffectResource<T extends Resource<string>, P>(
-  type: string,
-  effectHandler: (
-    context: Context<T>,
-    id: string,
-    props: P,
-  ) => Effect.Effect<T, any>,
-) {
-  return Resource(
-    type,
-    async function (this: Context<T>, id: string, props: P): Promise<T> {
-      return Effect.runPromise(effectHandler(this, id, props));
-    },
-  );
-}
+import { EffectResource } from "./effect-resource.ts";
 
 /**
  * Base properties shared by all SSM Parameter types
@@ -186,9 +166,7 @@ export const SSMParameter = EffectResource<SSMParameter, SSMParameterProps>(
   "ssm::Parameter",
   (context, _id, props) =>
     Effect.gen(function* () {
-      const client = yield* Effect.promise(() =>
-        createAwsClient({ service: "ssm" }),
-      );
+      const client = yield* createAwsClient({ service: "ssm" });
 
       if (context.phase === "delete") {
         yield* client
@@ -197,9 +175,9 @@ export const SSMParameter = EffectResource<SSMParameter, SSMParameterProps>(
             Name: props.name,
             Version: "2014-11-06",
           })
-          .pipe(Effect.catchAll(() => Effect.succeed(void 0)));
+          .pipe(Effect.catchAll(() => Effect.unit));
 
-        return context.destroy();
+        return null;
       }
 
       const parameterType = props.type || "String";

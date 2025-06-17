@@ -10,10 +10,12 @@ import { safeFetch } from "../util/safe-fetch.ts";
 export class AwsError extends Error {
   constructor(
     public readonly message: string,
+    public readonly errorCode?: string,
     public readonly response?: Response,
     public readonly data?: any,
   ) {
     super(message);
+    this.name = this.constructor.name;
   }
 }
 
@@ -22,6 +24,8 @@ export class AwsThrottleError extends AwsError {}
 export class AwsResourceNotFoundError extends AwsError {}
 export class AwsAccessDeniedError extends AwsError {}
 export class AwsValidationError extends AwsError {}
+export class AwsConflictError extends AwsError {}
+export class AwsInternalServerError extends AwsError {}
 
 /**
  * Options for AWS client creation
@@ -66,32 +70,58 @@ const getRegion = loadConfig({
 });
 
 /**
- * Create an AWS client using aws4fetch
+ * Create an AWS client using aws4fetch with native Effect
  */
-export async function createAwsClient(options: AwsClientOptions) {
-  const credentials = await fromNodeProviderChain()();
+export function createAwsClient(
+  options: AwsClientOptions,
+): Effect.Effect<AwsClientWrapper, AwsError> {
+  return Effect.gen(function* () {
+    const credentials = yield* Effect.tryPromise({
+      try: () => fromNodeProviderChain()(),
+      catch: (error) =>
+        new AwsError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load AWS credentials",
+          "CredentialsError",
+        ),
+    });
 
-  const region =
-    options.region ??
-    (await getRegion()) ??
-    process.env.AWS_REGION ??
-    process.env.AWS_DEFAULT_REGION;
+    const region = yield* Effect.gen(function* () {
+      if (options.region) return options.region;
 
-  if (!region) {
-    throw new Error(
-      "No region found. Please set AWS_REGION or AWS_DEFAULT_REGION in the environment or in your AWS profile.",
-    );
-  }
+      const configRegion = yield* Effect.tryPromise({
+        try: () => getRegion(),
+        catch: () => null,
+      }).pipe(Effect.catchAll(() => Effect.succeed(null)));
 
-  const client = new AwsClient({
-    ...credentials,
-    service: options.service,
-    region,
-  });
+      return (
+        configRegion ??
+        process.env.AWS_REGION ??
+        process.env.AWS_DEFAULT_REGION ??
+        null
+      );
+    });
 
-  return new AwsClientWrapper(client, {
-    ...options,
-    region,
+    if (!region) {
+      yield* Effect.fail(
+        new AwsError(
+          "No region found. Please set AWS_REGION or AWS_DEFAULT_REGION in the environment or in your AWS profile.",
+          "RegionNotFound",
+        ),
+      );
+    }
+
+    const client = new AwsClient({
+      ...credentials,
+      service: options.service,
+      region,
+    });
+
+    return new AwsClientWrapper(client, {
+      ...options,
+      region,
+    });
   });
 }
 
@@ -207,6 +237,7 @@ export class AwsClientWrapper {
           error instanceof Error
             ? error.message
             : "Network error during AWS request",
+          "NetworkError",
         );
       },
     });
@@ -265,18 +296,24 @@ export class AwsClientWrapper {
     const message = data.Message || data.message || response.statusText;
 
     if (response.status === 404 || errorCode.includes("NotFound")) {
-      return new AwsResourceNotFoundError(message, response, data);
+      return new AwsResourceNotFoundError(message, errorCode, response, data);
     }
     if (response.status === 403 || errorCode.includes("AccessDenied")) {
-      return new AwsAccessDeniedError(message, response, data);
+      return new AwsAccessDeniedError(message, errorCode, response, data);
     }
     if (response.status === 429 || errorCode.includes("Throttling")) {
-      return new AwsThrottleError(message, response, data);
+      return new AwsThrottleError(message, errorCode, response, data);
     }
     if (response.status === 400 || errorCode.includes("ValidationException")) {
-      return new AwsValidationError(message, response, data);
+      return new AwsValidationError(message, errorCode, response, data);
+    }
+    if (response.status === 409 || errorCode.includes("Conflict")) {
+      return new AwsConflictError(message, errorCode, response, data);
+    }
+    if (response.status >= 500) {
+      return new AwsInternalServerError(message, errorCode, response, data);
     }
 
-    return new AwsError(message, response, data);
+    return new AwsError(message, errorCode, response, data);
   }
 }
