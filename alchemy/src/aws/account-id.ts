@@ -1,6 +1,5 @@
-import { GetCallerIdentityCommand, STSClient } from "@aws-sdk/client-sts";
-
-const sts = new STSClient({});
+import { Effect } from "effect";
+import { createAwsClient } from "./client.ts";
 
 export type AccountId = string & {
   readonly __brand: "AccountId";
@@ -10,6 +9,11 @@ export type AccountId = string & {
  * Helper to get the current AWS account ID
  */
 export async function AccountId(): Promise<AccountId> {
-  const identity = await sts.send(new GetCallerIdentityCommand({}));
-  return identity.Account! as AccountId;
+  const client = await createAwsClient({ service: "sts" });
+  const effect = client.postJson<{ GetCallerIdentityResult: { Account: string } }>("/", {
+    Action: "GetCallerIdentity",
+    Version: "2011-06-15",
+  });
+  const identity = await Effect.runPromise(effect);
+  return identity.GetCallerIdentityResult.Account as AccountId;
 }

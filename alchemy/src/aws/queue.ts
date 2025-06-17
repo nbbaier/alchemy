@@ -1,16 +1,8 @@
-import {
-  CreateQueueCommand,
-  DeleteQueueCommand,
-  GetQueueAttributesCommand,
-  GetQueueUrlCommand,
-  QueueDeletedRecently,
-  QueueDoesNotExist,
-  SQSClient,
-} from "@aws-sdk/client-sqs";
+import { Effect } from "effect";
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { logger } from "../util/logger.ts";
-import { retry } from "./retry.ts";
+import { createAwsClient, AwsResourceNotFoundError, AwsError } from "./client.ts";
 
 /**
  * Properties for creating or updating an SQS queue
@@ -143,7 +135,7 @@ export const Queue = Resource(
     _id: string,
     props: QueueProps,
   ): Promise<Queue> {
-    const client = new SQSClient({});
+    const client = await createAwsClient({ service: "sqs" });
     // Don't automatically add .fifo suffix - user must include it in queueName
     const queueName = props.queueName;
 
@@ -155,38 +147,35 @@ export const Queue = Resource(
     if (this.phase === "delete") {
       try {
         // Get queue URL first
-        const urlResponse = await retry(() =>
-          client.send(
-            new GetQueueUrlCommand({
-              QueueName: queueName,
-            }),
-          ),
-        );
+        const urlEffect = client.postJson<{ QueueUrl: string }>("/", {
+          Action: "GetQueueUrl",
+          QueueName: queueName,
+          Version: "2012-11-05",
+        });
+        const urlResponse = await Effect.runPromise(urlEffect);
 
-        // Delete the queue
-        await retry(() =>
-          client.send(
-            new DeleteQueueCommand({
-              QueueUrl: urlResponse.QueueUrl,
-            }),
-          ),
-        );
+        // Delete the queue  
+        const deleteEffect = client.postJson("/", {
+          Action: "DeleteQueue",
+          QueueUrl: urlResponse.QueueUrl,
+          Version: "2012-11-05",
+        });
+        await Effect.runPromise(deleteEffect);
 
         // Wait for queue to be deleted
         let queueDeleted = false;
         while (!queueDeleted) {
           try {
-            await retry(() => {
-              return client.send(
-                new GetQueueUrlCommand({
-                  QueueName: queueName,
-                }),
-              );
+            const checkEffect = client.postJson("/", {
+              Action: "GetQueueUrl",
+              QueueName: queueName,
+              Version: "2012-11-05",
             });
+            await Effect.runPromise(checkEffect);
             // If we get here, queue still exists
             await new Promise((resolve) => setTimeout(resolve, 1000));
           } catch (error: any) {
-            if (isQueueDoesNotExist(error)) {
+            if (error instanceof AwsResourceNotFoundError || isQueueDoesNotExist(error)) {
               queueDeleted = true;
             } else {
               throw error;
@@ -195,7 +184,7 @@ export const Queue = Resource(
         }
       } catch (error: any) {
         logger.log(error.message);
-        if (!isQueueDoesNotExist(error)) {
+        if (!(error instanceof AwsResourceNotFoundError) && !isQueueDoesNotExist(error)) {
           throw error;
         }
       }
@@ -246,32 +235,42 @@ export const Queue = Resource(
 
     try {
       // Create the queue
-      const createResponse = await retry(
-        () =>
-          client.send(
-            new CreateQueueCommand({
-              QueueName: queueName,
-              Attributes: attributes,
-              tags,
-            }),
-          ),
-        (err) => isQueueDeletedRecently(err),
-      );
+      const createParams: Record<string, any> = {
+        Action: "CreateQueue",
+        QueueName: queueName,
+        Version: "2012-11-05",
+      };
+      
+      // Add attributes
+      Object.entries(attributes).forEach(([key, value], index) => {
+        createParams[`Attribute.${index + 1}.Name`] = key;
+        createParams[`Attribute.${index + 1}.Value`] = value;
+      });
+      
+      // Add tags
+      if (tags) {
+        Object.entries(tags).forEach(([key, value], index) => {
+          createParams[`Tag.${index + 1}.Key`] = key;
+          createParams[`Tag.${index + 1}.Value`] = value;
+        });
+      }
+      
+      const createEffect = client.postJson<{ QueueUrl: string }>("/", createParams);
+      const createResponse = await Effect.runPromise(createEffect);
 
       // Get queue attributes
-      const attributesResponse = await retry(() =>
-        client.send(
-          new GetQueueAttributesCommand({
-            QueueUrl: createResponse.QueueUrl,
-            AttributeNames: ["QueueArn"],
-          }),
-        ),
-      );
+      const attributesEffect = client.postJson<{ Attributes: Record<string, string> }>("/", {
+        Action: "GetQueueAttributes",
+        QueueUrl: createResponse.QueueUrl,
+        AttributeNames: ["QueueArn"],
+        Version: "2012-11-05",
+      });
+      const attributesResponse = await Effect.runPromise(attributesEffect);
 
       return this({
         ...props,
-        arn: attributesResponse.Attributes!.QueueArn!,
-        url: createResponse.QueueUrl!,
+        arn: attributesResponse.Attributes.QueueArn,
+        url: createResponse.QueueUrl,
       });
     } catch (error: any) {
       if (isQueueDeletedRecently(error)) {
@@ -288,30 +287,22 @@ export const Queue = Resource(
             await new Promise((resolve) => setTimeout(resolve, 1000));
 
             // Retry creating the queue
-            const createResponse = await retry(() =>
-              client.send(
-                new CreateQueueCommand({
-                  QueueName: queueName,
-                  Attributes: attributes,
-                  tags,
-                }),
-              ),
-            );
+            const retryCreateEffect = client.postJson<{ QueueUrl: string }>("/", createParams);
+            const createResponse = await Effect.runPromise(retryCreateEffect);
 
             // Get queue attributes
-            const attributesResponse = await retry(() =>
-              client.send(
-                new GetQueueAttributesCommand({
-                  QueueUrl: createResponse.QueueUrl,
-                  AttributeNames: ["QueueArn"],
-                }),
-              ),
-            );
+            const retryAttributesEffect = client.postJson<{ Attributes: Record<string, string> }>("/", {
+              Action: "GetQueueAttributes",
+              QueueUrl: createResponse.QueueUrl,
+              AttributeNames: ["QueueArn"],
+              Version: "2012-11-05",
+            });
+            const attributesResponse = await Effect.runPromise(retryAttributesEffect);
 
             return this({
               ...props,
-              arn: attributesResponse.Attributes!.QueueArn!,
-              url: createResponse.QueueUrl!,
+              arn: attributesResponse.Attributes.QueueArn,
+              url: createResponse.QueueUrl,
             });
           } catch (retryError: any) {
             if (
@@ -329,18 +320,18 @@ export const Queue = Resource(
   },
 );
 
-function isQueueDoesNotExist(error: any): error is QueueDoesNotExist {
+function isQueueDoesNotExist(error: any): boolean {
   return (
     error.name === "QueueDoesNotExist" ||
     error.Code === "AWS.SimpleQueueService.NonExistentQueue" ||
-    error instanceof QueueDoesNotExist
+    (error instanceof AwsError && error.message.includes("NonExistentQueue"))
   );
 }
 
-function isQueueDeletedRecently(error: any): error is QueueDeletedRecently {
+function isQueueDeletedRecently(error: any): boolean {
   return (
-    error instanceof QueueDeletedRecently ||
     error.Code === "AWS.SimpleQueueService.QueueDeletedRecently" ||
-    error.name === "QueueDeletedRecently"
+    error.name === "QueueDeletedRecently" ||
+    (error instanceof AwsError && error.message.includes("QueueDeletedRecently"))
   );
 }

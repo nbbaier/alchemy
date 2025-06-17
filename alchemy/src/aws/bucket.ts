@@ -1,19 +1,8 @@
-import {
-  CreateBucketCommand,
-  DeleteBucketCommand,
-  GetBucketAclCommand,
-  GetBucketLocationCommand,
-  GetBucketTaggingCommand,
-  GetBucketVersioningCommand,
-  HeadBucketCommand,
-  NoSuchBucket,
-  PutBucketTaggingCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
+import { Effect } from "effect";
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { ignore } from "../util/ignore.ts";
-import { retry } from "./retry.ts";
+import { createAwsClient, AwsResourceNotFoundError } from "./client.ts";
 
 /**
  * Properties for creating or updating an S3 bucket
@@ -130,104 +119,85 @@ export interface Bucket extends Resource<"s3::Bucket">, BucketProps {
 export const Bucket = Resource(
   "s3::Bucket",
   async function (this: Context<Bucket>, _id: string, props: BucketProps) {
-    const client = new S3Client({});
+    const client = await createAwsClient({ service: "s3" });
 
     if (this.phase === "delete") {
-      await ignore(NoSuchBucket.name, () =>
-        retry(() =>
-          client.send(
-            new DeleteBucketCommand({
-              Bucket: props.bucketName,
-            }),
-          ),
-        ),
-      );
+      await ignore(AwsResourceNotFoundError.name, async () => {
+        const deleteEffect = client.delete(`/${props.bucketName}`);
+        await Effect.runPromise(deleteEffect);
+      });
       return this.destroy();
     }
     try {
       // Check if bucket exists
-      await retry(() =>
-        client.send(
-          new HeadBucketCommand({
-            Bucket: props.bucketName,
-          }),
-        ),
-      );
+      const headEffect = client.request("HEAD", `/${props.bucketName}`);
+      await Effect.runPromise(headEffect);
 
       // Update tags if they changed and bucket exists
       if (this.phase === "update" && props.tags) {
-        await retry(() =>
-          client.send(
-            new PutBucketTaggingCommand({
-              Bucket: props.bucketName,
-              Tagging: {
-                TagSet: Object.entries(props.tags!).map(([Key, Value]) => ({
-                  Key,
-                  Value,
-                })),
-              },
-            }),
-          ),
-        );
+        const tagSet = Object.entries(props.tags).map(([Key, Value]) => ({ Key, Value }));
+        const taggingXml = `<Tagging><TagSet>${tagSet
+          .map(({ Key, Value }) => `<Tag><Key>${Key}</Key><Value>${Value}</Value></Tag>`)
+          .join("")}</TagSet></Tagging>`;
+        
+        const putTagsEffect = client.put(`/${props.bucketName}?tagging`, taggingXml, {
+          "Content-Type": "application/xml",
+        });
+        await Effect.runPromise(putTagsEffect);
       }
     } catch (error: any) {
-      if (error.name === "NotFound") {
+      if (error instanceof AwsResourceNotFoundError) {
         // Create bucket if it doesn't exist
-        await retry(() =>
-          client.send(
-            new CreateBucketCommand({
-              Bucket: props.bucketName,
-              // Add tags during creation if specified
-              ...(props.tags && {
-                Tagging: {
-                  TagSet: Object.entries(props.tags).map(([Key, Value]) => ({
-                    Key,
-                    Value,
-                  })),
-                },
-              }),
-            }),
-          ),
-        );
+        const createEffect = client.put(`/${props.bucketName}`);
+        await Effect.runPromise(createEffect);
+        
+        // Add tags after creation if specified
+        if (props.tags) {
+          const tagSet = Object.entries(props.tags).map(([Key, Value]) => ({ Key, Value }));
+          const taggingXml = `<Tagging><TagSet>${tagSet
+            .map(({ Key, Value }) => `<Tag><Key>${Key}</Key><Value>${Value}</Value></Tag>`)
+            .join("")}</TagSet></Tagging>`;
+          
+          const putTagsEffect = client.put(`/${props.bucketName}?tagging`, taggingXml, {
+            "Content-Type": "application/xml",
+          });
+          await Effect.runPromise(putTagsEffect);
+        }
       } else {
         throw error;
       }
     }
 
     // Get bucket details
+    const locationEffect = client.get(`/${props.bucketName}?location`);
+    const versioningEffect = client.get(`/${props.bucketName}?versioning`);
+    const aclEffect = client.get(`/${props.bucketName}?acl`);
+    
     const [locationResponse, versioningResponse, aclResponse] =
       await Promise.all([
-        retry(() =>
-          client.send(
-            new GetBucketLocationCommand({ Bucket: props.bucketName }),
-          ),
-        ),
-        retry(() =>
-          client.send(
-            new GetBucketVersioningCommand({ Bucket: props.bucketName }),
-          ),
-        ),
-        retry(() =>
-          client.send(new GetBucketAclCommand({ Bucket: props.bucketName })),
-        ),
+        Effect.runPromise(locationEffect),
+        Effect.runPromise(versioningEffect),
+        Effect.runPromise(aclEffect),
       ]);
 
-    const region = locationResponse.LocationConstraint || "us-east-1";
+    const region = (locationResponse as any)?.LocationConstraint || "us-east-1";
 
     // Get tags if they exist
     let tags = props.tags;
     if (!tags) {
       try {
-        const taggingResponse = await retry(() =>
-          client.send(
-            new GetBucketTaggingCommand({ Bucket: props.bucketName }),
-          ),
-        );
-        tags = Object.fromEntries(
-          taggingResponse.TagSet?.map(({ Key, Value }) => [Key, Value]) || [],
-        );
+        const taggingEffect = client.get(`/${props.bucketName}?tagging`);
+        const taggingResponse = await Effect.runPromise(taggingEffect);
+        
+        // Parse XML response to extract tags
+        const tagSet = (taggingResponse as any)?.Tagging?.TagSet;
+        if (Array.isArray(tagSet)) {
+          tags = Object.fromEntries(
+            tagSet.map(({ Key, Value }: any) => [Key, Value]) || [],
+          );
+        }
       } catch (error: any) {
-        if (error.name !== "NoSuchTagSet") {
+        if (!(error instanceof AwsResourceNotFoundError)) {
           throw error;
         }
       }
@@ -240,8 +210,8 @@ export const Bucket = Resource(
       bucketRegionalDomainName: `${props.bucketName}.s3.${region}.amazonaws.com`,
       region,
       hostedZoneId: getHostedZoneId(region),
-      versioningEnabled: versioningResponse.Status === "Enabled",
-      acl: aclResponse.Grants?.[0]?.Permission?.toLowerCase(),
+      versioningEnabled: (versioningResponse as any)?.VersioningConfiguration?.Status === "Enabled",
+      acl: (aclResponse as any)?.AccessControlPolicy?.AccessControlList?.Grant?.[0]?.Permission?.toLowerCase(),
       ...(tags && { tags }),
     });
   },

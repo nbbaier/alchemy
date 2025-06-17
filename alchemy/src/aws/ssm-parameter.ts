@@ -1,18 +1,10 @@
-import {
-  AddTagsToResourceCommand,
-  DeleteParameterCommand,
-  GetParameterCommand,
-  ParameterAlreadyExists,
-  ParameterNotFound,
-  PutParameterCommand,
-  SSMClient,
-  type Tag,
-} from "@aws-sdk/client-ssm";
+import { Effect } from "effect";
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { type Secret, isSecret } from "../secret.ts";
 import { ignore } from "../util/ignore.ts";
 import { logger } from "../util/logger.ts";
+import { createAwsClient, AwsResourceNotFoundError, AwsError } from "./client.ts";
 
 /**
  * Base properties shared by all SSM Parameter types
@@ -179,19 +171,20 @@ export const SSMParameter = Resource(
     _id: string,
     props: SSMParameterProps,
   ): Promise<SSMParameter> {
-    const client = new SSMClient({});
+    const client = await createAwsClient({ service: "ssm" });
 
     if (this.phase === "delete") {
       try {
-        await ignore(ParameterNotFound.name, () =>
-          client.send(
-            new DeleteParameterCommand({
-              Name: props.name,
-            }),
-          ),
-        );
+        await ignore(AwsResourceNotFoundError.name, async () => {
+          const deleteEffect = client.postJson("/", {
+            Action: "DeleteParameter",
+            Name: props.name,
+            Version: "2014-11-06",
+          });
+          await Effect.runPromise(deleteEffect);
+        });
       } catch (error: any) {
-        if (!(error instanceof ParameterNotFound)) {
+        if (!(error instanceof AwsResourceNotFoundError)) {
           throw error;
         }
       }
@@ -215,85 +208,90 @@ export const SSMParameter = Resource(
     try {
       // First, try to create the parameter without overwrite to include tags
       try {
-        await client.send(
-          new PutParameterCommand({
+        const tags = [
+          ...Object.entries(props.tags || {}).map(([Key, Value]) => ({ Key, Value })),
+          { Key: "alchemy_stage", Value: this.stage },
+          { Key: "alchemy_resource", Value: this.id },
+        ];
+        
+        const putParams: Record<string, any> = {
+          Action: "PutParameter",
+          Name: props.name,
+          Value: parameterValue,
+          Type: parameterType,
+          Overwrite: false,
+          Version: "2014-11-06",
+        };
+        
+        if (props.description) putParams.Description = props.description;
+        if (props.keyId) putParams.KeyId = props.keyId;
+        if (props.tier) putParams.Tier = props.tier;
+        if (props.policies) putParams.Policies = props.policies;
+        if (props.dataType) putParams.DataType = props.dataType;
+        
+        // Add tags to parameters
+        tags.forEach((tag, index) => {
+          putParams[`Tags.member.${index + 1}.Key`] = tag.Key;
+          putParams[`Tags.member.${index + 1}.Value`] = tag.Value;
+        });
+        
+        const putEffect = client.postJson("/", putParams);
+        await Effect.runPromise(putEffect);
+      } catch (error: any) {
+        // If parameter already exists, update it with overwrite (no tags in this call)
+        if (error instanceof AwsError && error.message.includes("AlreadyExists")) {
+          const updateParams: Record<string, any> = {
+            Action: "PutParameter",
             Name: props.name,
             Value: parameterValue,
             Type: parameterType,
-            Description: props.description,
-            KeyId: props.keyId,
-            Tier: props.tier,
-            Policies: props.policies,
-            DataType: props.dataType,
-            Overwrite: false, // Don't overwrite, include tags
-            Tags: [
-              ...Object.entries(props.tags || {}).map(([Key, Value]) => ({
-                Key,
-                Value,
-              })),
-              {
-                Key: "alchemy_stage",
-                Value: this.stage,
-              },
-              {
-                Key: "alchemy_resource",
-                Value: this.id,
-              },
-            ],
-          }),
-        );
-      } catch (error: any) {
-        // If parameter already exists, update it with overwrite (no tags in this call)
-        if (error instanceof ParameterAlreadyExists) {
-          await client.send(
-            new PutParameterCommand({
-              Name: props.name,
-              Value: parameterValue,
-              Type: parameterType,
-              Description: props.description,
-              KeyId: props.keyId,
-              Tier: props.tier,
-              Policies: props.policies,
-              DataType: props.dataType,
-              Overwrite: true, // Overwrite existing, no tags
-            }),
-          );
+            Overwrite: true,
+            Version: "2014-11-06",
+          };
+          
+          if (props.description) updateParams.Description = props.description;
+          if (props.keyId) updateParams.KeyId = props.keyId;
+          if (props.tier) updateParams.Tier = props.tier;
+          if (props.policies) updateParams.Policies = props.policies;
+          if (props.dataType) updateParams.DataType = props.dataType;
+          
+          const updateEffect = client.postJson("/", updateParams);
+          await Effect.runPromise(updateEffect);
 
           // Update tags separately for existing parameters
-          const tags: Tag[] = [
-            ...Object.entries(props.tags || {}).map(([Key, Value]) => ({
-              Key,
-              Value,
-            })),
-            {
-              Key: "alchemy_stage",
-              Value: this.stage,
-            },
-            {
-              Key: "alchemy_resource",
-              Value: this.id,
-            },
+          const tags = [
+            ...Object.entries(props.tags || {}).map(([Key, Value]) => ({ Key, Value })),
+            { Key: "alchemy_stage", Value: this.stage },
+            { Key: "alchemy_resource", Value: this.id },
           ];
-
-          await client.send(
-            new AddTagsToResourceCommand({
-              ResourceType: "Parameter",
-              ResourceId: props.name,
-              Tags: tags,
-            }),
-          );
+          
+          const tagParams: Record<string, any> = {
+            Action: "AddTagsToResource",
+            ResourceType: "Parameter",
+            ResourceId: props.name,
+            Version: "2014-11-06",
+          };
+          
+          tags.forEach((tag, index) => {
+            tagParams[`Tags.member.${index + 1}.Key`] = tag.Key;
+            tagParams[`Tags.member.${index + 1}.Value`] = tag.Value;
+          });
+          
+          const tagEffect = client.postJson("/", tagParams);
+          await Effect.runPromise(tagEffect);
         } else {
           throw error;
         }
       }
 
       // Get the updated parameter
-      const parameter = await client.send(
-        new GetParameterCommand({
-          Name: props.name,
-          WithDecryption: true,
-        }),
-      );
+      const getEffect = client.postJson<{ Parameter: any }>("/", {
+        Action: "GetParameter",
+        Name: props.name,
+        WithDecryption: true,
+        Version: "2014-11-06",
+      });
+      const parameter = await Effect.runPromise(getEffect);
 
       if (!parameter?.Parameter) {
         throw new Error(`Failed to create or update parameter ${props.name}`);
@@ -301,12 +299,12 @@ export const SSMParameter = Resource(
 
       return this({
         ...props,
-        arn: parameter.Parameter.ARN!,
-        version: parameter.Parameter.Version!,
-        lastModifiedDate: parameter.Parameter.LastModifiedDate!,
+        arn: parameter.Parameter.ARN,
+        version: parameter.Parameter.Version,
+        lastModifiedDate: new Date(parameter.Parameter.LastModifiedDate),
         name: parameter.Parameter.Name ?? props.name,
         value: props.value,
-        type: (parameter.Parameter.Type as any) ?? parameterType,
+        type: parameter.Parameter.Type ?? parameterType,
       } as SSMParameter);
     } catch (error: any) {
       logger.error(`Error creating/updating parameter ${props.name}:`, error);
