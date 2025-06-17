@@ -1,7 +1,7 @@
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
 import { loadConfig } from "@smithy/node-config-provider";
 import { AwsClient } from "aws4fetch";
-import { Effect } from "effect";
+import { Effect, Schedule } from "effect";
 import { safeFetch } from "../util/safe-fetch.ts";
 
 /**
@@ -221,15 +221,13 @@ export class AwsClientWrapper {
     });
 
     // Use Effect's retry with exponential backoff for retryable errors
+    const schedule = Schedule.exponential(100); // 100ms
     return makeRequest.pipe(
       Effect.retry({
         while: (error) =>
           error instanceof AwsThrottleError || error instanceof AwsNetworkError,
         times: maxRetries,
-        schedule: Effect.Schedule.exponential("100 milliseconds").pipe(
-          Effect.Schedule.jittered,
-          Effect.Schedule.upTo("3 seconds"),
-        ),
+        schedule,
       }),
     );
   }

@@ -176,7 +176,7 @@ export const SSMParameter = EffectResource<SSMParameter, SSMParameterProps>(
         })
         .pipe(Effect.catchAll(() => Effect.unit));
 
-      return null;
+      return yield* this.destroy();
     }
 
     const parameterType = props.type || "String";

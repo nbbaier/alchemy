@@ -9,31 +9,36 @@ import { Resource } from "../resource.ts";
  * flow control features while maintaining compatibility with the existing
  * Resource interface that expects Promise return types.
  *
- * For delete operations, the effectHandler should handle the deletion logic
- * but NOT call context.destroy() - this wrapper will handle that at the
- * Resource level after the Effect completes successfully.
+ * For delete operations, the effectHandler should use `yield* this.destroy()`
+ * to explicitly handle destruction within the Effect chain.
  */
 export function EffectResource<T extends Resource<string>, P>(
   type: string,
   effectHandler: (
-    this: Context<T>,
+    this: EffectContext<T>,
     id: string,
     props: P,
-  ) => Generator<Effect.Effect<any, any>, T | null, any>,
+  ) => Generator<Effect.Effect<any, any>, T, any>,
 ) {
   return Resource(
     type,
     async function (this: Context<T>, id: string, props: P): Promise<T> {
-      const result = await Effect.runPromise(
-        Effect.gen(effectHandler.bind(this, id, props)),
+      // Create Effect-wrapped context with destroy() as Effect
+      const effectContext: EffectContext<T> = {
+        ...this,
+        destroy: () => Effect.sync(() => this.destroy()),
+      };
+
+      return await Effect.runPromise(
+        Effect.gen(effectHandler.bind(effectContext, id, props)),
       );
-
-      // Handle the delete case where effectHandler returns null
-      if (result === null) {
-        return this.destroy();
-      }
-
-      return result;
     },
   );
 }
+
+/**
+ * Effect-wrapped Context that provides destroy() as an Effect operation
+ */
+type EffectContext<T extends Resource<string>> = Context<T> & {
+  destroy: () => Effect.Effect<T, never>;
+};

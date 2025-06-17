@@ -3,6 +3,35 @@ import { createAwsClient, AwsResourceNotFoundError } from "./client.ts";
 import { EffectResource } from "./effect-resource.ts";
 
 /**
+ * AWS S3 API response interfaces for type safety
+ */
+interface S3LocationResponse {
+  LocationConstraint?: string;
+}
+
+interface S3TaggingResponse {
+  Tagging?: {
+    TagSet?: Array<{ Key: string; Value: string }>;
+  };
+}
+
+interface S3VersioningResponse {
+  VersioningConfiguration?: {
+    Status?: "Enabled" | "Suspended";
+  };
+}
+
+interface S3AclResponse {
+  AccessControlPolicy?: {
+    AccessControlList?: {
+      Grant?: Array<{
+        Permission?: string;
+      }>;
+    };
+  };
+}
+
+/**
  * Properties for creating or updating an S3 bucket
  */
 export interface BucketProps {
@@ -123,7 +152,7 @@ export const Bucket = EffectResource<Bucket, BucketProps>(
       yield* client
         .delete(`/${props.bucketName}`)
         .pipe(Effect.catchAll(() => Effect.unit));
-      return null;
+      return yield* this.destroy();
     }
 
     // Helper function to create tagging XML
@@ -176,26 +205,35 @@ export const Bucket = EffectResource<Bucket, BucketProps>(
     // Get bucket details in parallel
     const [locationResponse, versioningResponse, aclResponse] =
       yield* Effect.all([
-        client.get(`/${props.bucketName}?location`),
-        client.get(`/${props.bucketName}?versioning`),
-        client.get(`/${props.bucketName}?acl`),
+        client.get<S3LocationResponse>(`/${props.bucketName}?location`, {
+          Host: `${props.bucketName}.s3.amazonaws.com`,
+        }),
+        client.get<S3VersioningResponse>(`/${props.bucketName}?versioning`),
+        client.get<S3AclResponse>(`/${props.bucketName}?acl`),
       ]);
 
-    const region = (locationResponse as any)?.LocationConstraint || "us-east-1";
+    const region = locationResponse?.LocationConstraint || "us-east-1";
 
     // Get tags if they weren't provided
     let tags = props.tags;
     if (!tags) {
       const taggingResponse = yield* client
-        .get(`/${props.bucketName}?tagging`)
-        .pipe(Effect.catchAll(() => Effect.succeed(null)));
+        .get<S3TaggingResponse>(`/${props.bucketName}?tagging`)
+        .pipe(
+          Effect.catchSome(
+            (err) =>
+              err instanceof AwsResourceNotFoundError
+                ? Effect.succeed(null) // Tags don't exist - OK
+                : Effect.fail(err), // Other errors should bubble up
+          ),
+        );
 
       if (taggingResponse) {
         // Parse XML response to extract tags
-        const tagSet = (taggingResponse as any)?.Tagging?.TagSet;
+        const tagSet = taggingResponse.Tagging?.TagSet;
         if (Array.isArray(tagSet)) {
           tags = Object.fromEntries(
-            tagSet.map(({ Key, Value }: any) => [Key, Value]) || [],
+            tagSet.map(({ Key, Value }) => [Key, Value]) || [],
           );
         }
       }
@@ -209,11 +247,8 @@ export const Bucket = EffectResource<Bucket, BucketProps>(
       region,
       hostedZoneId: getHostedZoneId(region),
       versioningEnabled:
-        (versioningResponse as any)?.VersioningConfiguration?.Status ===
-        "Enabled",
-      acl: (
-        aclResponse as any
-      )?.AccessControlPolicy?.AccessControlList?.Grant?.[0]?.Permission?.toLowerCase(),
+        versioningResponse?.VersioningConfiguration?.Status === "Enabled",
+      acl: aclResponse?.AccessControlPolicy?.AccessControlList?.Grant?.[0]?.Permission?.toLowerCase(),
       ...(tags && { tags }),
     });
   },

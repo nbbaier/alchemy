@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Schedule } from "effect";
 import { logger } from "../util/logger.ts";
 import {
   createAwsClient,
@@ -167,7 +167,7 @@ export const Queue = EffectResource<Queue, QueueProps>(
             Version: "2012-11-05",
           })
           .pipe(
-            Effect.flatMap(() => Effect.sleep("1 seconds")),
+            Effect.flatMap(() => Effect.sleep(1000)), // 1 second
             Effect.repeat({
               until: () => false, // Keep trying until it fails
             }),
@@ -197,7 +197,7 @@ export const Queue = EffectResource<Queue, QueueProps>(
         }),
       );
 
-      return null;
+      return yield* this.destroy();
     }
 
     // Create queue with attributes
@@ -301,7 +301,7 @@ export const Queue = EffectResource<Queue, QueueProps>(
             Effect.flatMap(() => createQueue),
             Effect.retry({
               times: 60,
-              schedule: Effect.Schedule.spaced("1 seconds"),
+              schedule: Schedule.spaced(1000), // 1 second
             }),
           );
         }
