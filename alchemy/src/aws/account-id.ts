@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { createAwsClient } from "./client.ts";
+import { createAwsClient, type AwsError } from "./client.ts";
 
 export type AccountId = string & {
   readonly __brand: "AccountId";
@@ -8,7 +8,7 @@ export type AccountId = string & {
 /**
  * Helper to get the current AWS account ID using Effect-based API
  */
-export function AccountId(): Effect.Effect<AccountId, any> {
+export function AccountId(): Effect.Effect<AccountId, AwsError> {
   return Effect.gen(function* () {
     const client = yield* createAwsClient({ service: "sts" });
     const identity = yield* client.postJson<{

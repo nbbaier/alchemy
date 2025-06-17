@@ -10,7 +10,7 @@ import { safeFetch } from "../util/safe-fetch.ts";
 export class AwsError extends Error {
   constructor(
     public readonly message: string,
-    public readonly errorCode?: string,
+    public readonly errorCode: string,
     public readonly response?: Response,
     public readonly data?: any,
   ) {
@@ -152,82 +152,60 @@ export class AwsClientWrapper {
       maxRetries?: number;
     },
   ): Effect.Effect<T, AwsError> {
-    return Effect.tryPromise({
+    const maxRetries = options?.maxRetries || this.maxRetries;
+
+    const makeRequest = Effect.tryPromise({
       try: async () => {
-        let attempt = 0;
-        const maxRetries = options?.maxRetries || this.maxRetries;
+        // Special URL handling for S3
+        const url =
+          this.service === "s3"
+            ? `https://s3.${this.region}.amazonaws.com${path}`
+            : `https://${this.service}.${this.region}.amazonaws.com${path}`;
 
-        while (true) {
+        const requestOptions = {
+          method,
+          headers: {
+            // Don't set default Content-Type for all services
+            ...(this.service !== "s3" && {
+              "Content-Type": "application/x-amz-json-1.1",
+            }),
+            ...options?.headers,
+          },
+          ...(options?.body && { body: options.body }),
+        };
+
+        const signedRequest = await this.client.sign(url, requestOptions);
+        const response = await safeFetch(signedRequest);
+
+        if (!response.ok) {
+          // Try to parse as XML for S3, JSON for others
+          let data: any = {};
           try {
-            // Special URL handling for S3
-            const url =
-              this.service === "s3"
-                ? `https://s3.${this.region}.amazonaws.com${path}`
-                : `https://${this.service}.${this.region}.amazonaws.com${path}`;
-
-            const requestOptions = {
-              method,
-              headers: {
-                // Don't set default Content-Type for all services
-                ...(this.service !== "s3" && {
-                  "Content-Type": "application/x-amz-json-1.1",
-                }),
-                ...options?.headers,
-              },
-              ...(options?.body && { body: options.body }),
-            };
-
-            const signedRequest = await this.client.sign(url, requestOptions);
-            const response = await safeFetch(signedRequest);
-
-            if (!response.ok) {
-              // Try to parse as XML for S3, JSON for others
-              let data: any = {};
-              try {
-                if (this.service === "s3") {
-                  const text = await response.text();
-                  data = { message: text, statusText: response.statusText };
-                } else {
-                  data = await response.json();
-                }
-              } catch {
-                data = { statusText: response.statusText };
-              }
-              throw this.createError(response, data);
-            }
-
-            // For S3 HEAD requests, return empty object
-            if (method === "HEAD") {
-              return {} as T;
-            }
-
-            // For S3, try to parse as XML first, then JSON
             if (this.service === "s3") {
               const text = await response.text();
-              // For now, return the raw text - in a real implementation you'd parse XML
-              return (text ? { data: text } : {}) as T;
+              data = { message: text, statusText: response.statusText };
+            } else {
+              data = await response.json();
             }
-
-            return (await response.json()) as T;
-          } catch (error: any) {
-            // Handle retryable errors
-            if (
-              (error instanceof AwsThrottleError ||
-                error instanceof AwsNetworkError) &&
-              attempt < maxRetries
-            ) {
-              const baseDelay = Math.min(2 ** attempt * 1000, 3000);
-              const jitter = Math.random() * 0.1 * baseDelay;
-              const retryDelay = baseDelay + jitter;
-
-              await new Promise((resolve) => setTimeout(resolve, retryDelay));
-              attempt++;
-              continue;
-            }
-
-            throw error;
+          } catch {
+            data = { statusText: response.statusText };
           }
+          throw this.createError(response, data);
         }
+
+        // For S3 HEAD requests, return empty object
+        if (method === "HEAD") {
+          return {} as T;
+        }
+
+        // For S3, try to parse as XML first, then JSON
+        if (this.service === "s3") {
+          const text = await response.text();
+          // For now, return the raw text - in a real implementation you'd parse XML
+          return (text ? { data: text } : {}) as T;
+        }
+
+        return (await response.json()) as T;
       },
       catch: (error): AwsError => {
         if (error instanceof AwsError) {
@@ -241,6 +219,19 @@ export class AwsClientWrapper {
         );
       },
     });
+
+    // Use Effect's retry with exponential backoff for retryable errors
+    return makeRequest.pipe(
+      Effect.retry({
+        while: (error) =>
+          error instanceof AwsThrottleError || error instanceof AwsNetworkError,
+        times: maxRetries,
+        schedule: Effect.Schedule.exponential("100 milliseconds").pipe(
+          Effect.Schedule.jittered,
+          Effect.Schedule.upTo("3 seconds"),
+        ),
+      }),
+    );
   }
 
   /**
