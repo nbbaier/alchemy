@@ -115,7 +115,7 @@ export class AwsClientWrapper {
   public request<T>(
     method: string,
     path: string,
-    params?: Record<string, any>,
+    _params?: Record<string, any>,
     options?: {
       headers?: Record<string, string>;
       body?: string;
@@ -130,15 +130,18 @@ export class AwsClientWrapper {
         while (true) {
           try {
             // Special URL handling for S3
-            const url = this.service === "s3" 
-              ? `https://s3.${this.region}.amazonaws.com${path}`
-              : `https://${this.service}.${this.region}.amazonaws.com${path}`;
-              
+            const url =
+              this.service === "s3"
+                ? `https://s3.${this.region}.amazonaws.com${path}`
+                : `https://${this.service}.${this.region}.amazonaws.com${path}`;
+
             const requestOptions = {
               method,
               headers: {
                 // Don't set default Content-Type for all services
-                ...(this.service !== "s3" && { "Content-Type": "application/x-amz-json-1.1" }),
+                ...(this.service !== "s3" && {
+                  "Content-Type": "application/x-amz-json-1.1",
+                }),
                 ...options?.headers,
               },
               ...(options?.body && { body: options.body }),
@@ -179,7 +182,8 @@ export class AwsClientWrapper {
           } catch (error: any) {
             // Handle retryable errors
             if (
-              (error instanceof AwsThrottleError || error instanceof AwsNetworkError) &&
+              (error instanceof AwsThrottleError ||
+                error instanceof AwsNetworkError) &&
               attempt < maxRetries
             ) {
               const baseDelay = Math.min(2 ** attempt * 1000, 3000);
@@ -200,7 +204,9 @@ export class AwsClientWrapper {
           return error;
         }
         return new AwsNetworkError(
-          error instanceof Error ? error.message : "Network error during AWS request",
+          error instanceof Error
+            ? error.message
+            : "Network error during AWS request",
         );
       },
     });

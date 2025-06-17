@@ -1,8 +1,26 @@
 import { Effect } from "effect";
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
-import { ignore } from "../util/ignore.ts";
 import { createAwsClient, AwsResourceNotFoundError } from "./client.ts";
+
+/**
+ * Creates a Resource that uses Effect throughout the entire lifecycle
+ */
+function EffectResource<T extends Resource<string>, P>(
+  type: string,
+  effectHandler: (
+    context: Context<T>,
+    id: string,
+    props: P,
+  ) => Effect.Effect<T, any>,
+) {
+  return Resource(
+    type,
+    async function (this: Context<T>, id: string, props: P): Promise<T> {
+      return Effect.runPromise(effectHandler(this, id, props));
+    },
+  );
+}
 
 /**
  * Properties for creating or updating an S3 bucket
@@ -116,105 +134,113 @@ export interface Bucket extends Resource<"s3::Bucket">, BucketProps {
  *   }
  * });
  */
-export const Bucket = Resource(
+export const Bucket = EffectResource<Bucket, BucketProps>(
   "s3::Bucket",
-  async function (this: Context<Bucket>, _id: string, props: BucketProps) {
-    const client = await createAwsClient({ service: "s3" });
+  (context, _id, props) =>
+    Effect.gen(function* () {
+      const client = yield* Effect.promise(() =>
+        createAwsClient({ service: "s3" }),
+      );
 
-    if (this.phase === "delete") {
-      await ignore(AwsResourceNotFoundError.name, async () => {
-        const deleteEffect = client.delete(`/${props.bucketName}`);
-        await Effect.runPromise(deleteEffect);
-      });
-      return this.destroy();
-    }
-    try {
-      // Check if bucket exists
-      const headEffect = client.request("HEAD", `/${props.bucketName}`);
-      await Effect.runPromise(headEffect);
-
-      // Update tags if they changed and bucket exists
-      if (this.phase === "update" && props.tags) {
-        const tagSet = Object.entries(props.tags).map(([Key, Value]) => ({ Key, Value }));
-        const taggingXml = `<Tagging><TagSet>${tagSet
-          .map(({ Key, Value }) => `<Tag><Key>${Key}</Key><Value>${Value}</Value></Tag>`)
-          .join("")}</TagSet></Tagging>`;
-        
-        const putTagsEffect = client.put(`/${props.bucketName}?tagging`, taggingXml, {
-          "Content-Type": "application/xml",
-        });
-        await Effect.runPromise(putTagsEffect);
+      if (context.phase === "delete") {
+        yield* client
+          .delete(`/${props.bucketName}`)
+          .pipe(Effect.catchAll(() => Effect.succeed(void 0)));
+        return context.destroy();
       }
-    } catch (error: any) {
-      if (error instanceof AwsResourceNotFoundError) {
-        // Create bucket if it doesn't exist
-        const createEffect = client.put(`/${props.bucketName}`);
-        await Effect.runPromise(createEffect);
-        
-        // Add tags after creation if specified
-        if (props.tags) {
-          const tagSet = Object.entries(props.tags).map(([Key, Value]) => ({ Key, Value }));
-          const taggingXml = `<Tagging><TagSet>${tagSet
-            .map(({ Key, Value }) => `<Tag><Key>${Key}</Key><Value>${Value}</Value></Tag>`)
-            .join("")}</TagSet></Tagging>`;
-          
-          const putTagsEffect = client.put(`/${props.bucketName}?tagging`, taggingXml, {
+
+      // Helper function to create tagging XML
+      const createTaggingXml = (tags: Record<string, string>) => {
+        const tagSet = Object.entries(tags).map(([Key, Value]) => ({
+          Key,
+          Value,
+        }));
+        return `<Tagging><TagSet>${tagSet
+          .map(
+            ({ Key, Value }) =>
+              `<Tag><Key>${Key}</Key><Value>${Value}</Value></Tag>`,
+          )
+          .join("")}</TagSet></Tagging>`;
+      };
+
+      // Try to check if bucket exists and update tags if needed
+      const bucketExists = yield* client
+        .request("HEAD", `/${props.bucketName}`)
+        .pipe(
+          Effect.map(() => true),
+          Effect.catchSome((err) =>
+            err instanceof AwsResourceNotFoundError
+              ? Effect.succeed(false)
+              : Effect.fail(err),
+          ),
+        );
+
+      if (bucketExists) {
+        // Update tags if they changed and bucket exists
+        if (context.phase === "update" && props.tags) {
+          const taggingXml = createTaggingXml(props.tags);
+          yield* client.put(`/${props.bucketName}?tagging`, taggingXml, {
             "Content-Type": "application/xml",
           });
-          await Effect.runPromise(putTagsEffect);
         }
       } else {
-        throw error;
-      }
-    }
+        // Create bucket if it doesn't exist
+        yield* client.put(`/${props.bucketName}`);
 
-    // Get bucket details
-    const locationEffect = client.get(`/${props.bucketName}?location`);
-    const versioningEffect = client.get(`/${props.bucketName}?versioning`);
-    const aclEffect = client.get(`/${props.bucketName}?acl`);
-    
-    const [locationResponse, versioningResponse, aclResponse] =
-      await Promise.all([
-        Effect.runPromise(locationEffect),
-        Effect.runPromise(versioningEffect),
-        Effect.runPromise(aclEffect),
-      ]);
-
-    const region = (locationResponse as any)?.LocationConstraint || "us-east-1";
-
-    // Get tags if they exist
-    let tags = props.tags;
-    if (!tags) {
-      try {
-        const taggingEffect = client.get(`/${props.bucketName}?tagging`);
-        const taggingResponse = await Effect.runPromise(taggingEffect);
-        
-        // Parse XML response to extract tags
-        const tagSet = (taggingResponse as any)?.Tagging?.TagSet;
-        if (Array.isArray(tagSet)) {
-          tags = Object.fromEntries(
-            tagSet.map(({ Key, Value }: any) => [Key, Value]) || [],
-          );
-        }
-      } catch (error: any) {
-        if (!(error instanceof AwsResourceNotFoundError)) {
-          throw error;
+        // Add tags after creation if specified
+        if (props.tags) {
+          const taggingXml = createTaggingXml(props.tags);
+          yield* client.put(`/${props.bucketName}?tagging`, taggingXml, {
+            "Content-Type": "application/xml",
+          });
         }
       }
-    }
 
-    return this({
-      bucketName: props.bucketName,
-      arn: `arn:aws:s3:::${props.bucketName}`,
-      bucketDomainName: `${props.bucketName}.s3.amazonaws.com`,
-      bucketRegionalDomainName: `${props.bucketName}.s3.${region}.amazonaws.com`,
-      region,
-      hostedZoneId: getHostedZoneId(region),
-      versioningEnabled: (versioningResponse as any)?.VersioningConfiguration?.Status === "Enabled",
-      acl: (aclResponse as any)?.AccessControlPolicy?.AccessControlList?.Grant?.[0]?.Permission?.toLowerCase(),
-      ...(tags && { tags }),
-    });
-  },
+      // Get bucket details in parallel
+      const [locationResponse, versioningResponse, aclResponse] =
+        yield* Effect.all([
+          client.get(`/${props.bucketName}?location`),
+          client.get(`/${props.bucketName}?versioning`),
+          client.get(`/${props.bucketName}?acl`),
+        ]);
+
+      const region =
+        (locationResponse as any)?.LocationConstraint || "us-east-1";
+
+      // Get tags if they weren't provided
+      let tags = props.tags;
+      if (!tags) {
+        const taggingResponse = yield* client
+          .get(`/${props.bucketName}?tagging`)
+          .pipe(Effect.catchAll(() => Effect.succeed(null)));
+
+        if (taggingResponse) {
+          // Parse XML response to extract tags
+          const tagSet = (taggingResponse as any)?.Tagging?.TagSet;
+          if (Array.isArray(tagSet)) {
+            tags = Object.fromEntries(
+              tagSet.map(({ Key, Value }: any) => [Key, Value]) || [],
+            );
+          }
+        }
+      }
+
+      return context({
+        bucketName: props.bucketName,
+        arn: `arn:aws:s3:::${props.bucketName}`,
+        bucketDomainName: `${props.bucketName}.s3.amazonaws.com`,
+        bucketRegionalDomainName: `${props.bucketName}.s3.${region}.amazonaws.com`,
+        region,
+        hostedZoneId: getHostedZoneId(region),
+        versioningEnabled:
+          (versioningResponse as any)?.VersioningConfiguration?.Status ===
+          "Enabled",
+        acl: (
+          aclResponse as any
+        )?.AccessControlPolicy?.AccessControlList?.Grant?.[0]?.Permission?.toLowerCase(),
+        ...(tags && { tags }),
+      });
+    }),
 );
 
 /**

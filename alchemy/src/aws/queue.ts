@@ -2,7 +2,30 @@ import { Effect } from "effect";
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { logger } from "../util/logger.ts";
-import { createAwsClient, AwsResourceNotFoundError, AwsError } from "./client.ts";
+import {
+  createAwsClient,
+  AwsResourceNotFoundError,
+  AwsError,
+} from "./client.ts";
+
+/**
+ * Creates a Resource that uses Effect throughout the entire lifecycle
+ */
+function EffectResource<T extends Resource<string>, P>(
+  type: string,
+  effectHandler: (
+    context: Context<T>,
+    id: string,
+    props: P,
+  ) => Effect.Effect<T, any>,
+) {
+  return Resource(
+    type,
+    async function (this: Context<T>, id: string, props: P): Promise<T> {
+      return Effect.runPromise(effectHandler(this, id, props));
+    },
+  );
+}
 
 /**
  * Properties for creating or updating an SQS queue
@@ -128,125 +151,137 @@ export interface Queue extends Resource<"sqs::Queue">, QueueProps {
  *   receiveMessageWaitTimeSeconds: 20
  * });
  */
-export const Queue = Resource(
+export const Queue = EffectResource<Queue, QueueProps>(
   "sqs::Queue",
-  async function (
-    this: Context<Queue>,
-    _id: string,
-    props: QueueProps,
-  ): Promise<Queue> {
-    const client = await createAwsClient({ service: "sqs" });
-    // Don't automatically add .fifo suffix - user must include it in queueName
-    const queueName = props.queueName;
+  (context, _id, props) =>
+    Effect.gen(function* () {
+      const client = yield* Effect.promise(() =>
+        createAwsClient({ service: "sqs" }),
+      );
+      const queueName = props.queueName;
 
-    // Validate that FIFO queues have .fifo suffix
-    if (props.fifo && !queueName.endsWith(".fifo")) {
-      throw new Error("FIFO queue names must end with .fifo suffix");
-    }
+      // Validate that FIFO queues have .fifo suffix
+      if (props.fifo && !queueName.endsWith(".fifo")) {
+        yield* Effect.fail(
+          new Error("FIFO queue names must end with .fifo suffix"),
+        );
+      }
 
-    if (this.phase === "delete") {
-      try {
-        // Get queue URL first
-        const urlEffect = client.postJson<{ QueueUrl: string }>("/", {
-          Action: "GetQueueUrl",
-          QueueName: queueName,
-          Version: "2012-11-05",
-        });
-        const urlResponse = await Effect.runPromise(urlEffect);
-
-        // Delete the queue  
-        const deleteEffect = client.postJson("/", {
-          Action: "DeleteQueue",
-          QueueUrl: urlResponse.QueueUrl,
-          Version: "2012-11-05",
-        });
-        await Effect.runPromise(deleteEffect);
-
-        // Wait for queue to be deleted
-        let queueDeleted = false;
-        while (!queueDeleted) {
-          try {
-            const checkEffect = client.postJson("/", {
+      if (context.phase === "delete") {
+        // Get queue URL and delete it, ignoring not found errors
+        const deleteQueue = Effect.gen(function* () {
+          const urlResponse = yield* client.postJson<{ QueueUrl: string }>(
+            "/",
+            {
               Action: "GetQueueUrl",
               QueueName: queueName,
               Version: "2012-11-05",
-            });
-            await Effect.runPromise(checkEffect);
-            // If we get here, queue still exists
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-          } catch (error: any) {
-            if (error instanceof AwsResourceNotFoundError || isQueueDoesNotExist(error)) {
-              queueDeleted = true;
-            } else {
-              throw error;
+            },
+          );
+
+          yield* client.postJson("/", {
+            Action: "DeleteQueue",
+            QueueUrl: urlResponse.QueueUrl,
+            Version: "2012-11-05",
+          });
+
+          // Wait for queue to be deleted using Effect.repeat
+          yield* client
+            .postJson("/", {
+              Action: "GetQueueUrl",
+              QueueName: queueName,
+              Version: "2012-11-05",
+            })
+            .pipe(
+              Effect.flatMap(() => Effect.sleep("1 second")),
+              Effect.repeat({
+                until: () => false, // Keep trying until it fails
+              }),
+              Effect.catchSome((error) => {
+                if (
+                  error instanceof AwsResourceNotFoundError ||
+                  isQueueDoesNotExist(error)
+                ) {
+                  return Effect.succeed(void 0); // Queue is deleted
+                }
+                return Effect.fail(error);
+              }),
+            );
+        });
+
+        yield* deleteQueue.pipe(
+          Effect.catchAll((error) => {
+            if (
+              error instanceof AwsResourceNotFoundError ||
+              isQueueDoesNotExist(error)
+            ) {
+              return Effect.succeed(void 0);
             }
-          }
+            return Effect.sync(() => logger.log(error.message)).pipe(
+              Effect.flatMap(() => Effect.succeed(void 0)),
+            );
+          }),
+        );
+
+        return context.destroy();
+      }
+
+      // Create queue with attributes
+      const attributes: Record<string, string> = {};
+
+      if (props.visibilityTimeout !== undefined) {
+        attributes.VisibilityTimeout = props.visibilityTimeout.toString();
+      }
+      if (props.messageRetentionPeriod !== undefined) {
+        attributes.MessageRetentionPeriod =
+          props.messageRetentionPeriod.toString();
+      }
+      if (props.maximumMessageSize !== undefined) {
+        attributes.MaximumMessageSize = props.maximumMessageSize.toString();
+      }
+      if (props.delaySeconds !== undefined) {
+        attributes.DelaySeconds = props.delaySeconds.toString();
+      }
+      if (props.receiveMessageWaitTimeSeconds !== undefined) {
+        attributes.ReceiveMessageWaitTimeSeconds =
+          props.receiveMessageWaitTimeSeconds.toString();
+      }
+
+      // FIFO specific attributes
+      if (props.fifo) {
+        attributes.FifoQueue = "true";
+        if (props.contentBasedDeduplication) {
+          attributes.ContentBasedDeduplication = "true";
         }
-      } catch (error: any) {
-        logger.log(error.message);
-        if (!(error instanceof AwsResourceNotFoundError) && !isQueueDoesNotExist(error)) {
-          throw error;
+        if (props.deduplicationScope) {
+          attributes.DeduplicationScope = props.deduplicationScope;
+        }
+        if (props.fifoThroughputLimit) {
+          attributes.FifoThroughputLimit = props.fifoThroughputLimit;
         }
       }
-      return this.destroy();
-    }
-    // Create queue with attributes
-    const attributes: Record<string, string> = {};
 
-    if (props.visibilityTimeout !== undefined) {
-      attributes.VisibilityTimeout = props.visibilityTimeout.toString();
-    }
-    if (props.messageRetentionPeriod !== undefined) {
-      attributes.MessageRetentionPeriod =
-        props.messageRetentionPeriod.toString();
-    }
-    if (props.maximumMessageSize !== undefined) {
-      attributes.MaximumMessageSize = props.maximumMessageSize.toString();
-    }
-    if (props.delaySeconds !== undefined) {
-      attributes.DelaySeconds = props.delaySeconds.toString();
-    }
-    if (props.receiveMessageWaitTimeSeconds !== undefined) {
-      attributes.ReceiveMessageWaitTimeSeconds =
-        props.receiveMessageWaitTimeSeconds.toString();
-    }
+      // Convert tags to AWS format
+      const tags = props.tags
+        ? Object.entries(props.tags).reduce(
+            (acc, [key, value]) => ({ ...acc, [key]: value }),
+            {},
+          )
+        : undefined;
 
-    // FIFO specific attributes
-    if (props.fifo) {
-      attributes.FifoQueue = "true";
-      if (props.contentBasedDeduplication) {
-        attributes.ContentBasedDeduplication = "true";
-      }
-      if (props.deduplicationScope) {
-        attributes.DeduplicationScope = props.deduplicationScope;
-      }
-      if (props.fifoThroughputLimit) {
-        attributes.FifoThroughputLimit = props.fifoThroughputLimit;
-      }
-    }
-
-    // Convert tags to AWS format
-    const tags = props.tags
-      ? Object.entries(props.tags).reduce(
-          (acc, [key, value]) => ({ ...acc, [key]: value }),
-          {},
-        )
-      : undefined;
-
-    try {
-      // Create the queue
+      // Create the queue parameters
       const createParams: Record<string, any> = {
         Action: "CreateQueue",
         QueueName: queueName,
         Version: "2012-11-05",
       };
-      
+
       // Add attributes
       Object.entries(attributes).forEach(([key, value], index) => {
         createParams[`Attribute.${index + 1}.Name`] = key;
         createParams[`Attribute.${index + 1}.Value`] = value;
       });
-      
+
       // Add tags
       if (tags) {
         Object.entries(tags).forEach(([key, value], index) => {
@@ -254,70 +289,55 @@ export const Queue = Resource(
           createParams[`Tag.${index + 1}.Value`] = value;
         });
       }
-      
-      const createEffect = client.postJson<{ QueueUrl: string }>("/", createParams);
-      const createResponse = await Effect.runPromise(createEffect);
 
-      // Get queue attributes
-      const attributesEffect = client.postJson<{ Attributes: Record<string, string> }>("/", {
-        Action: "GetQueueAttributes",
-        QueueUrl: createResponse.QueueUrl,
-        AttributeNames: ["QueueArn"],
-        Version: "2012-11-05",
-      });
-      const attributesResponse = await Effect.runPromise(attributesEffect);
-
-      return this({
-        ...props,
-        arn: attributesResponse.Attributes.QueueArn,
-        url: createResponse.QueueUrl,
-      });
-    } catch (error: any) {
-      if (isQueueDeletedRecently(error)) {
-        logger.log(
-          `Queue "${queueName}" was recently deleted and can't be re-created. Waiting and retrying...`,
+      // Create queue with retry logic for recently deleted queues
+      const createQueue = Effect.gen(function* () {
+        const createResponse = yield* client.postJson<{ QueueUrl: string }>(
+          "/",
+          createParams,
         );
-        // Queue was recently deleted, wait and retry
-        const maxRetries = 61;
-        let retryCount = 0;
 
-        while (retryCount < maxRetries) {
-          try {
-            // Wait for 1 second before retrying
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Get queue attributes
+        const attributesResponse = yield* client.postJson<{
+          Attributes: Record<string, string>;
+        }>("/", {
+          Action: "GetQueueAttributes",
+          QueueUrl: createResponse.QueueUrl,
+          AttributeNames: ["QueueArn"],
+          Version: "2012-11-05",
+        });
 
-            // Retry creating the queue
-            const retryCreateEffect = client.postJson<{ QueueUrl: string }>("/", createParams);
-            const createResponse = await Effect.runPromise(retryCreateEffect);
+        return context({
+          ...props,
+          arn: attributesResponse.Attributes.QueueArn,
+          url: createResponse.QueueUrl,
+        });
+      });
 
-            // Get queue attributes
-            const retryAttributesEffect = client.postJson<{ Attributes: Record<string, string> }>("/", {
-              Action: "GetQueueAttributes",
-              QueueUrl: createResponse.QueueUrl,
-              AttributeNames: ["QueueArn"],
-              Version: "2012-11-05",
-            });
-            const attributesResponse = await Effect.runPromise(retryAttributesEffect);
-
-            return this({
-              ...props,
-              arn: attributesResponse.Attributes.QueueArn,
-              url: createResponse.QueueUrl,
-            });
-          } catch (retryError: any) {
-            if (
-              !isQueueDeletedRecently(retryError) ||
-              retryCount === maxRetries - 1
-            ) {
-              throw retryError;
-            }
-            retryCount++;
+      // Handle queue creation with retry for recently deleted queues
+      const result = yield* createQueue.pipe(
+        Effect.catchSome((error) => {
+          if (isQueueDeletedRecently(error)) {
+            // Use Effect's built-in retry with exponential backoff
+            return Effect.sync(() =>
+              logger.log(
+                `Queue "${queueName}" was recently deleted and can't be re-created. Waiting and retrying...`,
+              ),
+            ).pipe(
+              Effect.flatMap(() => createQueue),
+              Effect.retry({
+                times: 60,
+                schedule: Effect.Schedule.spaced("1 second"),
+                until: (err) => !isQueueDeletedRecently(err),
+              }),
+            );
           }
-        }
-      }
-      throw error;
-    }
-  },
+          return Effect.fail(error);
+        }),
+      );
+
+      return result;
+    }),
 );
 
 function isQueueDoesNotExist(error: any): boolean {
@@ -332,6 +352,7 @@ function isQueueDeletedRecently(error: any): boolean {
   return (
     error.Code === "AWS.SimpleQueueService.QueueDeletedRecently" ||
     error.name === "QueueDeletedRecently" ||
-    (error instanceof AwsError && error.message.includes("QueueDeletedRecently"))
+    (error instanceof AwsError &&
+      error.message.includes("QueueDeletedRecently"))
   );
 }
