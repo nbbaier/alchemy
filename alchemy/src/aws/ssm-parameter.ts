@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { type Secret, isSecret } from "../secret.ts";
 import { logger } from "../util/logger.ts";
-import { createAwsClient, AwsError } from "./client.ts";
+import { createAwsClient } from "./client.ts";
 import { EffectResource } from "./effect-resource.ts";
 
 /**
@@ -258,7 +258,7 @@ export const SSMParameter = EffectResource<SSMParameter, SSMParameterProps>(
     yield* createWithTags.pipe(
       Effect.catchSome((error) => {
         if (
-          error instanceof AwsError &&
+          error._tag === "AwsError" &&
           error.message.includes("AlreadyExists")
         ) {
           return updateExisting;

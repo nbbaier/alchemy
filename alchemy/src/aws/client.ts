@@ -1,31 +1,71 @@
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
 import { loadConfig } from "@smithy/node-config-provider";
 import { AwsClient } from "aws4fetch";
-import { Effect, Schedule } from "effect";
+import { Effect, Schedule, Data } from "effect";
 import { safeFetch } from "../util/safe-fetch.ts";
 
 /**
- * AWS service-specific error classes
+ * AWS service-specific tagged errors using Effect's Data.TaggedError
  */
-export class AwsError extends Error {
-  constructor(
-    public readonly message: string,
-    public readonly errorCode: string,
-    public readonly response?: Response,
-    public readonly data?: any,
-  ) {
-    super(message);
-    this.name = this.constructor.name;
-  }
-}
+export class AwsError extends Data.TaggedError("AwsError")<{
+  readonly message: string;
+  readonly errorCode: string;
+  readonly response?: Response;
+  readonly data?: any;
+}> {}
 
-export class AwsNetworkError extends AwsError {}
-export class AwsThrottleError extends AwsError {}
-export class AwsResourceNotFoundError extends AwsError {}
-export class AwsAccessDeniedError extends AwsError {}
-export class AwsValidationError extends AwsError {}
-export class AwsConflictError extends AwsError {}
-export class AwsInternalServerError extends AwsError {}
+export class AwsNetworkError extends Data.TaggedError("AwsNetworkError")<{
+  readonly message: string;
+  readonly errorCode: string;
+  readonly response?: Response;
+  readonly data?: any;
+}> {}
+
+export class AwsThrottleError extends Data.TaggedError("AwsThrottleError")<{
+  readonly message: string;
+  readonly errorCode: string;
+  readonly response?: Response;
+  readonly data?: any;
+}> {}
+
+export class AwsNotFoundError extends Data.TaggedError("AwsNotFoundError")<{
+  readonly message: string;
+  readonly errorCode: string;
+  readonly response?: Response;
+  readonly data?: any;
+}> {}
+
+export class AwsAccessDeniedError extends Data.TaggedError(
+  "AwsAccessDeniedError",
+)<{
+  readonly message: string;
+  readonly errorCode: string;
+  readonly response?: Response;
+  readonly data?: any;
+}> {}
+
+export class AwsValidationError extends Data.TaggedError("AwsValidationError")<{
+  readonly message: string;
+  readonly errorCode: string;
+  readonly response?: Response;
+  readonly data?: any;
+}> {}
+
+export class AwsConflictError extends Data.TaggedError("AwsConflictError")<{
+  readonly message: string;
+  readonly errorCode: string;
+  readonly response?: Response;
+  readonly data?: any;
+}> {}
+
+export class AwsInternalServerError extends Data.TaggedError(
+  "AwsInternalServerError",
+)<{
+  readonly message: string;
+  readonly errorCode: string;
+  readonly response?: Response;
+  readonly data?: any;
+}> {}
 
 /**
  * Options for AWS client creation
@@ -79,12 +119,13 @@ export function createAwsClient(
     const credentials = yield* Effect.tryPromise({
       try: () => fromNodeProviderChain()(),
       catch: (error) =>
-        new AwsError(
-          error instanceof Error
-            ? error.message
-            : "Failed to load AWS credentials",
-          "CredentialsError",
-        ),
+        new AwsError({
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to load AWS credentials",
+          errorCode: "CredentialsError",
+        }),
     });
 
     const region = yield* Effect.gen(function* () {
@@ -105,10 +146,11 @@ export function createAwsClient(
 
     if (!region) {
       yield* Effect.fail(
-        new AwsError(
-          "No region found. Please set AWS_REGION or AWS_DEFAULT_REGION in the environment or in your AWS profile.",
-          "RegionNotFound",
-        ),
+        new AwsError({
+          message:
+            "No region found. Please set AWS_REGION or AWS_DEFAULT_REGION in the environment or in your AWS profile.",
+          errorCode: "RegionNotFound",
+        }),
       );
     }
 
@@ -211,12 +253,13 @@ export class AwsClientWrapper {
         if (error instanceof AwsError) {
           return error;
         }
-        return new AwsNetworkError(
-          error instanceof Error
-            ? error.message
-            : "Network error during AWS request",
-          "NetworkError",
-        );
+        return new AwsNetworkError({
+          message:
+            error instanceof Error
+              ? error.message
+              : "Network error during AWS request",
+          errorCode: "NetworkError",
+        });
       },
     });
 
@@ -225,7 +268,7 @@ export class AwsClientWrapper {
     return makeRequest.pipe(
       Effect.retry({
         while: (error) =>
-          error instanceof AwsThrottleError || error instanceof AwsNetworkError,
+          error._tag === "AwsThrottleError" || error._tag === "AwsNetworkError",
         times: maxRetries,
         schedule,
       }),
@@ -285,24 +328,24 @@ export class AwsClientWrapper {
     const message = data.Message || data.message || response.statusText;
 
     if (response.status === 404 || errorCode.includes("NotFound")) {
-      return new AwsResourceNotFoundError(message, errorCode, response, data);
+      return new AwsNotFoundError({ message, errorCode, response, data });
     }
     if (response.status === 403 || errorCode.includes("AccessDenied")) {
-      return new AwsAccessDeniedError(message, errorCode, response, data);
+      return new AwsAccessDeniedError({ message, errorCode, response, data });
     }
     if (response.status === 429 || errorCode.includes("Throttling")) {
-      return new AwsThrottleError(message, errorCode, response, data);
+      return new AwsThrottleError({ message, errorCode, response, data });
     }
     if (response.status === 400 || errorCode.includes("ValidationException")) {
-      return new AwsValidationError(message, errorCode, response, data);
+      return new AwsValidationError({ message, errorCode, response, data });
     }
     if (response.status === 409 || errorCode.includes("Conflict")) {
-      return new AwsConflictError(message, errorCode, response, data);
+      return new AwsConflictError({ message, errorCode, response, data });
     }
     if (response.status >= 500) {
-      return new AwsInternalServerError(message, errorCode, response, data);
+      return new AwsInternalServerError({ message, errorCode, response, data });
     }
 
-    return new AwsError(message, errorCode, response, data);
+    return new AwsError({ message, errorCode, response, data });
   }
 }

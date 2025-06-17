@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { createAwsClient, AwsResourceNotFoundError } from "./client.ts";
+import { createAwsClient } from "./client.ts";
 import { EffectResource } from "./effect-resource.ts";
 
 /**
@@ -174,11 +174,7 @@ export const Bucket = EffectResource<Bucket, BucketProps>(
       .request("HEAD", `/${props.bucketName}`)
       .pipe(
         Effect.map(() => true),
-        Effect.catchSome((err) =>
-          err instanceof AwsResourceNotFoundError
-            ? Effect.succeed(false)
-            : Effect.fail(err),
-        ),
+        Effect.catchTag("AwsNotFoundError", () => Effect.succeed(false)),
       );
 
     if (bucketExists) {
@@ -220,12 +216,7 @@ export const Bucket = EffectResource<Bucket, BucketProps>(
       const taggingResponse = yield* client
         .get<S3TaggingResponse>(`/${props.bucketName}?tagging`)
         .pipe(
-          Effect.catchSome(
-            (err) =>
-              err instanceof AwsResourceNotFoundError
-                ? Effect.succeed(null) // Tags don't exist - OK
-                : Effect.fail(err), // Other errors should bubble up
-          ),
+          Effect.catchTag("AwsNotFoundError", () => Effect.succeed(null)), // Tags don't exist - OK
         );
 
       if (taggingResponse) {

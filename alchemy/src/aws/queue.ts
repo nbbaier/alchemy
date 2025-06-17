@@ -1,10 +1,6 @@
 import { Effect, Schedule } from "effect";
 import { logger } from "../util/logger.ts";
-import {
-  createAwsClient,
-  AwsResourceNotFoundError,
-  AwsError,
-} from "./client.ts";
+import { createAwsClient } from "./client.ts";
 import { EffectResource } from "./effect-resource.ts";
 
 /**
@@ -173,7 +169,7 @@ export const Queue = EffectResource<Queue, QueueProps>(
             }),
             Effect.catchSome((error) => {
               if (
-                error instanceof AwsResourceNotFoundError ||
+                error._tag === "AwsNotFoundError" ||
                 isQueueDoesNotExist(error)
               ) {
                 return Effect.succeed(null); // Queue is deleted
@@ -185,13 +181,12 @@ export const Queue = EffectResource<Queue, QueueProps>(
 
       yield* deleteQueue.pipe(
         Effect.catchAll((error) => {
-          if (
-            error instanceof AwsResourceNotFoundError ||
-            isQueueDoesNotExist(error)
-          ) {
+          if (error._tag === "AwsNotFoundError" || isQueueDoesNotExist(error)) {
             return Effect.unit;
           }
-          return Effect.sync(() => logger.log(error.message)).pipe(
+          const message =
+            error._tag === "AwsError" ? error.message : String(error);
+          return Effect.sync(() => logger.log(message)).pipe(
             Effect.flatMap(() => Effect.unit),
           );
         }),
@@ -317,7 +312,7 @@ function isQueueDoesNotExist(error: any): boolean {
   return (
     error.name === "QueueDoesNotExist" ||
     error.Code === "AWS.SimpleQueueService.NonExistentQueue" ||
-    (error instanceof AwsError && error.message.includes("NonExistentQueue"))
+    (error._tag === "AwsError" && error.message.includes("NonExistentQueue"))
   );
 }
 
@@ -325,7 +320,7 @@ function isQueueDeletedRecently(error: any): boolean {
   return (
     error.Code === "AWS.SimpleQueueService.QueueDeletedRecently" ||
     error.name === "QueueDeletedRecently" ||
-    (error instanceof AwsError &&
+    (error._tag === "AwsError" &&
       error.message.includes("QueueDeletedRecently"))
   );
 }
