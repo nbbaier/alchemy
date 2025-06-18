@@ -3,7 +3,10 @@ import * as path from "node:path";
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
 import { Ai } from "../../src/cloudflare/ai.ts";
+import { R2Bucket } from "../../src/cloudflare/bucket.ts";
+import { D1Database } from "../../src/cloudflare/d1-database.ts";
 import { DurableObjectNamespace } from "../../src/cloudflare/durable-object-namespace.ts";
+import { KVNamespace } from "../../src/cloudflare/kv-namespace.ts";
 import { Worker } from "../../src/cloudflare/worker.ts";
 import { WranglerJson } from "../../src/cloudflare/wrangler.json.ts";
 import { destroy } from "../../src/destroy.ts";
@@ -385,6 +388,199 @@ describe("WranglerJson Resource", () => {
 
         expect(spec.triggers).toBeDefined();
         expect(spec.triggers?.crons).toEqual(worker.crons!);
+      } finally {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        await destroy(scope);
+      }
+    });
+
+    test("with KV namespace - includes preview_id", async (scope) => {
+      const name = `${BRANCH_PREFIX}-test-worker-kv-preview`;
+      const tempDir = path.join(".out", "alchemy-kv-preview-test");
+      const entrypoint = path.join(tempDir, "worker.ts");
+
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        await fs.mkdir(tempDir, { recursive: true });
+        await fs.writeFile(entrypoint, esmWorkerScript);
+
+        const kvNamespace = await KVNamespace(`${BRANCH_PREFIX}-test-kv-ns`, {
+          title: "test-kv-namespace",
+          adopt: true,
+        });
+
+        const worker = await Worker(name, {
+          format: "esm",
+          entrypoint,
+          bindings: {
+            KV: kvNamespace,
+          },
+          adopt: true,
+        });
+
+        const { spec } = await WranglerJson(
+          `${BRANCH_PREFIX}-test-wrangler-json-kv-preview`,
+          { worker },
+        );
+
+        expect(spec.kv_namespaces).toBeDefined();
+        expect(spec.kv_namespaces?.length).toEqual(1);
+
+        const kvBinding = spec.kv_namespaces?.[0];
+        expect(kvBinding?.binding).toEqual("KV");
+        expect(kvBinding?.id).toEqual(kvNamespace.namespaceId);
+        expect(kvBinding?.preview_id).toEqual(kvNamespace.namespaceId);
+      } finally {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        await destroy(scope);
+      }
+    });
+
+    test("with D1 database - includes preview_database_id", async (scope) => {
+      const name = `${BRANCH_PREFIX}-test-worker-d1-preview`;
+      const tempDir = path.join(".out", "alchemy-d1-preview-test");
+      const entrypoint = path.join(tempDir, "worker.ts");
+
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        await fs.mkdir(tempDir, { recursive: true });
+        await fs.writeFile(entrypoint, esmWorkerScript);
+
+        const d1Database = await D1Database(`${BRANCH_PREFIX}-test-d1-db`, {
+          name: "test-d1-database",
+        });
+
+        const worker = await Worker(name, {
+          format: "esm",
+          entrypoint,
+          bindings: {
+            DB: d1Database,
+          },
+          adopt: true,
+        });
+
+        const { spec } = await WranglerJson(
+          `${BRANCH_PREFIX}-test-wrangler-json-d1-preview`,
+          { worker },
+        );
+
+        expect(spec.d1_databases).toBeDefined();
+        expect(spec.d1_databases?.length).toEqual(1);
+
+        const d1Binding = spec.d1_databases?.[0];
+        expect(d1Binding?.binding).toEqual("DB");
+        expect(d1Binding?.database_id).toEqual(d1Database.id);
+        expect(d1Binding?.database_name).toEqual(d1Database.name);
+        expect(d1Binding?.preview_database_id).toEqual(d1Database.id);
+      } finally {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        await destroy(scope);
+      }
+    });
+
+    test("with R2 bucket - includes preview_bucket_name", async (scope) => {
+      const name = `${BRANCH_PREFIX}-test-worker-r2-preview`;
+      const tempDir = path.join(".out", "alchemy-r2-preview-test");
+      const entrypoint = path.join(tempDir, "worker.ts");
+
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        await fs.mkdir(tempDir, { recursive: true });
+        await fs.writeFile(entrypoint, esmWorkerScript);
+
+        const r2Bucket = await R2Bucket(`${BRANCH_PREFIX}-test-r2-bucket`, {
+          name: "test-r2-bucket",
+        });
+
+        const worker = await Worker(name, {
+          format: "esm",
+          entrypoint,
+          bindings: {
+            BUCKET: r2Bucket,
+          },
+          adopt: true,
+        });
+
+        const { spec } = await WranglerJson(
+          `${BRANCH_PREFIX}-test-wrangler-json-r2-preview`,
+          { worker },
+        );
+
+        expect(spec.r2_buckets).toBeDefined();
+        expect(spec.r2_buckets?.length).toEqual(1);
+
+        const r2Binding = spec.r2_buckets?.[0];
+        expect(r2Binding?.binding).toEqual("BUCKET");
+        expect(r2Binding?.bucket_name).toEqual(r2Bucket.name);
+        expect(r2Binding?.preview_bucket_name).toEqual(r2Bucket.name);
+      } finally {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        await destroy(scope);
+      }
+    });
+
+    test("with mixed bindings - all include preview IDs", async (scope) => {
+      const name = `${BRANCH_PREFIX}-test-worker-mixed-preview`;
+      const tempDir = path.join(".out", "alchemy-mixed-preview-test");
+      const entrypoint = path.join(tempDir, "worker.ts");
+
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        await fs.mkdir(tempDir, { recursive: true });
+        await fs.writeFile(entrypoint, esmWorkerScript);
+
+        const kvNamespace = await KVNamespace(
+          `${BRANCH_PREFIX}-test-kv-mixed`,
+          {
+            title: "test-kv-mixed",
+            adopt: true,
+          },
+        );
+
+        const d1Database = await D1Database(`${BRANCH_PREFIX}-test-d1-mixed`, {
+          name: "test-d1-mixed",
+        });
+
+        const r2Bucket = await R2Bucket(`${BRANCH_PREFIX}-test-r2-mixed`, {
+          name: "test-r2-mixed",
+        });
+
+        const worker = await Worker(name, {
+          format: "esm",
+          entrypoint,
+          bindings: {
+            KV: kvNamespace,
+            DB: d1Database,
+            BUCKET: r2Bucket,
+          },
+          adopt: true,
+        });
+
+        const { spec } = await WranglerJson(
+          `${BRANCH_PREFIX}-test-wrangler-json-mixed-preview`,
+          { worker },
+        );
+
+        // Verify KV namespace
+        expect(spec.kv_namespaces).toBeDefined();
+        expect(spec.kv_namespaces?.length).toEqual(1);
+        const kvBinding = spec.kv_namespaces?.[0];
+        expect(kvBinding?.binding).toEqual("KV");
+        expect(kvBinding?.preview_id).toEqual(kvBinding?.id);
+
+        // Verify D1 database
+        expect(spec.d1_databases).toBeDefined();
+        expect(spec.d1_databases?.length).toEqual(1);
+        const d1Binding = spec.d1_databases?.[0];
+        expect(d1Binding?.binding).toEqual("DB");
+        expect(d1Binding?.preview_database_id).toEqual(d1Binding?.database_id);
+
+        // Verify R2 bucket
+        expect(spec.r2_buckets).toBeDefined();
+        expect(spec.r2_buckets?.length).toEqual(1);
+        const r2Binding = spec.r2_buckets?.[0];
+        expect(r2Binding?.binding).toEqual("BUCKET");
+        expect(r2Binding?.preview_bucket_name).toEqual(r2Binding?.bucket_name);
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
