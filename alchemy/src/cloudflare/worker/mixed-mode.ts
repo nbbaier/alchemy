@@ -5,6 +5,7 @@ import { createCloudflareApi, type CloudflareApi } from "../api.ts";
 import type { WorkerBindingSpec } from "../bindings.ts";
 import type { CloudflareApiResponse } from "../types.ts";
 import type { WorkerMetadata } from "../worker-metadata.ts";
+import { HTTPServer } from "./http-server.ts";
 import { getAccountSubdomain } from "./subdomain.ts";
 
 type WranglerSessionConfig =
@@ -76,14 +77,14 @@ export async function createMixedModeProxy(input: {
 }
 
 export class MixedModeProxy {
-  server: Bun.Server;
+  server: HTTPServer;
   constructor(
     readonly url: string,
     readonly token: string,
     readonly bindings: WorkerBindingSpec[],
   ) {
-    this.server = Bun.serve({
-      fetch: this.fetch,
+    this.server = new HTTPServer({
+      fetch: this.fetch.bind(this),
     });
   }
 
@@ -93,7 +94,7 @@ export class MixedModeProxy {
     ) as MixedModeConnectionString;
   }
 
-  fetch = async (req: Request) => {
+  async fetch(req: Request) {
     const origin = new URL(req.url);
     const url = new URL(origin.pathname, this.url);
     url.search = origin.search;
@@ -110,7 +111,7 @@ export class MixedModeProxy {
       body: req.body,
       redirect: "manual",
     });
-  };
+  }
 }
 
 async function createWorkersPreviewToken(

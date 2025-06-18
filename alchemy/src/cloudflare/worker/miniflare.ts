@@ -7,6 +7,7 @@ import {
   type MixedModeConnectionString,
   type WorkerOptions,
 } from "miniflare";
+import { HTTPServer } from "./http-server.ts";
 import {
   buildMiniflareWorkerOptions,
   buildRemoteBindings,
@@ -17,12 +18,12 @@ import { createMixedModeProxy, type MixedModeProxy } from "./mixed-mode.ts";
 class MiniflareServer {
   miniflare?: Miniflare;
   workers = new Map<string, WorkerOptions>();
-  servers = new Map<string, Bun.Server>();
+  servers = new Map<string, HTTPServer>();
   mixedModeProxies = new Map<string, MixedModeProxy>();
 
   stream = new WritableStream<{
     worker: MiniflareWorkerOptions;
-    promise: PromiseWithResolvers<Bun.Server>;
+    promise: PromiseWithResolvers<HTTPServer>;
   }>({
     write: async ({ worker, promise }) => {
       try {
@@ -39,7 +40,7 @@ class MiniflareServer {
   writer = this.stream.getWriter();
 
   async push(worker: MiniflareWorkerOptions) {
-    const promise = Promise.withResolvers<Bun.Server>();
+    const promise = Promise.withResolvers<HTTPServer>();
     const [, server] = await Promise.all([
       this.writer.write({ worker, promise }),
       promise.promise,
@@ -69,8 +70,7 @@ class MiniflareServer {
     if (existing) {
       return existing;
     }
-    // TODO: Use node:http for runtime compatibility
-    const server = Bun.serve({
+    const server = new HTTPServer({
       port: worker.port,
       fetch: this.createRequestHandler(worker.name as string),
     });
@@ -82,6 +82,9 @@ class MiniflareServer {
     await Promise.all([
       this.miniflare?.dispose(),
       ...Array.from(this.servers.values()).map((server) => server.stop()),
+      ...Array.from(this.mixedModeProxies.values()).map((proxy) =>
+        proxy.server.stop(),
+      ),
     ]);
     this.miniflare = undefined;
     this.workers.clear();
