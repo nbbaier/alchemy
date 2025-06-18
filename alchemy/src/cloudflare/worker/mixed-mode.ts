@@ -3,6 +3,7 @@ import path from "node:path";
 import { bundle } from "../../esbuild/bundle.ts";
 import { createCloudflareApi, type CloudflareApi } from "../api.ts";
 import type { WorkerBindingSpec } from "../bindings.ts";
+import type { CloudflareApiResponse } from "../types.ts";
 import type { WorkerMetadata } from "../worker-metadata.ts";
 import { getAccountSubdomain } from "./subdomain.ts";
 
@@ -144,22 +145,21 @@ async function createWorkersPreviewToken(
         "Failed to create workers preview token",
       ),
     );
-  prewarm(session.prewarm, res.preview_token);
+  // Fire and forget prewarm call
+  // (see https://github.com/cloudflare/workers-sdk/blob/6c6afbd6072b96e78e67d3a863ed849c6aa49472/packages/wrangler/src/dev/create-worker-preview.ts#L338)
+  void prewarm(session.prewarm, res.preview_token);
   return res.preview_token;
 }
 
-function prewarm(url: string, previewToken: string) {
-  fetch(url, {
+async function prewarm(url: string, previewToken: string) {
+  const res = await fetch(url, {
     headers: {
       "cf-workers-preview-token": previewToken,
     },
-  }).then((res) => {
-    if (!res.ok) {
-      console.error(
-        `Failed to prewarm worker: ${res.status} ${res.statusText}`,
-      );
-    }
   });
+  if (!res.ok) {
+    console.error(`Failed to prewarm worker: ${res.status} ${res.statusText}`);
+  }
 }
 
 async function createWorkersPreviewSession(api: CloudflareApi) {
@@ -179,15 +179,6 @@ async function createWorkersPreviewSession(api: CloudflareApi) {
   );
 }
 
-interface CloudflareResponse<T> {
-  success: boolean;
-  errors: {
-    code: number;
-    message: string;
-  }[];
-  result: T;
-}
-
 async function parseResponse<T>(res: Response, message: string): Promise<T> {
   if (!res.ok) {
     throw new Error(`${message} (${res.status} ${res.statusText})`);
@@ -203,7 +194,7 @@ async function parseCloudflareResponse<T>(
   if (!res.ok) {
     throw new Error(`${message} (${res.status} ${res.statusText})`);
   }
-  const json: CloudflareResponse<T> = await res.json();
+  const json: CloudflareApiResponse<T> = await res.json();
   if (!json.success) {
     throw new Error(
       `${message} (${res.status} ${res.statusText} - ${json.errors.map((e) => `${e.code}: ${e.message}`).join(", ")})`,
