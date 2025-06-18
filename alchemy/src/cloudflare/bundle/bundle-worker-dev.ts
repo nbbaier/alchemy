@@ -7,7 +7,12 @@ interface DevWorkerContext {
   dispose: () => Promise<void>;
 }
 
-const activeContexts = new Map<string, DevWorkerContext>();
+declare global {
+  var _ALCHEMY_DEV_WORKER_CONTEXTS: Map<string, DevWorkerContext> | undefined;
+}
+
+const activeContexts = () =>
+  (globalThis._ALCHEMY_DEV_WORKER_CONTEXTS ??= new Map());
 
 /**
  * Creates an esbuild context for watching and hot-reloading a worker
@@ -24,10 +29,10 @@ export async function createWorkerDevContext<B extends Bindings>(
   dispose: () => Promise<void>;
 }> {
   // Clean up any existing context for this worker
-  const existing = activeContexts.get(workerName);
+  const existing = activeContexts().get(workerName);
   if (existing) {
     await existing.dispose();
-    activeContexts.delete(workerName);
+    activeContexts().delete(workerName);
   }
 
   if (!props.entrypoint) {
@@ -84,11 +89,11 @@ export async function createWorkerDevContext<B extends Bindings>(
 
   const dispose = async () => {
     await context.dispose();
-    activeContexts.delete(workerName);
+    activeContexts().delete(workerName);
   };
 
   // Store the context for cleanup
-  activeContexts.set(workerName, { context, dispose });
+  activeContexts().set(workerName, { context, dispose });
 
   return {
     dispose,
@@ -100,7 +105,7 @@ export async function createWorkerDevContext<B extends Bindings>(
  */
 export async function disposeAllDevContexts(): Promise<void> {
   await Promise.all(
-    Array.from(activeContexts.values()).map((ctx) => ctx.dispose()),
+    Array.from(activeContexts().values()).map((ctx) => ctx.dispose()),
   );
-  activeContexts.clear();
+  activeContexts().clear();
 }

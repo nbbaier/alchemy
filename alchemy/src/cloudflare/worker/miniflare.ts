@@ -147,11 +147,13 @@ class MiniflareServer {
   }
 }
 
-let instance: MiniflareServer | undefined;
+declare global {
+  var _ALCHEMY_MINIFLARE_SERVER: MiniflareServer | undefined;
+}
 
 export const miniflareServer = new Proxy({} as MiniflareServer, {
   get: (_, prop: keyof MiniflareServer) => {
-    instance ??= new MiniflareServer();
-    return instance[prop];
+    _ALCHEMY_MINIFLARE_SERVER ??= new MiniflareServer();
+    return _ALCHEMY_MINIFLARE_SERVER[prop];
   },
 });
