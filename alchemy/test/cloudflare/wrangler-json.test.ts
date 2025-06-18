@@ -134,10 +134,12 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        expect(spec.name).toEqual(name);
-        expect(spec.main).toEqual(entrypoint);
-        expect(spec.compatibility_date).toEqual(worker.compatibilityDate);
-        expect(spec.compatibility_flags).toEqual(worker.compatibilityFlags);
+        expect(spec).toMatchObject({
+          name,
+          main: entrypoint,
+          compatibility_date: worker.compatibilityDate,
+          compatibility_flags: worker.compatibilityFlags,
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -191,9 +193,12 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        expect(spec.name).toEqual(name);
-        expect(spec.browser).toBeDefined();
-        expect(spec.browser?.binding).toEqual("browser");
+        expect(spec).toMatchObject({
+          name,
+          browser: {
+            binding: "browser",
+          },
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -225,9 +230,12 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        expect(spec.name).toEqual(name);
-        expect(spec.ai).toBeDefined();
-        expect(spec.ai?.binding).toEqual("AI");
+        expect(spec).toMatchObject({
+          name,
+          ai: {
+            binding: "AI",
+          },
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -277,8 +285,10 @@ describe("WranglerJson Resource", () => {
         );
 
         // Verify the worker name and entrypoint
-        expect(spec.name).toEqual(name);
-        expect(spec.main).toEqual(entrypoint);
+        expect(spec).toMatchObject({
+          name,
+          main: entrypoint,
+        });
 
         // Verify the durable object bindings
         expect(spec.durable_objects).toBeDefined();
@@ -288,32 +298,29 @@ describe("WranglerJson Resource", () => {
         const counterBinding = spec.durable_objects?.bindings.find(
           (b) => b.class_name === "Counter",
         );
-        expect(counterBinding).toBeDefined();
-        expect(counterBinding?.name).toEqual("COUNTER");
-        expect(counterBinding?.script_name).toEqual(name);
+        expect(counterBinding).toMatchObject({
+          name: "COUNTER",
+          script_name: name,
+          class_name: "Counter",
+        });
 
         // Find SqliteCounter binding
         const sqliteCounterBinding = spec.durable_objects?.bindings.find(
           (b) => b.class_name === "SqliteCounter",
         );
-        expect(sqliteCounterBinding).toBeDefined();
-        expect(sqliteCounterBinding?.name).toEqual("SQLITE_COUNTER");
-        expect(sqliteCounterBinding?.script_name).toEqual(name);
+        expect(sqliteCounterBinding).toMatchObject({
+          name: "SQLITE_COUNTER",
+          script_name: name,
+          class_name: "SqliteCounter",
+        });
 
         // Verify migrations
-        expect(spec.migrations).toBeDefined();
-        expect(spec.migrations?.length).toEqual(1);
-        expect(spec.migrations?.[0].tag).toEqual("v1");
-
-        // Verify new_classes contains Counter
-        expect(spec.migrations?.[0].new_classes).toContain("Counter");
-        expect(spec.migrations?.[0].new_classes?.length).toEqual(1);
-
-        // Verify new_sqlite_classes contains SqliteCounter
-        expect(spec.migrations?.[0].new_sqlite_classes).toContain(
-          "SqliteCounter",
-        );
-        expect(spec.migrations?.[0].new_sqlite_classes?.length).toEqual(1);
+        expect(spec.migrations).toHaveLength(1);
+        expect(spec.migrations?.[0]).toMatchObject({
+          tag: "v1",
+          new_classes: ["Counter"],
+          new_sqlite_classes: ["SqliteCounter"],
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -352,12 +359,13 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        expect(spec.workflows).toBeDefined();
-        expect(spec.workflows?.length).toEqual(1);
-        expect(spec.workflows?.[0].name).toEqual("test-workflow");
-        expect(spec.workflows?.[0].binding).toEqual("WF");
-        expect(spec.workflows?.[0].class_name).toEqual("TestWorkflow");
-        expect(spec.workflows?.[0].script_name).toEqual("other-script");
+        expect(spec.workflows).toHaveLength(1);
+        expect(spec.workflows?.[0]).toMatchObject({
+          name: "test-workflow",
+          binding: "WF",
+          class_name: "TestWorkflow",
+          script_name: "other-script",
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -386,8 +394,9 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        expect(spec.triggers).toBeDefined();
-        expect(spec.triggers?.crons).toEqual(worker.crons!);
+        expect(spec.triggers).toMatchObject({
+          crons: worker.crons!,
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -423,13 +432,12 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        expect(spec.kv_namespaces).toBeDefined();
-        expect(spec.kv_namespaces?.length).toEqual(1);
-
-        const kvBinding = spec.kv_namespaces?.[0];
-        expect(kvBinding?.binding).toEqual("KV");
-        expect(kvBinding?.id).toEqual(kvNamespace.namespaceId);
-        expect(kvBinding?.preview_id).toEqual(kvNamespace.namespaceId);
+        expect(spec.kv_namespaces).toHaveLength(1);
+        expect(spec.kv_namespaces?.[0]).toMatchObject({
+          binding: "KV",
+          id: kvNamespace.namespaceId,
+          preview_id: kvNamespace.namespaceId,
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -446,9 +454,7 @@ describe("WranglerJson Resource", () => {
         await fs.mkdir(tempDir, { recursive: true });
         await fs.writeFile(entrypoint, esmWorkerScript);
 
-        const d1Database = await D1Database(`${BRANCH_PREFIX}-test-d1-db`, {
-          name: "test-d1-database",
-        });
+        const d1Database = await D1Database(`${BRANCH_PREFIX}-test-d1-db`);
 
         const worker = await Worker(name, {
           format: "esm",
@@ -464,14 +470,13 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        expect(spec.d1_databases).toBeDefined();
-        expect(spec.d1_databases?.length).toEqual(1);
-
-        const d1Binding = spec.d1_databases?.[0];
-        expect(d1Binding?.binding).toEqual("DB");
-        expect(d1Binding?.database_id).toEqual(d1Database.id);
-        expect(d1Binding?.database_name).toEqual(d1Database.name);
-        expect(d1Binding?.preview_database_id).toEqual(d1Database.id);
+        expect(spec.d1_databases).toHaveLength(1);
+        expect(spec.d1_databases?.[0]).toMatchObject({
+          binding: "DB",
+          database_id: d1Database.id,
+          database_name: d1Database.name,
+          preview_database_id: d1Database.id,
+        });
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
@@ -488,9 +493,7 @@ describe("WranglerJson Resource", () => {
         await fs.mkdir(tempDir, { recursive: true });
         await fs.writeFile(entrypoint, esmWorkerScript);
 
-        const r2Bucket = await R2Bucket(`${BRANCH_PREFIX}-test-r2-bucket`, {
-          name: "test-r2-bucket",
-        });
+        const r2Bucket = await R2Bucket(`${BRANCH_PREFIX}-test-r2-bucket`);
 
         const worker = await Worker(name, {
           format: "esm",
@@ -506,81 +509,12 @@ describe("WranglerJson Resource", () => {
           { worker },
         );
 
-        expect(spec.r2_buckets).toBeDefined();
-        expect(spec.r2_buckets?.length).toEqual(1);
-
-        const r2Binding = spec.r2_buckets?.[0];
-        expect(r2Binding?.binding).toEqual("BUCKET");
-        expect(r2Binding?.bucket_name).toEqual(r2Bucket.name);
-        expect(r2Binding?.preview_bucket_name).toEqual(r2Bucket.name);
-      } finally {
-        await fs.rm(tempDir, { recursive: true, force: true });
-        await destroy(scope);
-      }
-    });
-
-    test("with mixed bindings - all include preview IDs", async (scope) => {
-      const name = `${BRANCH_PREFIX}-test-worker-mixed-preview`;
-      const tempDir = path.join(".out", "alchemy-mixed-preview-test");
-      const entrypoint = path.join(tempDir, "worker.ts");
-
-      try {
-        await fs.rm(tempDir, { recursive: true, force: true });
-        await fs.mkdir(tempDir, { recursive: true });
-        await fs.writeFile(entrypoint, esmWorkerScript);
-
-        const kvNamespace = await KVNamespace(
-          `${BRANCH_PREFIX}-test-kv-mixed`,
-          {
-            title: "test-kv-mixed",
-            adopt: true,
-          },
-        );
-
-        const d1Database = await D1Database(`${BRANCH_PREFIX}-test-d1-mixed`, {
-          name: "test-d1-mixed",
+        expect(spec.r2_buckets).toHaveLength(1);
+        expect(spec.r2_buckets?.[0]).toMatchObject({
+          binding: "BUCKET",
+          bucket_name: r2Bucket.name,
+          preview_bucket_name: r2Bucket.name,
         });
-
-        const r2Bucket = await R2Bucket(`${BRANCH_PREFIX}-test-r2-mixed`, {
-          name: "test-r2-mixed",
-        });
-
-        const worker = await Worker(name, {
-          format: "esm",
-          entrypoint,
-          bindings: {
-            KV: kvNamespace,
-            DB: d1Database,
-            BUCKET: r2Bucket,
-          },
-          adopt: true,
-        });
-
-        const { spec } = await WranglerJson(
-          `${BRANCH_PREFIX}-test-wrangler-json-mixed-preview`,
-          { worker },
-        );
-
-        // Verify KV namespace
-        expect(spec.kv_namespaces).toBeDefined();
-        expect(spec.kv_namespaces?.length).toEqual(1);
-        const kvBinding = spec.kv_namespaces?.[0];
-        expect(kvBinding?.binding).toEqual("KV");
-        expect(kvBinding?.preview_id).toEqual(kvBinding?.id);
-
-        // Verify D1 database
-        expect(spec.d1_databases).toBeDefined();
-        expect(spec.d1_databases?.length).toEqual(1);
-        const d1Binding = spec.d1_databases?.[0];
-        expect(d1Binding?.binding).toEqual("DB");
-        expect(d1Binding?.preview_database_id).toEqual(d1Binding?.database_id);
-
-        // Verify R2 bucket
-        expect(spec.r2_buckets).toBeDefined();
-        expect(spec.r2_buckets?.length).toEqual(1);
-        const r2Binding = spec.r2_buckets?.[0];
-        expect(r2Binding?.binding).toEqual("BUCKET");
-        expect(r2Binding?.preview_bucket_name).toEqual(r2Binding?.bucket_name);
       } finally {
         await fs.rm(tempDir, { recursive: true, force: true });
         await destroy(scope);
