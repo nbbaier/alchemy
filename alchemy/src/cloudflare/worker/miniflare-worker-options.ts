@@ -4,6 +4,7 @@ import {
   type WorkerOptions,
 } from "miniflare";
 import assert from "node:assert";
+import { assertNever } from "../../util/assert-never.ts";
 import { Self, type Binding, type WorkerBindingSpec } from "../bindings.ts";
 import type { WorkerProps } from "../worker.ts";
 
@@ -174,8 +175,7 @@ function buildRemoteBinding(
       };
     }
     default: {
-      const _: never = binding;
-      throw new Error(`Unknown binding type: ${_}`);
+      assertNever(binding);
     }
   }
 }
