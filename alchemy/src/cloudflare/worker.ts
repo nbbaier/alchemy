@@ -84,7 +84,8 @@ export interface AssetsConfig {
 
   /**
    * Determines the redirects and rewrites of requests for HTML content
-   * @default "auto-trailing-slash"
+   *
+   * @default auto-trailing-slash
    */
   html_handling?:
     | "auto-trailing-slash"
@@ -94,22 +95,18 @@ export interface AssetsConfig {
 
   /**
    * Determines the response when a request does not match a static asset, and there is no Worker script
+   *
+   * @default none
    */
   not_found_handling?: "none" | "404-page" | "single-page-application";
 
   /**
    * When true, requests will always invoke the Worker script.
    * Otherwise, attempt to serve an asset matching the request, falling back to the Worker script.
+   *
+   * @default false
    */
   run_worker_first?: boolean;
-
-  /**
-   * When true and the incoming request matches an asset, that will be served instead of invoking the Worker script.
-   * When false, requests will always invoke the Worker script.
-   * @default true
-   * @deprecated
-   */
-  serve_directly?: boolean;
 }
 
 export interface BaseWorkerProps<
@@ -262,6 +259,17 @@ export interface BaseWorkerProps<
    * This allows workers to be routed to via dispatch namespace routing rules
    */
   namespace?: string | DispatchNamespaceResource;
+
+  /**
+   * Version label for this worker deployment
+   *
+   * When specified, the worker will be published as a version with this label
+   * instead of updating the live deployment. This creates a preview URL that
+   * can be tested before promoting to production.
+   *
+   * @example "pr-123"
+   */
+  version?: string;
 }
 
 export interface InlineWorkerProps<
@@ -291,6 +299,13 @@ export interface EntrypointWorkerProps<
    * @default false
    */
   noBundle?: boolean;
+
+  /**
+   * Whether to upload source maps for the worker script.
+   *
+   * @default false
+   */
+  uploadSourceMaps?: boolean;
 
   /**
    * Rules for adding additional files to the bundle.
@@ -442,6 +457,11 @@ export type Worker<
      * The dispatch namespace this worker is deployed to
      */
     namespace?: string | DispatchNamespaceResource;
+
+    /**
+     * Version label for this worker deployment
+     */
+    version?: string;
   };
 
 /**
@@ -605,8 +625,46 @@ export function WorkerRef<
  *   }
  * });
  *
- * @see
- * https://developers.cloudflare.com/workers/
+ * @example
+ * // Create a worker with queue event sources and custom consumer settings:
+ * const taskQueue = await Queue("task-queue", {
+ *   name: "task-queue"
+ * });
+ *
+ * const dlq = await Queue("failed-tasks", {
+ *   name: "failed-tasks"
+ * });
+ *
+ * const queueWorker = await Worker("queue-processor", {
+ *   name: "queue-processor",
+ *   entrypoint: "./src/processor.ts",
+ *   bindings: {
+ *     TASK_QUEUE: taskQueue  // Producer: bind queue for sending messages
+ *   },
+ *   eventSources: [{  // Consumer: configure processing settings
+ *     queue: taskQueue,
+ *     settings: {
+ *       batchSize: 15,           // Process 15 messages at once
+ *       maxConcurrency: 3,       // Allow 3 concurrent invocations
+ *       maxRetries: 5,           // Retry failed messages up to 5 times
+ *       maxWaitTimeMs: 2500,     // Wait up to 2.5 seconds to fill a batch
+ *       retryDelay: 60,          // Wait 60 seconds before retrying failed messages
+ *       deadLetterQueue: dlq     // Send failed messages to dead letter queue
+ *     }
+ *   }]
+ * });
+ *
+ * @example
+ * // Create a worker version for testing with a preview URL:
+ * const previewWorker = await Worker("my-worker", {
+ *   name: "my-worker",
+ *   entrypoint: "./src/worker.ts",
+ *   version: "pr-123"
+ * });
+ *
+ * // The worker will have a preview URL for testing:
+ * console.log(`Preview URL: ${previewWorker.url}`);
+ * // Output: Preview URL: https://pr-123-my-worker.subdomain.workers.dev
  */
 export function Worker<
   const B extends Bindings,
@@ -937,6 +995,7 @@ export const _Worker = Resource(
         props.script ??
         (await bundleWorkerScript({
           ...props,
+          name: workerName,
           compatibilityDate,
           compatibilityFlags,
         }));
@@ -957,6 +1016,13 @@ export const _Worker = Resource(
         }
       }
 
+      // Get dispatch namespace if specified
+      const dispatchNamespace = props.namespace
+        ? typeof props.namespace === "string"
+          ? props.namespace
+          : props.namespace.namespace
+        : undefined;
+
       // Upload any assets and get completion tokens
       let assetUploadResult: AssetUploadResult | undefined;
       if (assetsBindings.length > 0) {
@@ -965,12 +1031,12 @@ export const _Worker = Resource(
         const assetBinding = assetsBindings[0];
 
         // Upload the assets and get the completion token
-        assetUploadResult = await uploadAssets(
-          api,
+        assetUploadResult = await uploadAssets(api, {
           workerName,
-          assetBinding.assets,
-          props.assets,
-        );
+          assets: assetBinding.assets,
+          assetConfig: props.assets,
+          namespace: dispatchNamespace,
+        });
       }
 
       // Prepare metadata with bindings
@@ -987,19 +1053,19 @@ export const _Worker = Resource(
         assetUploadResult,
       );
 
-      // Get dispatch namespace if specified
-      const dispatchNamespace = props.namespace
-        ? typeof props.namespace === "string"
-          ? props.namespace
-          : props.namespace.namespace
-        : undefined;
-
-      await putWorker(
+      // Deploy worker (either as version or live worker)
+      const versionResult = await putWorker(
         api,
         workerName,
         scriptBundle,
         scriptMetadata,
         dispatchNamespace,
+        props.version
+          ? {
+              versionLabel: props.version,
+              message: `Version ${props.version}`,
+            }
+          : undefined,
       );
 
       for (const workflow of workflowsBindings) {
@@ -1037,12 +1103,19 @@ export const _Worker = Resource(
       );
 
       // Handle worker URL if requested
-      const workerUrl = await configureURL(
-        this,
-        api,
-        workerName,
-        props.url ?? true,
-      );
+      let workerUrl: string | undefined;
+      if (props.version) {
+        // For versions, use the preview URL if available
+        workerUrl = versionResult?.previewUrl;
+      } else {
+        // For regular workers, use the normal URL configuration
+        workerUrl = await configureURL(
+          this,
+          api,
+          workerName,
+          props.url ?? true,
+        );
+      }
 
       // Get current timestamp
       const now = Date.now();
@@ -1064,7 +1137,7 @@ export const _Worker = Resource(
         }
       }
 
-      return { scriptBundle, scriptMetadata, workerUrl, now };
+      return { scriptBundle, scriptMetadata, workerUrl, now, versionResult };
     };
 
     if (this.phase === "delete") {
@@ -1113,7 +1186,16 @@ export const _Worker = Resource(
     }
 
     if (this.phase === "create") {
-      if (!props.adopt) {
+      if (props.version) {
+        // When version is specified, we adopt existing workers or create them if they don't exist
+        const workerExists = await checkWorkerExists(api, workerName);
+        if (!workerExists) {
+          // Create the base worker first if it doesn't exist
+          const baseWorkerProps = { ...props, version: undefined };
+          await uploadWorkerScript(baseWorkerProps);
+        }
+        // We always "adopt" when publishing versions
+      } else if (!props.adopt) {
         await assertWorkerDoesNotExist(this, api, workerName);
       }
     }
@@ -1201,6 +1283,8 @@ export const _Worker = Resource(
       routes: createdRoutes.length > 0 ? createdRoutes : undefined,
       // Include the dispatch namespace in the output
       namespace: props.namespace,
+      // Include version information in the output
+      version: props.version,
       // phantom property
       Env: undefined!,
     } as unknown as Worker<B>);
@@ -1243,15 +1327,22 @@ export async function deleteWorker<B extends Bindings>(
   return;
 }
 
-export async function putWorker(
+interface PutWorkerOptions {
+  versionLabel?: string;
+  message?: string;
+  dispatchNamespace?: string;
+}
+
+async function putWorkerInternal(
   api: CloudflareApi,
   workerName: string,
   scriptBundle: string | NoBundleResult,
   scriptMetadata: WorkerMetadata,
-  dispatchNamespace?: string,
-) {
+  options: PutWorkerOptions = {},
+): Promise<{ versionId?: string; previewUrl?: string }> {
   return withExponentialBackoff(
     async () => {
+      const { versionLabel, message, dispatchNamespace } = options;
       const scriptName =
         scriptMetadata.main_module ?? scriptMetadata.body_part!;
 
@@ -1277,53 +1368,159 @@ export async function putWorker(
         addFile(scriptName, scriptBundle);
       } else {
         for (const [fileName, content] of Object.entries(scriptBundle)) {
-          // Add the actual script content as a named file part
           addFile(fileName, content);
         }
       }
 
+      // Prepare metadata - add version annotations if this is a version
+      const finalMetadata = versionLabel
+        ? {
+            ...scriptMetadata,
+            // Exclude migrations for worker versions - they're not allowed
+            migrations: undefined,
+            annotations: {
+              "workers/tag": versionLabel,
+              ...(message && { "workers/message": message.substring(0, 100) }),
+            },
+          }
+        : scriptMetadata;
+
       // Add metadata as JSON
       formData.append(
         "metadata",
-        new Blob([JSON.stringify(scriptMetadata)], {
+        new Blob([JSON.stringify(finalMetadata)], {
           type: "application/json",
         }),
       );
 
-      // Upload worker script with bindings
-      const endpoint = dispatchNamespace
-        ? `/accounts/${api.accountId}/workers/dispatch/namespaces/${dispatchNamespace}/scripts/${workerName}`
-        : `/accounts/${api.accountId}/workers/scripts/${workerName}`;
+      // Determine endpoint and HTTP method
+      let endpoint: string;
+      let method: "PUT" | "POST";
 
-      const uploadResponse = await api.put(endpoint, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      if (versionLabel) {
+        // Upload worker version using the versions API
+        endpoint = `/accounts/${api.accountId}/workers/scripts/${workerName}/versions`;
+        method = "POST";
+      } else {
+        // Upload worker script with bindings
+        endpoint = dispatchNamespace
+          ? `/accounts/${api.accountId}/workers/dispatch/namespaces/${dispatchNamespace}/scripts/${workerName}`
+          : `/accounts/${api.accountId}/workers/scripts/${workerName}`;
+        method = "PUT";
+      }
+
+      const uploadResponse =
+        method === "PUT"
+          ? await api.put(endpoint, formData, {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            })
+          : await api.post(endpoint, formData, {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            });
 
       // Check if the upload was successful
       if (!uploadResponse.ok) {
         await handleApiError(
           uploadResponse,
-          "uploading worker script",
+          versionLabel ? "uploading worker version" : "uploading worker script",
           "worker",
           workerName,
         );
       }
 
-      return formData;
+      // Handle version response
+      if (versionLabel) {
+        const responseData = (await uploadResponse.json()) as {
+          result: {
+            id: string;
+            number: number;
+            metadata: {
+              has_preview: boolean;
+            };
+            annotations?: {
+              "workers/tag"?: string;
+            };
+          };
+        };
+        const result = responseData.result;
+
+        // Get the account's workers.dev subdomain to construct preview URL
+        let previewUrl: string | undefined;
+        if (result.metadata?.has_preview) {
+          // Need to get the subdomain
+          const subdomainResponse = await api.get(
+            `/accounts/${api.accountId}/workers/subdomain`,
+          );
+
+          if (subdomainResponse.ok) {
+            const subdomainData: {
+              result: {
+                subdomain: string;
+              };
+            } = await subdomainResponse.json();
+            const subdomain = subdomainData.result?.subdomain;
+            if (subdomain) {
+              // Preview URL format: <FIRST_8_CHARS_OF_VERSION_ID>-<WORKER_NAME>.<SUBDOMAIN>.workers.dev
+              const versionPrefix = result.id.substring(0, 8);
+              previewUrl = `https://${versionPrefix}-${workerName}.${subdomain}.workers.dev`;
+            }
+          }
+        }
+
+        return {
+          versionId: result.id,
+          previewUrl,
+        };
+      }
+
+      return {};
     },
     (err) =>
       err.status === 404 ||
       err.status === 500 ||
       err.status === 503 ||
-      // this is a tranient error that cloudflare throws randomly
+      // this is a transient error that cloudflare throws randomly
       (err instanceof CloudflareApiError &&
         err.status === 400 &&
         err.message.match(/binding.*failed to generate/)),
     10,
     100,
   );
+}
+
+export async function putWorker(
+  api: CloudflareApi,
+  workerName: string,
+  scriptBundle: string | NoBundleResult,
+  scriptMetadata: WorkerMetadata,
+  dispatchNamespace?: string,
+  version?: { versionLabel: string; message?: string },
+): Promise<{ versionId?: string; previewUrl?: string }> {
+  return await putWorkerInternal(
+    api,
+    workerName,
+    scriptBundle,
+    scriptMetadata,
+    {
+      dispatchNamespace,
+      versionLabel: version?.versionLabel,
+      message: version?.message,
+    },
+  );
+}
+
+export async function checkWorkerExists(
+  api: CloudflareApi,
+  workerName: string,
+): Promise<boolean> {
+  const response = await api.get(
+    `/accounts/${api.accountId}/workers/scripts/${workerName}`,
+  );
+  return response.status === 200;
 }
 
 export async function assertWorkerDoesNotExist<B extends Bindings>(

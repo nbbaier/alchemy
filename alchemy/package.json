@@ -1,23 +1,28 @@
 {
   "name": "alchemy",
-  "version": "0.29.3",
+  "version": "0.34.0",
   "type": "module",
   "module": "./lib/index.js",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sam-goodwin/alchemy",
+    "url": "git+https://github.com/sam-goodwin/alchemy.git",
     "directory": "alchemy"
   },
   "scripts": {
-    "build": "rm -rf ./*.tsbuildinfo && rm -rf ./lib && tsc -b",
+    "build:cli": "./scripts/bundle-cli.sh",
+    "build": "rm -rf ./*.tsbuildinfo && rm -rf ./lib && tsc -b && bun run build:cli",
+    "docs:gen": "rm -rf ./docs && typedoc",
     "postbuild": "cpx 'src/**/*/types.d.ts' lib",
-    "publish:npm": "cp ../README.md . && bun run build && npm publish && rm README.md",
-    "docs:gen": "rm -rf ./docs && typedoc"
+    "publish:npm": "cp ../README.md . && bun run build && bun run build:cli && npm publish && rm README.md"
+  },
+  "bin": {
+    "alchemy": "bin/alchemy.mjs"
   },
   "author": "Sam Goodwin <sam@alchemy.run>",
   "homepage": "https://alchemy.run",
   "files": [
+    "bin",
     "lib",
     "src"
   ],
@@ -108,7 +113,23 @@
     }
   },
   "dependencies": {
-    "unenv": "2.0.0-rc.15"
+    "@aws-sdk/credential-providers": "^3.0.0",
+    "@cloudflare/unenv-preset": "^2.3.1",
+    "@cloudflare/workers-shared": "^0.17.5",
+    "@iarna/toml": "^2.2.5",
+    "@smithy/node-config-provider": "^4.0.0",
+    "@swc/core": "^1.11.24",
+    "aws4fetch": "^1.0.20",
+    "diff": "^8.0.2",
+    "esbuild": "^0.25.1",
+    "fast-json-patch": "^3.1.1",
+    "glob": "^10.0.0",
+    "jszip": "^3.0.0",
+    "kleur": "^4.1.5",
+    "libsodium-wrappers": "^0.7.15",
+    "turndown": "^7.0.0",
+    "unenv": "2.0.0-rc.15",
+    "yaml": "^2.0.0"
   },
   "peerDependencies": {
     "@ai-sdk/openai": "^1.1.9",
@@ -123,29 +144,14 @@
     "@aws-sdk/client-sqs": "^3.0.0",
     "@aws-sdk/client-ssm": "^3.0.0",
     "@aws-sdk/client-sts": "^3.0.0",
-    "@aws-sdk/credential-providers": "^3.0.0",
-    "@smithy/node-config-provider": "^4.0.0",
-    "@cloudflare/unenv-preset": "^2.3.1",
-    "@cloudflare/workers-shared": "^0.17.5",
-    "@iarna/toml": "^2.2.5",
     "@octokit/rest": "^21.1.1",
-    "@swc/core": "^1.11.24",
     "ai": "^4.0.0",
     "arktype": "^2.0.0",
-    "aws4fetch": "^1.0.20",
     "cloudflare": "^4.0.0",
-    "diff": "^8.0.2",
     "dofs": "^0.0.1",
-    "esbuild": "^0.25.1",
-    "fast-json-patch": "^3.1.1",
-    "glob": "^10.0.0",
     "hono": "^4.0.0",
-    "jszip": "^3.0.0",
-    "libsodium-wrappers": "^0.7.15",
     "prettier": "^3.0.0",
     "stripe": "^17.0.0",
-    "turndown": "^7.0.0",
-    "yaml": "^2.0.0",
     "zod": "^3.0.0"
   },
   "devDependencies": {
@@ -157,6 +163,7 @@
     "@cloudflare/puppeteer": "^1.0.2",
     "@cloudflare/workers-types": "^4.20250303.0",
     "@iarna/toml": "^2.2.5",
+    "@inquirer/prompts": "^7.0.0",
     "@octokit/rest": "^21.1.1",
     "@types/bun": "latest",
     "@types/diff": "^5.0.0",
