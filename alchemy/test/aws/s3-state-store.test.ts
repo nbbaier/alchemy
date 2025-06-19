@@ -1,22 +1,25 @@
 import { describe, expect } from "vitest";
 import { alchemy } from "../../src/alchemy.ts";
+import { S3StateStore } from "../../src/aws/s3-state-store.ts";
 import { destroy } from "../../src/destroy.ts";
 import { File } from "../../src/fs/file.ts";
-import { S3StateStore } from "../../src/aws/s3-state-store.ts";
 import { BRANCH_PREFIX } from "../util.ts";
 
 import "../../src/test/vitest.ts";
 
 const test = alchemy.test(import.meta, {
   prefix: BRANCH_PREFIX,
-  stateStore: () => new S3StateStore(process.env.ALCHEMY_STATE_S3_BUCKET!),
+  stateStore: (scope) =>
+    new S3StateStore(scope, {
+      bucketName: process.env.ALCHEMY_STATE_S3_BUCKET!,
+    }),
 });
 
 describe("AWS Resources", () => {
   describe("S3StateStore", () => {
     test("state store operations through resource lifecycle", async (scope) => {
       const testId = `${BRANCH_PREFIX}-s3-state-test`;
-      
+
       try {
         // Create phase - create a file resource that will be stored in S3 state store
         let resource = await File(testId, {
@@ -51,10 +54,9 @@ describe("AWS Resources", () => {
         // Verify multiple resources are handled correctly
         expect(resource2.path).toBe(`test-file-${testId}-2.txt`);
         expect(resource3.path).toBe(`nested/path/test-file-${testId}-3.txt`);
-        
+
         // The state store operations (get, set, list, etc.) are exercised
         // naturally through the resource create/update lifecycle
-        
       } finally {
         // Delete phase - destroy will clean up all resources through the state store
         await destroy(scope);
@@ -63,7 +65,7 @@ describe("AWS Resources", () => {
 
     test("handles resource updates and nested scopes", async (scope) => {
       const testId = `${BRANCH_PREFIX}-s3-nested-test`;
-      
+
       try {
         // Create resources in the main scope
         await File(`${testId}-main`, {
@@ -77,7 +79,7 @@ describe("AWS Resources", () => {
             path: `nested-${testId}.txt`,
             content: "Nested scope file",
           });
-          
+
           // Update nested resource
           await File(`${testId}-nested`, {
             path: `nested-${testId}.txt`,
@@ -92,10 +94,9 @@ describe("AWS Resources", () => {
             content: "Another scope file",
           });
         });
-        
+
         // All state operations are exercised through the natural resource lifecycle
         // The S3StateStore handles scope-based prefixes and key transformations
-        
       } finally {
         await destroy(scope);
       }

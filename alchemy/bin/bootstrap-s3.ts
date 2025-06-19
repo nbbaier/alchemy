@@ -1,13 +1,12 @@
 import {
-  CreateBucketCommand,
-  GetBucketTaggingCommand,
-  PutBucketTaggingCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
-import {
   GetResourcesCommand,
   ResourceGroupsTaggingAPIClient,
 } from "@aws-sdk/client-resource-groups-tagging-api";
+import {
+  CreateBucketCommand,
+  PutBucketTaggingCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { loadConfig } from "@smithy/node-config-provider";
 
 export interface BootstrapS3Options {
@@ -35,7 +34,7 @@ async function findExistingBootstrapBucket(
 ): Promise<string | null> {
   try {
     const resourceGroupsClient = new ResourceGroupsTaggingAPIClient({ region });
-    
+
     const result = await resourceGroupsClient.send(
       new GetResourcesCommand({
         ResourceTypeFilters: ["s3:bucket"],
@@ -76,18 +75,11 @@ async function findExistingBootstrapBucket(
 async function createBootstrapBucket(
   s3Client: S3Client,
   bucketName: string,
-  region?: string,
 ): Promise<void> {
   try {
     // Create the bucket
     const createCommand = new CreateBucketCommand({
       Bucket: bucketName,
-      ...(region &&
-        region !== "us-east-1" && {
-          CreateBucketConfiguration: {
-            LocationConstraint: region,
-          },
-        }),
     });
 
     await s3Client.send(createCommand);
@@ -163,7 +155,7 @@ async function createBootstrapBucket(
 /**
  * Get the default AWS region from the current profile/configuration
  */
-async function getDefaultRegion(): Promise<string | undefined> {
+async function getDefaultRegion(): Promise<string> {
   try {
     const regionProvider = loadConfig({
       environmentVariableSelector: (env) =>
@@ -237,7 +229,7 @@ identify it for future bootstrap operations and avoid creating duplicates.
     console.log(`📦 Creating new bucket: ${bucketName}`);
 
     // Create the bucket
-    await createBootstrapBucket(s3Client, bucketName, region);
+    await createBootstrapBucket(s3Client, bucketName);
 
     console.log("\n🎉 Bootstrap complete!");
     console.log("\n📝 To use this bucket in your alchemy.run.ts file:\n");
