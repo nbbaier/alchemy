@@ -1,10 +1,13 @@
 import {
   CreateBucketCommand,
   GetBucketTaggingCommand,
-  ListBucketsCommand,
   PutBucketTaggingCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import {
+  GetResourcesCommand,
+  ResourceGroupsTaggingAPIClient,
+} from "@aws-sdk/client-resource-groups-tagging-api";
 import { loadConfig } from "@smithy/node-config-provider";
 
 export interface BootstrapS3Options {
@@ -24,45 +27,43 @@ function generateRandomSuffix(): string {
 }
 
 /**
- * Find existing bootstrap bucket by checking tags
+ * Find existing bootstrap bucket by checking tags using Resource Groups API
  */
 async function findExistingBootstrapBucket(
-  s3Client: S3Client,
+  region: string,
   prefix: string,
 ): Promise<string | null> {
   try {
-    const listResult = await s3Client.send(new ListBucketsCommand({}));
+    const resourceGroupsClient = new ResourceGroupsTaggingAPIClient({ region });
+    
+    const result = await resourceGroupsClient.send(
+      new GetResourcesCommand({
+        ResourceTypeFilters: ["s3:bucket"],
+        TagFilters: [
+          {
+            Key: BOOTSTRAP_TAG_KEY,
+            Values: [BOOTSTRAP_TAG_VALUE],
+          },
+        ],
+      }),
+    );
 
-    if (!listResult.Buckets) {
+    if (!result.ResourceTagMappingList) {
       return null;
     }
 
-    // Filter buckets that match our prefix pattern
-    const candidateBuckets = listResult.Buckets.filter((bucket) =>
-      bucket.Name?.startsWith(prefix),
-    );
-
-    // Check each candidate bucket for our bootstrap tag
-    for (const bucket of candidateBuckets) {
-      if (!bucket.Name) continue;
-
-      try {
-        const tagResult = await s3Client.send(
-          new GetBucketTaggingCommand({ Bucket: bucket.Name }),
-        );
-
-        const hasBootstrapTag = tagResult.TagSet?.some(
-          (tag) =>
-            tag.Key === BOOTSTRAP_TAG_KEY && tag.Value === BOOTSTRAP_TAG_VALUE,
-        );
-
-        if (hasBootstrapTag) {
-          return bucket.Name;
+    // Find a bucket that matches our prefix
+    for (const resource of result.ResourceTagMappingList) {
+      if (resource.ResourceARN) {
+        // Extract bucket name from ARN: arn:aws:s3:::bucket-name
+        const bucketName = resource.ResourceARN.split(":::")[1];
+        if (bucketName?.startsWith(prefix)) {
+          return bucketName;
         }
-      } catch (_error: any) {}
+      }
     }
   } catch (error: any) {
-    console.error("Error listing buckets:", error.message);
+    console.error("Error finding bootstrap buckets:", error.message);
     return null;
   }
 
@@ -149,8 +150,8 @@ async function createBootstrapBucket(
         );
         console.log("✅ Added bootstrap tags to existing bucket");
       } catch (tagError: any) {
-        console.warn(
-          `⚠️  Could not add tags to existing bucket: ${tagError.message}`,
+        throw new Error(
+          `Failed to tag existing bucket '${bucketName}': ${tagError.message}`,
         );
       }
     } else {
@@ -218,7 +219,7 @@ identify it for future bootstrap operations and avoid creating duplicates.
 
   try {
     // Check for existing bootstrap bucket
-    const existingBucket = await findExistingBootstrapBucket(s3Client, prefix);
+    const existingBucket = await findExistingBootstrapBucket(region, prefix);
 
     if (existingBucket) {
       console.log(`✅ Found existing bootstrap bucket: ${existingBucket}`);

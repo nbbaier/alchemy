@@ -61,9 +61,13 @@ const app = await alchemy("my-app", {
 
 ### Create S3 Bucket
 
-The S3 bucket must exist before using S3StateStore. Create it manually or with another tool:
+The S3 bucket must exist before using S3StateStore. Use the Alchemy bootstrap command (recommended) or create it manually:
 
 ```bash
+# Recommended: Use Alchemy bootstrap
+alchemy bootstrap s3
+
+# Or create manually with AWS CLI
 aws s3 mb s3://my-app-alchemy-state --region us-east-1
 ```
 
@@ -167,10 +171,3 @@ S3StateStore includes built-in retry logic and proper error handling:
 - **Network latency**: Consider bucket region proximity to your deployment location
 - **Costs**: S3 charges for requests and storage (typically very low for state files)
 
-## Best Practices
-
-1. **Bucket naming**: Use descriptive, project-specific bucket names
-2. **Region selection**: Choose a region close to your deployment
-3. **Prefixes**: Use prefixes to organize multi-project or multi-environment state
-4. **Backup**: Enable S3 versioning for state change history
-5. **Security**: Use IAM policies to restrict bucket access appropriately
