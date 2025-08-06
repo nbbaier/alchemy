@@ -1,3 +1,13 @@
+## v0.57.2
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cloudflare**: Import Rpc from @cloudflare/workers-types in Worker &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/807 [<samp>(42e5d)</samp>](https://github.com/sam-goodwin/alchemy/commit/42e5d7e)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/sam-goodwin/alchemy/compare/v0.57.1...v0.57.2)
+
+---
+
 ## v0.57.1
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
