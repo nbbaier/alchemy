@@ -1,3 +1,17 @@
+## v0.57.1
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cli**:
+  - Shorter command description &nbsp;-&nbsp; by **Aman Varshney** in https://github.com/sam-goodwin/alchemy/issues/797 [<samp>(a5f6a)</samp>](https://github.com/sam-goodwin/alchemy/commit/a5f6ad9d)
+- **cloudflare**:
+  - Use catalog to ensure same @cloudflare/workers-types &nbsp;-&nbsp; by **Michael K** in https://github.com/sam-goodwin/alchemy/issues/795 [<samp>(943ac)</samp>](https://github.com/sam-goodwin/alchemy/commit/943ac1c6)
+  - Handle symlink directories in Worker Assets &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/798 [<samp>(be636)</samp>](https://github.com/sam-goodwin/alchemy/commit/be636dc9)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/sam-goodwin/alchemy/compare/v0.57.0...v0.57.1)
+
+---
+
 ## v0.57.0
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
