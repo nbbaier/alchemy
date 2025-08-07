@@ -167,7 +167,8 @@ export const buildWorkerOptions = async (
         break;
       }
       case "hyperdrive": {
-        throw new Error("Hyperdrive bindings are not supported in local mode");
+        (options.hyperdrives ??= {})[key] = binding.dev.origin.unencrypted;
+        break;
       }
       case "images": {
         if (isRemoteBinding(binding)) {
