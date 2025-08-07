@@ -1,3 +1,22 @@
+## v0.59.0
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **cloudflare**:
+  - Allow local connection string for hyperdrive &nbsp;-&nbsp; by **John Royal** in https://github.com/sam-goodwin/alchemy/issues/801 [<samp>(6934a)</samp>](https://github.com/sam-goodwin/alchemy/commit/6934a87f)
+  - Clear miniflare data on destroy &nbsp;-&nbsp; by **John Royal** in https://github.com/sam-goodwin/alchemy/issues/804 [<samp>(ed8df)</samp>](https://github.com/sam-goodwin/alchemy/commit/ed8df405)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cloudflare**:
+  - Use explicit Worker credentials to create local proxy worker &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/812 [<samp>(e5269)</samp>](https://github.com/sam-goodwin/alchemy/commit/e5269f09)
+  - Cache Cloudflare Api based on options to avoid expensive credential resoliution &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/821 [<samp>(a5114)</samp>](https://github.com/sam-goodwin/alchemy/commit/a5114b34)
+  - Avoid creating or deleting remote resources in local mode &nbsp;-&nbsp; by **John Royal** in https://github.com/sam-goodwin/alchemy/issues/764 [<samp>(b0027)</samp>](https://github.com/sam-goodwin/alchemy/commit/b0027fd8)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/sam-goodwin/alchemy/compare/v0.58.0...v0.59.0)
+
+---
+
 ## v0.58.0
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
