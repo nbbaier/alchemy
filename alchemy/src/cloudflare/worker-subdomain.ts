@@ -1,6 +1,8 @@
 import type { Context } from "../context.ts";
 import { Resource } from "../resource.ts";
 import { memoize } from "../util/memoize.ts";
+import { withExponentialBackoff } from "../util/retry.ts";
+import { CloudflareApiError } from "./api-error.ts";
 import { extractCloudflareResult } from "./api-response.ts";
 import {
   createCloudflareApi,
@@ -100,12 +102,18 @@ export async function enableWorkerSubdomain(
   api: CloudflareApi,
   scriptName: string,
 ) {
-  await extractCloudflareResult<SubdomainResponse>(
-    `enable subdomain for "${scriptName}"`,
-    api.post(
-      `/accounts/${api.accountId}/workers/scripts/${scriptName}/subdomain`,
-      { enabled: true, previews_enabled: true },
-    ),
+  await withExponentialBackoff(
+    () =>
+      extractCloudflareResult<SubdomainResponse>(
+        `enable subdomain for "${scriptName}"`,
+        api.post(
+          `/accounts/${api.accountId}/workers/scripts/${scriptName}/subdomain`,
+          { enabled: true, previews_enabled: true },
+        ),
+      ),
+    (error) => error instanceof CloudflareApiError && error.status === 404,
+    10,
+    1000,
   );
 }
 
@@ -119,6 +127,7 @@ export async function getWorkerSubdomain(
       `/accounts/${api.accountId}/workers/scripts/${scriptName}/subdomain`,
     ),
   ).catch((error): SubdomainResponse => {
+    console.log("error", error);
     if (error.status === 404) {
       return { enabled: false, previews_enabled: false };
     }
