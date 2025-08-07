@@ -178,6 +178,7 @@ export const WranglerJson = Resource(
         worker.name,
         cwd,
         props.secrets ?? false,
+        this.scope.local && !props.worker.dev?.remote,
       );
     }
 
@@ -504,6 +505,7 @@ function processBindings(
   workerName: string,
   workerCwd: string,
   writeSecrets: boolean,
+  local: boolean,
 ): void {
   // Arrays to collect different binding types
   const kvNamespaces: {
@@ -628,7 +630,12 @@ function processBindings(
       });
     } else if (binding.type === "kv_namespace") {
       // KV Namespace binding
-      const id = "namespaceId" in binding ? binding.namespaceId : binding.id;
+      const id =
+        "dev" in binding && !binding.dev?.remote && local
+          ? binding.dev.id
+          : "namespaceId" in binding
+            ? binding.namespaceId
+            : binding.id;
       kvNamespaces.push({
         binding: bindingName,
         id: id,
@@ -655,10 +662,14 @@ function processBindings(
         new_classes.push(doBinding.className);
       }
     } else if (binding.type === "r2_bucket") {
+      const name =
+        "dev" in binding && !binding.dev?.remote && local
+          ? binding.dev.id
+          : binding.name;
       r2Buckets.push({
         binding: bindingName,
-        bucket_name: binding.name,
-        preview_bucket_name: binding.name,
+        bucket_name: name,
+        preview_bucket_name: name,
         ...(binding.dev?.remote ? { experimental_remote: true } : {}),
       });
     } else if (binding.type === "secret") {
@@ -677,18 +688,26 @@ function processBindings(
         script_name: binding.scriptName,
       });
     } else if (binding.type === "d1") {
+      const id =
+        "dev" in binding && !binding.dev?.remote && local
+          ? binding.dev.id
+          : binding.id;
       d1Databases.push({
         binding: bindingName,
-        database_id: binding.id,
+        database_id: id,
         database_name: binding.name,
         migrations_dir: binding.migrationsDir,
-        preview_database_id: binding.id,
+        preview_database_id: id,
         ...(binding.dev?.remote ? { experimental_remote: true } : {}),
       });
     } else if (binding.type === "queue") {
+      const id =
+        "dev" in binding && !binding.dev?.remote && local
+          ? binding.dev.id
+          : binding.id;
       queues.producers.push({
         binding: bindingName,
-        queue: binding.name,
+        queue: id,
       });
     } else if (binding.type === "vectorize") {
       vectorizeIndexes.push({

@@ -145,7 +145,7 @@ export const buildWorkerOptions = async (
             raw: true,
           });
         } else {
-          (options.d1Databases ??= {})[key] = binding.id;
+          (options.d1Databases ??= {})[key] = binding.dev.id;
         }
         break;
       }
@@ -185,17 +185,17 @@ export const buildWorkerOptions = async (
         break;
       }
       case "kv_namespace": {
-        const namespaceId =
-          "namespaceId" in binding ? binding.namespaceId : binding.id;
         if (isRemoteBinding(binding)) {
           remoteBindings.push({
             type: "kv_namespace",
             name: key,
-            namespace_id: namespaceId,
+            namespace_id:
+              "namespaceId" in binding ? binding.namespaceId : binding.id,
             raw: true,
           });
         } else {
-          (options.kvNamespaces ??= {})[key] = namespaceId;
+          (options.kvNamespaces ??= {})[key] =
+            "dev" in binding ? binding.dev.id : binding.id;
         }
         break;
       }
@@ -220,7 +220,7 @@ export const buildWorkerOptions = async (
         break;
       }
       case "pipeline": {
-        (options.pipelines ??= {})[key] = binding.id;
+        (options.pipelines ??= {})[key] = binding.name;
         break;
       }
       case "ratelimit": {
@@ -252,7 +252,7 @@ export const buildWorkerOptions = async (
             raw: true,
           });
         } else {
-          (options.r2Buckets ??= {})[key] = binding.name;
+          (options.r2Buckets ??= {})[key] = binding.dev.id;
         }
         break;
       }
