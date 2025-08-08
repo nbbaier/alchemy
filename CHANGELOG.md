@@ -1,3 +1,17 @@
+## v0.59.2
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **cloudflare**: Zone Bot Management &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/825 [<samp>(b1c69)</samp>](https://github.com/sam-goodwin/alchemy/commit/b1c69a0b)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cloudflare**: Correct wrangler.json assets config &nbsp;-&nbsp; by **John Royal** in https://github.com/sam-goodwin/alchemy/issues/827 [<samp>(9c967)</samp>](https://github.com/sam-goodwin/alchemy/commit/9c967f6b)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/sam-goodwin/alchemy/compare/v0.59.1...v0.59.2)
+
+---
+
 ## v0.59.1
 
 *No significant changes*
