@@ -43,7 +43,6 @@ export async function idempotentSpawn({
   }
 
   const outPath = log;
-  const errPath = outPath;
   await Promise.all([
     fsp.mkdir(path.dirname(stateFile), { recursive: true }),
     fsp.mkdir(path.dirname(log), { recursive: true }),
@@ -91,20 +90,18 @@ export async function idempotentSpawn({
 
   async function spawnLoggedChild() {
     const out = await fsp.open(outPath, "a");
-    const err = errPath === outPath ? out : await fsp.open(errPath, "a");
 
     // shell:true, NO args — pass a single command string
     const child = spawn(cmd, {
       shell: true,
       cwd,
-      stdio: ["ignore", out.fd, err.fd], // stdout/stderr -> files (OS-level)
+      stdio: ["ignore", out.fd, out.fd], // stdout/stderr -> files (OS-level)
       env: process.env,
       detached: false,
     });
 
     // Child now owns dup'd fds; close our handles.
     await out.close();
-    if (err !== out) await err.close();
 
     // Persist PID into the shared state file
     const stateAll = (await readJson(stateFile)) ?? {};
@@ -144,10 +141,9 @@ export async function idempotentSpawn({
   async function followFilePersisted(
     logPath: string,
     {
-      stateKey,
       write = (buf: Buffer) => process.stdout.write(buf),
       chunkSize = 64 * 1024,
-      tickMs = 100,
+      // tickMs = 100,
     }: {
       stateKey: string;
       write: (buf: Buffer) => boolean;
@@ -156,8 +152,7 @@ export async function idempotentSpawn({
     },
   ) {
     logPath = path.resolve(logPath);
-    const stateAll = await readJson(stateFile);
-    const state = stateAll[stateKey] || {};
+    let state = (await readJson(stateFile)) ?? {};
 
     let fh = await fsp.open(logPath, "r");
     let st = await fh.stat();
@@ -178,14 +173,15 @@ export async function idempotentSpawn({
     async function persist() {
       try {
         const cur = await fh.stat();
-        stateAll[stateKey] = {
+        state = {
+          ...state,
           offset,
           ino: Number(cur.ino ?? ino),
           dev: Number(cur.dev ?? dev),
           size: cur.size,
           mtimeMs: cur.mtimeMs,
         };
-        await writeJsonAtomic(stateFile, stateAll);
+        await writeJsonAtomic(stateFile, state);
       } catch {
         // If the file vanished mid-rotation, we'll catch up on the next event.
       }
@@ -284,14 +280,6 @@ export async function idempotentSpawn({
       stateKey: `${path.resolve(outPath)}::stdout`,
       write,
     });
-
-    // Only follow stderr separately if it's a different file
-    if (errPath !== outPath) {
-      await followFilePersisted(errPath, {
-        stateKey: `${path.resolve(errPath)}::stderr`,
-        write,
-      });
-    }
   }
 
   // Return a stopper for this instance's mirroring (child keeps running)
