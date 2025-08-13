@@ -1,6 +1,7 @@
 import { log } from "@clack/prompts";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import pc from "picocolors";
 import z from "zod";
@@ -75,6 +76,7 @@ export async function execAlchemy(
 ) {
   const args: string[] = [];
   const execArgs: string[] = [];
+
   if (quiet) args.push("--quiet");
   if (read) args.push("--read");
   if (force) args.push("--force");
@@ -84,7 +86,9 @@ export async function execAlchemy(
     execArgs.push("--watch");
     args.push("--watch");
   }
-  if (envFile) execArgs.push(`--env-file-if-exists ${envFile}`);
+  if (envFile && existsSync(envFile)) {
+    execArgs.push(`--env-file ${envFile}`);
+  }
   if (dev) args.push("--dev");
 
   // Check for alchemy.run.ts or alchemy.run.js (if not provided)
