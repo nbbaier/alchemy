@@ -115,17 +115,17 @@ export async function idempotentSpawn({
     if (stateAll) {
       const pid = Number.parseInt(stateAll.pid, 10);
       if (isPidAlive(pid)) return pid;
-      if (isSameProcess && (await isSameProcess(pid))) return pid;
+      if (await isSameProcess?.(pid)) return pid;
       if (processName) {
         const processes = await find("pid", pid);
-        if (processes.length === 0) return false;
         if (processes.length > 1) {
           console.warn(
             `Found multiple processes with PID ${pid}, using the first one`,
           );
-          return false;
         }
-        return processes[0].name.startsWith(processName);
+        if (processes.length > 0) {
+          return processes[0].name.startsWith(processName);
+        }
       }
     }
     // not running, let's clear pid and state
@@ -133,8 +133,7 @@ export async function idempotentSpawn({
       fsp.rm(stateFile).catch(() => {}),
       fsp.rm(log).catch(() => {}),
     ]);
-    const child = await spawnLoggedChild();
-    return child.pid;
+    return (await spawnLoggedChild()).pid;
   }
 
   // Follow a file from persisted offset and mirror to a sink (stdout/stderr)
@@ -143,7 +142,7 @@ export async function idempotentSpawn({
     {
       write = (buf: Buffer) => process.stdout.write(buf),
       chunkSize = 64 * 1024,
-      // tickMs = 100,
+      tickMs = 100,
     }: {
       stateKey: string;
       write: (buf: Buffer) => boolean;
