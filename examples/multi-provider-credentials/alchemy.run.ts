@@ -5,9 +5,9 @@
  * to configure multiple cloud providers at the scope level.
  */
 
-import { alchemy } from "alchemy";
-import { Vpc } from "alchemy/aws/ec2";
-import { Worker } from "alchemy/cloudflare/worker";
+import alchemy from "alchemy";
+import { Vpc } from "alchemy/aws";
+import { Worker } from "alchemy/cloudflare";
 
 /**
  * Example showing how multiple providers can be configured at the scope level
