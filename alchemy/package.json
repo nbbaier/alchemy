@@ -149,6 +149,10 @@
       "bun": "./src/state/index.ts",
       "import": "./lib/state/index.js"
     },
+    "./util": {
+      "bun": "./src/util/index.ts",
+      "import": "./lib/util/index.js"
+    },
     "./web/astro": {
       "bun": "./src/web/astro.ts",
       "import": "./lib/web/astro.js"
