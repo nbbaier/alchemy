@@ -15,7 +15,7 @@ import {
   type PendingResource,
 } from "./resource.ts";
 import { isRuntime } from "./runtime/global.ts";
-import { DEFAULT_STAGE, Scope } from "./scope.ts";
+import { DEFAULT_STAGE, Scope, type ProviderCredentials } from "./scope.ts";
 import { secret } from "./secret.ts";
 import type { StateStoreType } from "./state.ts";
 import type { LoggerApi } from "./util/cli.ts";
@@ -420,7 +420,7 @@ export interface ScopeOptions extends AlchemyOptions {
   enter: boolean;
 }
 
-export interface RunOptions extends AlchemyOptions {
+export interface RunOptions extends AlchemyOptions, ProviderCredentials {
   /**
    * @default false
    */
