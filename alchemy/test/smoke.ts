@@ -170,7 +170,6 @@ const skippedExamples = [
   "cloudflare-tanstack-start",
   // TODO(sam): re-enable. Right now it might be too slow and doesn't have dev mode
   "planetscale-drizzle",
-  "multi-provider-credentials",
 ];
 
 // Discover examples and generate tests

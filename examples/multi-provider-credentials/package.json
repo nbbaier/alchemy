@@ -1,8 +1,0 @@
-{
-  "name": "multi-provider-credentials",
-  "version": "1.0.0",
-  "private": true,
-  "dependencies": {
-    "alchemy": "workspace:*"
-  }
-}
