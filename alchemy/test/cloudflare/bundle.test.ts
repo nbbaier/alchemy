@@ -111,14 +111,17 @@ describe("Bundle Worker Test", () => {
   test("should bundle grammy", async (scope) => {
     try {
       // Create a worker using the entrypoint file
-      const worker = await Worker(`${BRANCH_PREFIX}-test-bundle-worker`, {
-        entrypoint: entrypoint_grammy,
-        format: "esm", // Assuming bundle-handler.ts is ESM
-        url: true, // Enable workers.dev URL to test the worker
-        compatibilityFlags: ["nodejs_compat"],
-        adopt: true,
-        compatibilityDate: "2025-07-20",
-      });
+      const worker = await Worker(
+        `${BRANCH_PREFIX}-test-bundle-worker-grammy`,
+        {
+          entrypoint: entrypoint_grammy,
+          format: "esm", // Assuming bundle-handler.ts is ESM
+          url: true, // Enable workers.dev URL to test the worker
+          compatibilityFlags: ["nodejs_compat"],
+          adopt: true,
+          compatibilityDate: "2025-07-20",
+        },
+      );
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
