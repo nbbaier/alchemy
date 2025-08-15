@@ -1,3 +1,28 @@
+## v0.62.0
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **aws**: AWS credentials with global or scoped overrides &nbsp;-&nbsp; by **yehudacohen** in https://github.com/sam-goodwin/alchemy/issues/841 [<samp>(f7541)</samp>](https://github.com/sam-goodwin/alchemy/commit/f7541f85)
+- **cli**: Append .alchemy to .gitignore during init &nbsp;-&nbsp; by **Aman Varshney** in https://github.com/sam-goodwin/alchemy/issues/858 [<samp>(e802b)</samp>](https://github.com/sam-goodwin/alchemy/commit/e802b672)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cli**:
+  - Replace kleur with picocolors &nbsp;-&nbsp; by **Aman Varshney** in https://github.com/sam-goodwin/alchemy/issues/862 [<samp>(f8d26)</samp>](https://github.com/sam-goodwin/alchemy/commit/f8d26494)
+  - Remove deprecation warning in execute-alchemy.ts &nbsp;-&nbsp; by **Sam Goodwin** and **sam** in https://github.com/sam-goodwin/alchemy/issues/871 [<samp>(31847)</samp>](https://github.com/sam-goodwin/alchemy/commit/31847b19)
+- **cloudflare**:
+  - Fix worker asset and no-bundle filepaths on windows &nbsp;-&nbsp; by **Michael K** in https://github.com/sam-goodwin/alchemy/issues/861 [<samp>(75b05)</samp>](https://github.com/sam-goodwin/alchemy/commit/75b053f1)
+  - Idempotent spawn of vite dev that dies on SIGTERM &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/865 [<samp>(6b2b7)</samp>](https://github.com/sam-goodwin/alchemy/commit/6b2b7e5b)
+  - Delete large r2 buckets &nbsp;-&nbsp; by **John Royal** in https://github.com/sam-goodwin/alchemy/issues/864 [<samp>(783e2)</samp>](https://github.com/sam-goodwin/alchemy/commit/783e2376)
+  - Handle transient errors in CloudflareStateStore &nbsp;-&nbsp; by **Sam Goodwin** [<samp>(d0f5a)</samp>](https://github.com/sam-goodwin/alchemy/commit/d0f5ab20)
+- **core**:
+  - Spawn now properly handles quiet mode, partial lines and total extraction &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/872 [<samp>(10b20)</samp>](https://github.com/sam-goodwin/alchemy/commit/10b202df)
+  - Support multiple instances of alchemy in a monorepo environment &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/867 [<samp>(07782)</samp>](https://github.com/sam-goodwin/alchemy/commit/07782706)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/sam-goodwin/alchemy/compare/v0.61.0...v0.62.0)
+
+---
+
 ## v0.61.0
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
