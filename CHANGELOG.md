@@ -1,3 +1,26 @@
+## v0.62.1
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **cli**:
+  - Configure CloudflareStateStore for templates if GitHub actions chosen &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/878 [<samp>(f7451)</samp>](https://github.com/sam-goodwin/alchemy/commit/f74517c3)
+  - Susbtitute projectName construct stage-specific names &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/880 [<samp>(1d089)</samp>](https://github.com/sam-goodwin/alchemy/commit/1d089d9b)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cli**:
+  - Templates should not modify the alchemy app stage &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/876 [<samp>(9a482)</samp>](https://github.com/sam-goodwin/alchemy/commit/9a482493)
+  - Adapt CI workflows to the user's chosen package manager &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/877 [<samp>(9a409)</samp>](https://github.com/sam-goodwin/alchemy/commit/9a409b54)
+  - Set CLOUDFLARE_EMAIL, ALCHEMY_PASSWORD, ALCHEMY_STATE_TOKEN in github worklow template &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/879 [<samp>(d3cc9)</samp>](https://github.com/sam-goodwin/alchemy/commit/d3cc984e)
+- **cloudflare**:
+  - Alchemy svelte plugin is a no-op when run within the svelte language server &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/875 [<samp>(74f7d)</samp>](https://github.com/sam-goodwin/alchemy/commit/74f7df65)
+- **core**:
+  - Clean up processes created with idempotentSpawn &nbsp;-&nbsp; by **John Royal** in https://github.com/sam-goodwin/alchemy/issues/874 [<samp>(d8266)</samp>](https://github.com/sam-goodwin/alchemy/commit/d8266d49)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/sam-goodwin/alchemy/compare/v0.62.0...v0.62.1)
+
+---
+
 ## v0.62.0
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
