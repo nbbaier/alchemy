@@ -288,6 +288,14 @@ export class Scope {
     this.dataMutex = new AsyncMutex();
   }
 
+  public createPhysicalName(id: string, delimiter = "-"): string {
+    const app = this.appName;
+    const stage = this.stage;
+    return [app, ...this.chain.slice(2), id, stage]
+      .map((s) => s.replaceAll(/[^a-z0-9_-]/gi, delimiter))
+      .join(delimiter);
+  }
+
   public async spawn<
     E extends ((line: string) => string | undefined) | undefined,
   >(

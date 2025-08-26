@@ -24,7 +24,7 @@ export interface BucketProps extends CloudflareApiOptions {
    * Names can only contain lowercase letters (a-z), numbers (0-9), and hyphens (-)
    * Cannot begin or end with a hyphen
    *
-   * @default - the id of the resource
+   * @default ${app.name}-${app.stage}-${id}
    */
   name?: string;
 
@@ -352,7 +352,13 @@ const _R2Bucket = Resource(
     id: string,
     props: BucketProps = {},
   ): Promise<R2Bucket> {
-    const bucketName = props.name || id;
+    const bucketName =
+      props.name ?? this.output?.name ?? this.scope.createPhysicalName(id);
+
+    if (this.phase === "update" && this.output?.name !== bucketName) {
+      this.replace();
+    }
+
     const allowPublicAccess = props.allowPublicAccess === true;
     const dev = {
       id: this.output?.dev?.id ?? bucketName,

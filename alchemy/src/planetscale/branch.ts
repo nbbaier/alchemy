@@ -14,8 +14,10 @@ import {
 export interface BranchProps {
   /**
    * The name of the branch
+   *
+   * @default ${app}-${stage}-${id}
    */
-  name: string;
+  name?: string;
 
   /**
    * The organization ID
@@ -152,7 +154,7 @@ export const Branch = Resource(
   "planetscale::Branch",
   async function (
     this: Context<Branch>,
-    _id: string,
+    id: string,
     props: BranchProps,
   ): Promise<Branch> {
     const adopt = props.adopt ?? this.scope.adopt;
@@ -163,6 +165,14 @@ export const Branch = Resource(
     }
 
     const api = new PlanetScaleApi({ apiKey });
+
+    const branchName =
+      props.name ?? this.output?.name ?? this.scope.createPhysicalName(id);
+
+    if (this.phase === "update" && this.output.name !== branchName) {
+      // TODO(sam): maybe we don't need to replace? just branch again? or rename?
+      this.replace();
+    }
 
     if (this.phase === "delete") {
       try {
@@ -202,7 +212,7 @@ export const Branch = Resource(
 
       // Check if branch exists
       const getResponse = await api.get(
-        `/organizations/${props.organizationId}/databases/${props.databaseName}/branches/${props.name}`,
+        `/organizations/${props.organizationId}/databases/${props.databaseName}/branches/${branchName}`,
       );
 
       if (!getResponse.ok && getResponse.status !== 404) {
@@ -216,7 +226,7 @@ export const Branch = Resource(
         // Branch exists
         if (!adopt) {
           throw new Error(
-            `Branch ${props.name} already exists and adopt is false`,
+            `Branch ${branchName} already exists and adopt is false`,
           );
         }
 
@@ -246,7 +256,7 @@ export const Branch = Resource(
           const safeMigrationsResponse = await api[
             props.safeMigrations ? "post" : "delete"
           ](
-            `/organizations/${props.organizationId}/databases/${props.databaseName}/branches/${props.name}/safe-migrations`,
+            `/organizations/${props.organizationId}/databases/${props.databaseName}/branches/${branchName}/safe-migrations`,
           );
 
           if (!safeMigrationsResponse.ok) {
@@ -258,7 +268,7 @@ export const Branch = Resource(
 
         if (props.clusterSize && data.cluster_size !== props.clusterSize) {
           const clusterResponse = await api.patch(
-            `/organizations/${props.organizationId}/databases/${props.databaseName}/branches/${props.name}/cluster`,
+            `/organizations/${props.organizationId}/databases/${props.databaseName}/branches/${branchName}/cluster`,
             {
               cluster_size: props.clusterSize,
             },
@@ -273,7 +283,7 @@ export const Branch = Resource(
 
         return this({
           ...props,
-          name: props.name,
+          name: branchName,
           parentBranch: currentParentBranch,
           createdAt: data.created_at,
           updatedAt: data.updated_at,
@@ -286,7 +296,7 @@ export const Branch = Resource(
       const createResponse = await api.post(
         `/organizations/${props.organizationId}/databases/${props.databaseName}/branches`,
         {
-          name: props.name,
+          name: branchName,
           parent_branch: parentBranchName,
           backup_id: props.backupId,
           seed_data: props.seedData,
@@ -309,12 +319,12 @@ export const Branch = Resource(
           api,
           props.organizationId,
           props.databaseName,
-          props.name,
+          branchName,
         );
         const safeMigrationsResponse = await api[
           props.safeMigrations ? "post" : "delete"
         ](
-          `/organizations/${props.organizationId}/databases/${props.databaseName}/branches/${props.name}/safe-migrations`,
+          `/organizations/${props.organizationId}/databases/${props.databaseName}/branches/${branchName}/safe-migrations`,
         );
 
         if (!safeMigrationsResponse.ok) {
@@ -331,7 +341,7 @@ export const Branch = Resource(
           api,
           props.organizationId,
           props.databaseName,
-          props.name,
+          branchName,
           props.clusterSize,
           true,
         );
@@ -339,7 +349,7 @@ export const Branch = Resource(
 
       return this({
         ...props,
-        name: props.name,
+        name: branchName,
         parentBranch: data.parent_branch,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
