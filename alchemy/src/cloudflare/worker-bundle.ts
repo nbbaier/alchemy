@@ -370,7 +370,7 @@ export namespace WorkerBundleSource {
           ...(props.plugins ?? []),
           ...additionalPlugins,
         ],
-        external: [...(props.external ?? [])],
+        external: ["cloudflare:workers", ...(props.external ?? [])],
       } satisfies esbuild.BuildOptions;
     }
 
