@@ -679,7 +679,8 @@ function processBindings(
         binding: bindingName,
         bucket_name: name,
         preview_bucket_name: name,
-        jurisdiction: binding.jurisdiction,
+        jurisdiction:
+          binding.jurisdiction === "default" ? undefined : binding.jurisdiction,
         ...(binding.dev?.remote ? { experimental_remote: true } : {}),
       });
     } else if (binding.type === "secret") {
