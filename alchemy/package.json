@@ -147,7 +147,7 @@
   },
   "dependencies": {
     "@aws-sdk/credential-providers": "^3.0.0",
-    "@cloudflare/unenv-preset": "^2.6.1",
+    "@cloudflare/unenv-preset": "^2.6.3",
     "@iarna/toml": "^2.2.5",
     "@smithy/node-config-provider": "^4.0.0",
     "aws4fetch": "^1.0.20",
@@ -269,6 +269,7 @@
     "@types/libsodium-wrappers": "^0.7.14",
     "@types/node": "latest",
     "@types/ws": "^8.18.1",
+    "@workos-inc/node": "^7.69.1",
     "arktype": "^2.1.16",
     "astro": "^5.13.2",
     "braintrust": "^0.0.201",
