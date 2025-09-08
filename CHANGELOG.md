@@ -1,3 +1,14 @@
+## v0.65.1
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- Use default import for picocolors &nbsp;-&nbsp; by **Rahul Mishra** in https://github.com/sam-goodwin/alchemy/issues/950 [<samp>(c6c53)</samp>](https://github.com/sam-goodwin/alchemy/commit/c6c53c54)
+- **core**: Correct definition of memoize defaultKeyFn &nbsp;-&nbsp; by **John Royal** in https://github.com/sam-goodwin/alchemy/issues/952 [<samp>(d870a)</samp>](https://github.com/sam-goodwin/alchemy/commit/d870a5d3)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/sam-goodwin/alchemy/compare/v0.65.0...v0.65.1)
+
+---
+
 ## v0.65.0
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
