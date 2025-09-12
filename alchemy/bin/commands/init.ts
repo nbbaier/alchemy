@@ -489,6 +489,7 @@ async function updatePackageJson(context: InitContext): Promise<void> {
 
     const packageJsonPath = resolve(context.cwd, "package.json");
     await safelyUpdateJson(packageJsonPath, (packageJson) => {
+      packageJson.type = "module";
       if (!packageJson.scripts) {
         packageJson.scripts = {};
       }
@@ -726,7 +727,7 @@ export default defineCloudflareConfig({
     );
   }
   await fs.writeFile(
-    resolve(context.cwd, "env.d.ts"),
+    resolve(context.cwd, "./env.d.ts"),
     `// Auto-generated Cloudflare binding types.
 // @see https://alchemy.run/concepts/bindings/#type-safe-bindings
 
@@ -746,7 +747,7 @@ declare module "cloudflare:workers" {
   const tsConfigPath = resolve(context.cwd, "tsconfig.json");
   await updateTsConfig(tsConfigPath, {
     compilerOptions: {
-      types: ["@cloudflare/workers-types", "env.d.ts"],
+      types: ["@cloudflare/workers-types", "./env.d.ts"],
     },
   });
 }
