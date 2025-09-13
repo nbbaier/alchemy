@@ -66,6 +66,8 @@ export const init = loggedProcedure
       console.error("Failed to initialize Alchemy:", _error);
       throw new ExitSignal(1);
     }
+    // TODO(sam): adding this seemed to stop the CLI from hanging after success (which happens sometimes, not clear why)
+    throw new ExitSignal(0);
   });
 
 function sanitizeProjectName(name: string): string {
@@ -467,7 +469,7 @@ const FRAMEWORK_DEPENDENCIES: Record<TemplateType, DependencyVersionMap[]> = {
   sveltekit: ["alchemy", "@sveltejs/adapter-cloudflare"],
   typescript: ["alchemy"],
   vite: ["alchemy"],
-  astro: ["alchemy"],
+  astro: ["alchemy", "@astrojs/cloudflare"],
   "react-router": ["alchemy", "@cloudflare/vite-plugin"],
   "tanstack-start": ["alchemy"],
   rwsdk: ["alchemy"],
