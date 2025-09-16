@@ -49,6 +49,7 @@ export * from "./route.ts";
 export * from "./rule.ts";
 export * from "./ruleset.ts";
 export * from "./secret-key.ts";
+export * from "./secret-ref.ts";
 export * from "./secret.ts";
 export * from "./secrets-store.ts";
 export * from "./state.ts";
