@@ -73,14 +73,27 @@ export type Binding =
   | Worker
   | WorkerStub
   | WorkerRef
+  | WorkerEntrypoint
   | Workflow
   | BrowserRendering
   | VersionMetadata
   | Self
   | Json;
 
-export type Self = typeof Self;
-export const Self = Symbol.for("Self");
+export type Self<
+  RPC extends Rpc.WorkerEntrypointBranded = Rpc.WorkerEntrypointBranded,
+> = {
+  type: "cloudflare::Worker::Self";
+  __entrypoint__?: string;
+  __rpc__?: RPC;
+};
+export const Self = {
+  type: "cloudflare::Worker::Self",
+} as const;
+
+export type WorkerEntrypoint = (Worker | WorkerRef) & {
+  __entrypoint__?: string;
+};
 
 export type Json<T = any> = {
   type: "json";
@@ -403,6 +416,8 @@ export interface WorkerBindingService {
   environment?: string;
   /** Service namespace */
   namespace?: string;
+  /** Service entrypoint */
+  entrypoint?: string;
 }
 
 /**

@@ -15,6 +15,7 @@ import {
 import type { Assets } from "./assets.ts";
 import type {
   Bindings,
+  Self,
   WorkerBindingDurableObjectNamespace,
   WorkerBindingSpec,
 } from "./bindings.ts";
@@ -58,6 +59,8 @@ import { Workflow, isWorkflow, upsertWorkflow } from "./workflow.ts";
 // Previous versions of `Worker` used the `Bundle` resource.
 // This import is here to avoid errors when destroying the `Bundle` resource.
 import "../esbuild/bundle.ts";
+import { Scope } from "../scope.ts";
+import type { WorkerRef } from "./worker-ref.ts";
 
 /**
  * Configuration options for static assets
@@ -706,6 +709,25 @@ export function Worker<const B extends Bindings>(
 ): Promise<Worker<B>> {
   return _Worker(id, props as WorkerProps<B>);
 }
+
+Worker.experimentalEntrypoint = <RPC extends Rpc.WorkerEntrypointBranded>(
+  worker: Worker | WorkerRef | Self,
+  entrypoint: string,
+) => {
+  if (Scope.getScope()?.local) {
+    logger.warn(
+      "Worker.experimentalEntrypoint is not supported in local development. See: https://github.com/cloudflare/workers-sdk/issues/10681",
+    );
+  }
+  return {
+    ...worker,
+    // we rename the entrypoint in order to prevent collisions with entrypoint on Worker
+    __entrypoint__: entrypoint,
+  } as (Worker | WorkerRef) & {
+    __entrypoint__?: string;
+    __rpc__?: RPC;
+  };
+};
 
 const _Worker = Resource(
   "cloudflare::Worker",
