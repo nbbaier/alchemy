@@ -1,3 +1,24 @@
+## v0.67.0
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **cloudflare**:
+  - Add SecretRef to reference existing secrets &nbsp;-&nbsp; by **Andrew Jefferson** in https://github.com/sam-goodwin/alchemy/issues/966 [<samp>(f0dc0)</samp>](https://github.com/sam-goodwin/alchemy/commit/f0dc083d)
+  - Tunnel &nbsp;-&nbsp; by **John Royal** in https://github.com/sam-goodwin/alchemy/issues/959 [<samp>(2b2b3)</samp>](https://github.com/sam-goodwin/alchemy/commit/2b2b3710)
+  - Minify nextjs to reduce likelihood of cloudflare limits &nbsp;-&nbsp; by **Michael K** in https://github.com/sam-goodwin/alchemy/issues/972 [<samp>(fad12)</samp>](https://github.com/sam-goodwin/alchemy/commit/fad1216f)
+  - HyperdriveRef &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/971 [<samp>(84dbe)</samp>](https://github.com/sam-goodwin/alchemy/commit/84dbe727)
+  - Service binding named entrypoints &nbsp;-&nbsp; by **Michael K** in https://github.com/sam-goodwin/alchemy/issues/969 [<samp>(36e73)</samp>](https://github.com/sam-goodwin/alchemy/commit/36e73f17)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cli**: Ignore turbo.json when finding workspace root &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/965 [<samp>(5020d)</samp>](https://github.com/sam-goodwin/alchemy/commit/5020d8ab)
+- **cloudflare**: Remove ai gateway binding type &nbsp;-&nbsp; by **John Royal** in https://github.com/sam-goodwin/alchemy/issues/963 [<samp>(261f7)</samp>](https://github.com/sam-goodwin/alchemy/commit/261f7d21)
+- **core**: Commands run by scope.spawn are properly mirrored to stdio &nbsp;-&nbsp; by **Michael K** in https://github.com/sam-goodwin/alchemy/issues/942 [<samp>(100fe)</samp>](https://github.com/sam-goodwin/alchemy/commit/100fe08d)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/sam-goodwin/alchemy/compare/v0.66.0...v0.67.0)
+
+---
+
 ## v0.66.0
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
