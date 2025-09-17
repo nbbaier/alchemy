@@ -288,7 +288,7 @@ const tasks = new Listr(
                 title: "Destroy",
                 command: destroyCommand,
               },
-            ];
+            ] as const;
 
             try {
               // Delete output file from previous run
@@ -297,11 +297,18 @@ const tasks = new Listr(
               for (let i = 0; i < phases.length; i++) {
                 const phase = phases[i];
                 task.title = `${example.name} - ${phase.title} ${pc.dim(`(${i}/${phases.length - 1})`)}`;
-                await run(phase.command, {
-                  cwd: example.path,
-                  exampleName: noCaptureFlag ? undefined : example.name,
-                  env: { DO_NOT_TRACK: "1", ...phase.env },
-                });
+                const exec = () =>
+                  run(phase.command, {
+                    cwd: example.path,
+                    exampleName: noCaptureFlag ? undefined : example.name,
+                    // @ts-expect-error
+                    env: { DO_NOT_TRACK: "1", ...phase.env },
+                  });
+                if (phase.title === "Dev") {
+                  await devMutex.lock(exec);
+                } else {
+                  await exec();
+                }
                 await verifyNoLocalStateInCI(example.path);
               }
 
