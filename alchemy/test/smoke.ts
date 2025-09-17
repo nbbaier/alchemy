@@ -15,6 +15,10 @@ const alchemyDir = join(rootDir, "alchemy");
 const examplesDir = join(rootDir, "examples");
 const testsDir = join(rootDir, "tests");
 const smokeDir = join(rootDir, "..", ".smoke");
+const logsDir = join(rootDir, ".smoke.logs");
+
+await fs.mkdir(logsDir, { recursive: true });
+
 // Check for --no-capture flag
 const noCaptureFlag = process.argv.includes("--no-capture");
 
@@ -80,20 +84,28 @@ const examples = (await discoverExamples()).filter(
   (e) => !skippedExamples.includes(e.name),
 );
 
-const testIndex = process.argv.indexOf("-t");
-const testName = testIndex !== -1 ? process.argv[testIndex + 1] : undefined;
+const testFilters: string[] = [];
+const fitlerTest = (name: string) =>
+  testFilters.length === 0 ||
+  testFilters.every((filter) => name.includes(filter));
+
+for (let i = 0; i < process.argv.length; i++) {
+  if (process.argv[i] === "-t") {
+    testFilters.push(process.argv[i + 1]);
+  }
+}
 
 // Filter examples based on test name if provided
 const filteredExamples = examples.filter((e) =>
-  testName ? `example:${e.name}`.includes(testName) : true,
+  fitlerTest(`example:${e.name}`),
 );
 
 const filteredInitVariants = Object.entries(initVariants).filter(([key]) =>
-  testName ? key.includes(testName) : true,
+  fitlerTest(key),
 );
 
 const filteredCreateVariants = Object.entries(createVariants).filter(([key]) =>
-  testName ? key.includes(testName) : true,
+  fitlerTest(key),
 );
 
 // Ensure smoke directory exists
@@ -427,7 +439,7 @@ async function fileExists(path: string): Promise<boolean> {
 
 async function deleteOutputFile(exampleName: string): Promise<void> {
   if (!noCaptureFlag) {
-    const outputPath = join(smokeDir, `${exampleName}.out`);
+    const outputPath = join(logsDir, `${exampleName}.out`);
     try {
       await unlink(outputPath);
     } catch {
@@ -476,7 +488,7 @@ async function run(
     } else {
       // Stream to file
       if (!options.quiet) {
-        const outputPath = join(smokeDir, `${options.exampleName}.out`);
+        const outputPath = join(logsDir, `${options.exampleName}.out`);
         const outputStream = createWriteStream(
           outputPath,
           options.append ? { flags: "a" } : undefined,
@@ -521,7 +533,7 @@ async function run(
 }
 
 async function log(name: string, message: string) {
-  await fs.appendFile(join(smokeDir, `${name}.out`), message);
+  await fs.appendFile(join(logsDir, `${name}.out`), message);
 }
 
 async function install(projectPath: string) {
@@ -541,7 +553,7 @@ async function install(projectPath: string) {
 
 async function clearLog(variantName: string) {
   try {
-    await fs.rm(join(smokeDir, `${variantName}.out`), {
+    await fs.rm(join(logsDir, `${variantName}.out`), {
       recursive: true,
     });
   } catch (error: any) {
