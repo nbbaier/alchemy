@@ -296,15 +296,18 @@ const tasks = new Listr(
 
               for (let i = 0; i < phases.length; i++) {
                 const phase = phases[i];
-                task.title = `${example.name} - ${phase.title} ${pc.dim(`(${i}/${phases.length - 1})`)}`;
-                const exec = () =>
-                  run(phase.command, {
+                const exec = async () => {
+                  task.title = `${example.name} - ${phase.title} ${pc.dim(`(${i}/${phases.length - 1})`)}`;
+                  return run(phase.command, {
                     cwd: example.path,
                     exampleName: noCaptureFlag ? undefined : example.name,
                     // @ts-expect-error
                     env: { DO_NOT_TRACK: "1", ...phase.env },
                   });
+                };
+
                 if (phase.title === "Dev") {
+                  task.title = `${example.name} - ${phase.title} (pending) ${pc.dim(`(${i}/${phases.length - 1})`)}`;
                   await devMutex.lock(exec);
                 } else {
                   await exec();
