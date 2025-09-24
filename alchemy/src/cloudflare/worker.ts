@@ -1190,6 +1190,7 @@ async function provisionResources<B extends Bindings>(
       apiToken: props.apiToken,
       email: props.email,
       baseUrl: props.baseUrl,
+      profile: props.profile,
     } satisfies CloudflareApiOptions,
   };
 
