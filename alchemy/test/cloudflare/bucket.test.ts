@@ -493,7 +493,7 @@ describe("R2 Bucket Resource", async () => {
         truncated: false,
       });
     } finally {
-      // await destroy(scope);
+      await scope.finalize();
     }
   });
 });
@@ -559,36 +559,6 @@ async function getObject(
     `https://${r2Client.accountId}.r2.cloudflarestorage.com/${bucket.name}/${props.key}`,
   );
   return await r2Client.fetch(url, {
-    headers: withJurisdiction(bucket),
-  });
-}
-
-async function headObject(
-  bucket: R2Bucket,
-  props: {
-    key: string;
-  },
-) {
-  const url = new URL(
-    `https://${r2Client.accountId}.r2.cloudflarestorage.com/${bucket.name}/${props.key}`,
-  );
-  return await r2Client.fetch(url, {
-    method: "HEAD",
-    headers: withJurisdiction(bucket),
-  });
-}
-
-async function deleteObject(
-  bucket: R2Bucket,
-  props: {
-    key: string;
-  },
-) {
-  const url = new URL(
-    `https://${r2Client.accountId}.r2.cloudflarestorage.com/${bucket.name}/${props.key}`,
-  );
-  return await r2Client.fetch(url, {
-    method: "DELETE",
     headers: withJurisdiction(bucket),
   });
 }
