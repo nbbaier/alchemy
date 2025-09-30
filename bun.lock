@@ -35,6 +35,7 @@
         "@cloudflare/unenv-preset": "^2.6.3",
         "@iarna/toml": "^2.2.5",
         "@smithy/node-config-provider": "^4.0.0",
+        "@smithy/types": "^4.6.0",
         "aws4fetch": "^1.0.20",
         "env-paths": "^3.0.0",
         "esbuild": "^0.25.1",
