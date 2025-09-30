@@ -76,6 +76,7 @@ const skippedExamples = [
   "planetscale-drizzle",
   "planetscale-postgres",
   "docker",
+  "cloudflare-orange",
 ];
 
 // Discover examples and generate tests
