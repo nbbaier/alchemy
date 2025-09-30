@@ -94,7 +94,10 @@ export class DockerApi {
    * @param args Command arguments to pass to Docker CLI
    * @returns Result of the command
    */
-  async exec(args: string[]): Promise<{ stdout: string; stderr: string }> {
+  async exec(
+    args: string[],
+    remainingAttempts = 3,
+  ): Promise<{ stdout: string; stderr: string }> {
     // If a custom config directory is provided, ensure all commands use it by
     // setting the DOCKER_CONFIG env variable for the spawned process.
     const env = this.configDir
@@ -129,8 +132,16 @@ export class DockerApi {
     try {
       await subprocess;
     } catch (error: any) {
+      const message = stderr || error.message || "Command failed";
+      if (
+        message.includes("unexpected status from HEAD request") &&
+        remainingAttempts > 0
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        return this.exec(args, remainingAttempts - 1);
+      }
       // Process failed, but we still have the output
-      throw new Error(stderr || error.message || "Command failed");
+      throw new Error(message);
     }
 
     return { stdout, stderr };
