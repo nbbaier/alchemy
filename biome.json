@@ -36,7 +36,7 @@
       "!examples/cloudflare-nuxt-pipeline/.output/",
       "!./alchemy/lib/",
       "!**/*.gen.ts",
-      "alchemy/src/{neon,planetscale}/api/*.ts",
+      "alchemy/src/{neon,planetscale,clickhouse}/api/*.ts",
       "monorepo/**/*.ts",
       "monorepo/**/*.tsx",
       "monorepo/**/*.json"
