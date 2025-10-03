@@ -1,3 +1,20 @@
+## v0.70.2
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **cloudflare**: Add observability wrangler config types &nbsp;-&nbsp; by **utopy** in https://github.com/sam-goodwin/alchemy/issues/1052 [<samp>(2ba2e)</samp>](https://github.com/sam-goodwin/alchemy/commit/2ba2e05f)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cloudflare**:
+  - Hard-code the Permission Group mappings &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/sam-goodwin/alchemy/issues/1061 [<samp>(efda9)</samp>](https://github.com/sam-goodwin/alchemy/commit/efda9cfb)
+  - Ensure D1 migrations run on fresh installs in local dev mode &nbsp;-&nbsp; by **Jordan Coeyman** in https://github.com/sam-goodwin/alchemy/issues/897 [<samp>(8aaff)</samp>](https://github.com/sam-goodwin/alchemy/commit/8aaff1a6)
+  - Remove bindings on worker versions on delete &nbsp;-&nbsp; by **Michael K** in https://github.com/sam-goodwin/alchemy/issues/975 [<samp>(c5dd5)</samp>](https://github.com/sam-goodwin/alchemy/commit/c5dd57be)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/sam-goodwin/alchemy/compare/v0.70.1...v0.70.2)
+
+---
+
 ## v0.70.1
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
