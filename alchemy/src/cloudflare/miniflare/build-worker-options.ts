@@ -308,6 +308,10 @@ export const buildWorkerOptions = async (
         };
         break;
       }
+      case "worker_loader": {
+        (options.workerLoaders ??= {})[key] = {};
+        break;
+      }
       case "workflow": {
         (options.workflows ??= {})[key] = {
           name: binding.workflowName,
