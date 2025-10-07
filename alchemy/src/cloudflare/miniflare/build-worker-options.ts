@@ -80,11 +80,6 @@ export const buildWorkerOptions = async (
         proxy: true,
       },
     ],
-    containerEngine: {
-      localDocker: {
-        socketPath: await getDockerSocketPath(),
-      },
-    },
     // This exposes the worker as a route that can be accessed by setting the MF-Route-Override header.
     routes: [input.name],
   };
@@ -144,6 +139,11 @@ export const buildWorkerOptions = async (
           useSQLite: binding.sqlite,
           container: {
             imageName: binding.image.imageRef,
+          },
+        };
+        options.containerEngine = {
+          localDocker: {
+            socketPath: await getDockerSocketPath(),
           },
         };
         break;
