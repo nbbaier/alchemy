@@ -940,8 +940,6 @@ describe("Worker Resource", () => {
         url: true, // Enable workers.dev URL to test the worker
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
       // Verify the worker was created correctly
       expect(worker.id).toBeTruthy();
       expect(worker.name).toEqual(workerName);
@@ -949,9 +947,13 @@ describe("Worker Resource", () => {
       expect(worker.url).toBeTruthy();
 
       // Test that the worker is running correctly
-      const response = await fetchAndExpectOK(worker.url!);
-      const text = await response.text();
-      expect(text).toEqual("Hello from entrypoint file!");
+      await waitFor(
+        async () => {
+          const response = await fetchAndExpectOK(worker.url!);
+          return await response.text();
+        },
+        (text) => text === "Hello from entrypoint file!",
+      );
 
       // Test the JSON endpoint
       const jsonResponse = await fetchAndExpectOK(`${worker.url}/data`);
@@ -1001,8 +1003,14 @@ describe("Worker Resource", () => {
         expect(text).toEqual("Hello from updated entrypoint file!");
 
         // Test the updated JSON endpoint
-        const jsonResponse = await fetchAndExpectOK(`${worker.url}/data`);
-        const data: any = await jsonResponse.json();
+        const data = await waitFor(
+          async () => {
+            return (await fetchAndExpectOK(`${worker.url}/data`)).json() as any;
+          },
+          (response) =>
+            response.message === "Hello from updated bundled worker!",
+        );
+
         expect(data.message).toEqual("Hello from updated bundled worker!");
         expect(data.version).toEqual("2.0.0");
       }
