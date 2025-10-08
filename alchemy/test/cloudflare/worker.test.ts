@@ -2121,7 +2121,7 @@ describe("Worker Resource", () => {
         originalWorkerName,
       );
     } finally {
-      // await destroy(scope);
+      await destroy(scope);
     }
   });
 
