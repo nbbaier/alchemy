@@ -14,7 +14,7 @@ const test = alchemy.test(import.meta, {
 });
 
 const api = await createCloudflareApi();
-const ZONE_NAME = "alchemy-test.us";
+const ZONE_NAME = process.env.ALCHEMY_TEST_DOMAIN!;
 const zoneId = (await findZoneForHostname(api, ZONE_NAME)).zoneId;
 
 /**
