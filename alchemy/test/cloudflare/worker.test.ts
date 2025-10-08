@@ -2319,9 +2319,7 @@ describe("Worker Resource", () => {
         adopt: true,
       });
 
-      await Worker(workerName, {
-        adopt: true,
-        script: `
+      const script = `
 					export default {
 						async fetch() {
 							return new Response("");
@@ -2335,11 +2333,23 @@ describe("Worker Resource", () => {
 							}
 						},
 					};
-				`,
+				`;
+
+      await Worker(workerName, {
+        adopt: true,
+        script,
         bindings: {
           QUEUE: queue,
         },
         version: "test",
+      });
+
+      await Worker(workerName, {
+        adopt: true,
+        script,
+        bindings: {
+          QUEUE: queue,
+        },
       });
     } finally {
       await destroy(scope);
