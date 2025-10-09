@@ -1,3 +1,13 @@
+## v0.72.0
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **planetscale**: Orgref and object based resource params &nbsp;-&nbsp; by **Michael K** in https://github.com/alchemy-run/alchemy/issues/1076 [<samp>(62087)</samp>](https://github.com/alchemy-run/alchemy/commit/62087823)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/alchemy-run/alchemy/compare/v0.71.1...v0.72.0)
+
+---
+
 ## v0.71.1
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
