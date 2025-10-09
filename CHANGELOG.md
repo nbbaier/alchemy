@@ -1,3 +1,22 @@
+## v0.71.1
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **cloudflare**: HealthCheck Resource &nbsp;-&nbsp; by **Jacob M-G Evans** in https://github.com/alchemy-run/alchemy/issues/1065 [<samp>(28d1f)</samp>](https://github.com/alchemy-run/alchemy/commit/28d1fb0d)
+- **test**: Export the test vite util &nbsp;-&nbsp; by **Sam Goodwin** [<samp>(6acff)</samp>](https://github.com/alchemy-run/alchemy/commit/6acff8ea)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cloudflare**:
+  - Use remote instead of experimental_remote in wrangler.json &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/alchemy-run/alchemy/issues/1094 [<samp>(8a2e3)</samp>](https://github.com/alchemy-run/alchemy/commit/8a2e3463)
+  - Deterministic force to support monorepo &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/alchemy-run/alchemy/issues/1105 [<samp>(ccf59)</samp>](https://github.com/alchemy-run/alchemy/commit/ccf59ae9)
+- **docker**:
+  - Don’t quote docker args &nbsp;-&nbsp; by **Andrew Jefferson** in https://github.com/alchemy-run/alchemy/issues/1095 [<samp>(d1cf3)</samp>](https://github.com/alchemy-run/alchemy/commit/d1cf3661)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/alchemy-run/alchemy/compare/v0.71.0...v0.71.1)
+
+---
+
 ## v0.71.0
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
