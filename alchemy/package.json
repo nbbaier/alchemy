@@ -205,7 +205,7 @@
     "drizzle-orm": "^0.44.2",
     "rwsdk": "^0.1.36",
     "stripe": "^18.5.0",
-    "wrangler": "^4.42.2"
+    "wrangler": "catalog:"
   },
   "peerDependenciesMeta": {
     "@astrojs/cloudflare": {
