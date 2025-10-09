@@ -116,6 +116,11 @@ export interface ScopeOptions extends ProviderCredentials {
    * `undefined` if the program was not run with `--app`
    */
   isSelected?: boolean;
+  /**
+   * @internal
+   * The timestamp when the scope was started.
+   */
+  startedAt?: DOMHighResTimeStamp;
 }
 
 /**
@@ -209,6 +214,7 @@ export class Scope {
   public readonly dotAlchemy: string;
   public readonly isSelected: boolean | undefined;
   public readonly profile: string | undefined;
+  public readonly startedAt: DOMHighResTimeStamp;
 
   // Provider credentials for scope-level credential overrides
   public readonly providerCredentials: ProviderCredentials;
@@ -216,7 +222,6 @@ export class Scope {
   private isErrored = false;
   private isSkipped = false;
   private finalized = false;
-  private startedAt = performance.now();
   private deferred: (() => Promise<any>)[] = [];
   private cleanups: (() => Promise<void>)[] = [];
 
@@ -249,6 +254,7 @@ export class Scope {
       isSelected,
       noTrack,
       profile,
+      startedAt,
       ...providerCredentials
     } = options;
 
@@ -257,7 +263,7 @@ export class Scope {
     this.parent = parent ?? Scope.getScope();
     this.rootDir = rootDir ?? this.parent?.rootDir ?? ALCHEMY_ROOT;
     this.isSelected = isSelected ?? this.parent?.isSelected;
-
+    this.startedAt = startedAt ?? this.parent?.startedAt ?? performance.now();
     this.dotAlchemy =
       dotAlchemy ??
       this.parent?.dotAlchemy ??
@@ -515,10 +521,15 @@ export class Scope {
       this.parent === undefined ||
       this?.parent?.scopeName === this.root.scopeName;
     if (this.phase === "read") {
-      createAndSendEvent({
-        event: "alchemy.success",
-        duration: performance.now() - this.startedAt,
-      });
+      if (this.parent == null) {
+        await createAndSendEvent(
+          {
+            event: this.isErrored ? "alchemy.error" : "alchemy.success",
+            duration: performance.now() - this.startedAt,
+          },
+          this.isErrored ? new Error("Scope failed") : undefined,
+        );
+      }
       return;
     }
     if (this.finalized && !shouldForce) {
@@ -566,18 +577,17 @@ export class Scope {
         force: shouldForce,
         noop: options?.noop,
       });
-      createAndSendEvent({
-        event: "alchemy.success",
-        duration: performance.now() - this.startedAt,
-      });
     } else if (this.isErrored) {
       this.logger.warn("Scope is in error, skipping finalize");
-      createAndSendEvent(
+    }
+
+    if (this.parent == null) {
+      await createAndSendEvent(
         {
-          event: "alchemy.error",
+          event: this.isErrored ? "alchemy.error" : "alchemy.success",
           duration: performance.now() - this.startedAt,
         },
-        new Error("Scope failed"),
+        this.isErrored ? new Error("Scope failed") : undefined,
       );
     }
 
