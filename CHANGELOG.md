@@ -1,3 +1,16 @@
+## v0.73.0
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cloudflare**:
+  - Update Redwood defaults for v1.0.0 &nbsp;-&nbsp; by **Oscar G** in https://github.com/alchemy-run/alchemy/issues/1110 [<samp>(fe5ce)</samp>](https://github.com/alchemy-run/alchemy/commit/fe5cef70)
+  - Pass all ContainerProps to ContainerApplication &nbsp;-&nbsp; by **Andrew Jefferson** in https://github.com/alchemy-run/alchemy/issues/1108 [<samp>(5f720)</samp>](https://github.com/alchemy-run/alchemy/commit/5f720bfb)
+  - Reference @cloudflare/workers-types &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/alchemy-run/alchemy/issues/1113 [<samp>(ff2dd)</samp>](https://github.com/alchemy-run/alchemy/commit/ff2dd5b3)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/alchemy-run/alchemy/compare/v0.72.0...v0.73.0)
+
+---
+
 ## v0.72.0
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
