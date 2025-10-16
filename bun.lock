@@ -27,7 +27,7 @@
     },
     "alchemy": {
       "name": "alchemy",
-      "version": "0.74.1",
+      "version": "0.74.2",
       "bin": {
         "alchemy": "bin/alchemy.js",
       },

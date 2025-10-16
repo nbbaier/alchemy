@@ -1,3 +1,13 @@
+## v0.74.2
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **docker**: Do not mutate props in Volume &nbsp;-&nbsp; by **Sam Goodwin** [<samp>(3af75)</samp>](https://github.com/alchemy-run/alchemy/commit/3af75fbe)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/alchemy-run/alchemy/compare/v0.74.1...v0.74.2)
+
+---
+
 ## v0.74.1
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
