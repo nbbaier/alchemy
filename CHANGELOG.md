@@ -1,3 +1,13 @@
+## v0.74.1
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **core**: Fix bug where miniflare symlink did not work in a split monorepo &nbsp;-&nbsp; by **Sam Goodwin** in https://github.com/alchemy-run/alchemy/issues/1131 [<samp>(57a49)</samp>](https://github.com/alchemy-run/alchemy/commit/57a49197)
+
+##### &nbsp;&nbsp;&nbsp;&nbsp;[View changes on GitHub](https://github.com/alchemy-run/alchemy/compare/v0.74.0...v0.74.1)
+
+---
+
 ## v0.74.0
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
