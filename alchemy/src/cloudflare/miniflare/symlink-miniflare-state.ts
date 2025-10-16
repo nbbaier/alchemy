@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import path from "node:path";
+import path from "pathe";
 import { getDefaultPersistPath } from "./paths.ts";
 
 export async function writeMiniflareSymlink(rootDir: string, cwd: string) {

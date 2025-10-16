@@ -1,7 +1,7 @@
 import { log } from "@clack/prompts";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { resolve } from "node:path";
+import { resolve } from "pathe";
 import pc from "picocolors";
 import z from "zod";
 import { detectRuntime } from "../../src/util/detect-node-runtime.ts";

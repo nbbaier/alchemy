@@ -1,5 +1,5 @@
 import { cloudflare, type PluginConfig } from "@cloudflare/vite-plugin";
-import path from "node:path";
+import path from "pathe";
 import type { PluginOption } from "vite";
 import {
   getDefaultConfigPath,

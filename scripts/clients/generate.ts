@@ -3,7 +3,7 @@ import {
   defineConfig,
   type UserConfig,
 } from "@hey-api/openapi-ts";
-import path from "node:path";
+import path from "pathe";
 import { patchNeonResponseTypes } from "./neon.ts";
 
 export const clients = [
