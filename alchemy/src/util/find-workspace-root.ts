@@ -2,7 +2,13 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "pathe";
 
-export function findWorkspaceRootSync(dir: string = process.cwd()) {
+export function findWorkspaceRootSync(dir: string = process.cwd(), startDir: string = dir) {
+  const parentDir = path.resolve(dir, "..");
+
+  if (parentDir === dir) {
+    return startDir;
+  }
+
   if (fs.statSync(dir).isDirectory()) {
     if (fs.existsSync(path.join(dir, ".git"))) {
       return dir;
@@ -12,10 +18,16 @@ export function findWorkspaceRootSync(dir: string = process.cwd()) {
       return dir;
     }
   }
-  return findWorkspaceRootSync(path.resolve(dir, ".."));
+  return findWorkspaceRootSync(parentDir, startDir);
 }
 
-export async function findWorkspaceRoot(dir: string = process.cwd()) {
+export async function findWorkspaceRoot(dir: string = process.cwd(), startDir: string = dir) {
+  const parentDir = path.resolve(dir, "..");
+
+  if (parentDir === dir) {
+    return startDir;
+  }
+
   if ((await fsp.stat(dir)).isDirectory()) {
     if (await exists(dir, ".git")) {
       // the root of the git repo is usually the workspace root and we should always stop here
@@ -27,7 +39,7 @@ export async function findWorkspaceRoot(dir: string = process.cwd()) {
       return dir;
     }
   }
-  return findWorkspaceRoot(path.resolve(dir, ".."));
+  return findWorkspaceRoot(parentDir, startDir);
 }
 
 const read = (...p: string[]): Promise<any> =>
