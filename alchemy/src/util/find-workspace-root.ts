@@ -2,7 +2,10 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "pathe";
 
-export function findWorkspaceRootSync(dir: string = process.cwd(), startDir: string = dir) {
+export function findWorkspaceRootSync(
+  dir: string = process.cwd(),
+  startDir: string = dir,
+) {
   const parentDir = path.resolve(dir, "..");
 
   if (parentDir === dir) {
@@ -21,7 +24,10 @@ export function findWorkspaceRootSync(dir: string = process.cwd(), startDir: str
   return findWorkspaceRootSync(parentDir, startDir);
 }
 
-export async function findWorkspaceRoot(dir: string = process.cwd(), startDir: string = dir) {
+export async function findWorkspaceRoot(
+  dir: string = process.cwd(),
+  startDir: string = dir,
+) {
   const parentDir = path.resolve(dir, "..");
 
   if (parentDir === dir) {
